@@ -195,7 +195,7 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
           {preparedByLine && <p className="text-sm"><strong>Prepared By:</strong> {preparedByLine}</p>}
           {credentialsLine && <p className="text-sm text-gray-600">{credentialsLine}</p>}
         </div>
-        <p className="text-xs text-gray-500 mt-2">Data Sources: NYC DOB, ECB, HPD, PLUTO | For real estate transaction due diligence</p>
+        <p className="text-xs text-gray-500 mt-2">Proprietary analysis powered by BinCheckNYC</p>
       </div>
 
       {/* Property Header */}
