@@ -1,109 +1,166 @@
 
 
-# Apple-Esque Design with Red Accent + Property Guard Integration
+# Admin Role + Admin Panel for Client Support
 
-## Design Direction
+## The Problem
 
-Apple's precision and restraint, but with a sharper edge. Think Apple meets Bloomberg Terminal -- premium and confident, not soft or friendly. A bold red accent says "we mean business" while the monochromatic dark palette keeps everything clean and authoritative.
+All tables (dd_reports, saved_reports, profiles) have RLS policies that only let users see their own data. As the developer/operator, you have zero visibility into client reports. If someone calls with a question, you can't look up their report.
 
-**The vibe**: You open the app and immediately feel like this is the most serious tool in the space. Not cute, not playful -- precise, powerful, and unapologetically premium.
+## The Solution
 
----
-
-## 1. Color Palette
-
-**Dark mode:**
-- Background: `hsl(225, 12%, 7%)` -- deep space black
-- Card: `hsl(225, 10%, 10%)` -- subtle lift, not soft
-- Foreground: `hsl(0, 0%, 92%)` -- crisp off-white
-- Primary accent: `hsl(0, 85%, 55%)` -- confident red, not cherry, not pastel
-- Muted text: `hsl(220, 6%, 45%)` -- cool gray, readable
-- Borders: `hsl(225, 8%, 15%)` -- barely there, sharp
-- Score green: `hsl(145, 60%, 42%)`, yellow: `hsl(40, 80%, 52%)`, red: `hsl(0, 70%, 50%)`
-
-**Light mode:** Clean white with same red accent for consistency.
-
-**Font**: Swap Space Grotesk to **Inter** -- sharper, tighter, used by Linear/Vercel/Apple web. No rounded softness.
+Add a role-based system so admin users can see all reports and user data, while regular users continue to see only their own.
 
 ---
 
-## 2. Landing Page
+## Phase 1: Database Migration
 
-Strip it down to essentials -- no filler:
-- Large, tight-tracked headline with red accent on key phrase
-- Search bar: clean, sharp corners (rounded-lg not rounded-full), solid borders, generous padding
-- Feature cards: no borders, subtle background lift, sharp hover states
-- Subtle dot-grid or noise texture background for depth without softness
-- Minimal footer
+### Create role infrastructure
 
----
+1. Create an `app_role` enum with values: `admin`, `user`
+2. Create a `user_roles` table (user_id + role, unique constraint)
+3. Create a `has_role()` security definer function to safely check roles without recursive RLS
+4. Add RLS policies on `user_roles` so users can read their own role
 
-## 3. Report Page
+### Expand profiles table
 
-The product's centerpiece -- it should feel like a premium document:
-- Property header: full-width, clean grid layout for metadata
-- Score card: circular progress ring with the red accent, large bold number
-- Violations: clean tabbed tables with expandable rows (ported from Property Guard)
-- Summary: large stat numbers, minimal labels, no clutter
-- Actions: refined buttons, not cramped into a card
+Add columns: `company_name` (text), `phone` (text), `license_id` (text) -- useful for settings later
 
----
+### Add admin RLS policies to existing tables
 
-## 4. Property Guard Components to Port
+- `dd_reports`: New SELECT policy -- admins can view ALL reports
+- `saved_reports`: New SELECT policy -- admins can view ALL saved searches
+- `profiles`: New SELECT policy -- admins can view ALL profiles
 
-New files ported and adapted from Property Guard:
-1. `src/lib/violation-utils.ts` -- agency colors, portal URLs, status helpers
-2. `src/components/dd-reports/ExpandableViolationRow.tsx` -- expandable violation rows with notes and links
-3. `src/components/dd-reports/ExpandableApplicationRow.tsx` -- expandable application rows
-4. `src/components/dd-reports/DDReportViewer.tsx` -- full report viewer with building info, filters, tabs, notes, PDF export
-5. `src/components/dd-reports/DDReportPrintView.tsx` -- print/PDF layout with BinCheckNYC branding
-6. `src/components/dd-reports/CreateDDReportDialog.tsx` -- new report creation dialog
-7. `src/pages/DDReports.tsx` -- reports management page with status badges and search
+These use the `has_role()` function so there's no recursive RLS issue.
 
-All adapted: replace PropertyGuard branding, swap `useAuth` for direct Supabase calls, swap `useToast` for `sonner`.
+### Seed your admin role
+
+After migration, insert your user_id into `user_roles` with role = `admin`. I'll look up your user_id from the profiles table to provide the exact SQL.
 
 ---
 
-## 5. Edge Function: `generate-dd-report`
+## Phase 2: Admin Hook
 
-Ported from Property Guard with full capabilities:
-- NYC GeoSearch for address resolution
-- PLUTO data (zoning, owner, year built, landmark status)
-- Open/active violations only, stop work and vacate order detection
-- DOB NOW + BIS job applications with deduplication
-- AI risk analysis via Lovable AI (Gemini)
-- Writes to `dd_reports` table
+Create `src/hooks/useUserRole.ts`:
+- Calls `has_role` via Supabase RPC to check if current user is admin
+- Returns `{ isAdmin, isLoading }`
+- Used throughout the app to conditionally show admin features
 
 ---
 
-## 6. Database
+## Phase 3: Admin Page (`/admin`)
 
-New `dd_reports` table with columns for address, BIN, BBL, building/violations/applications/orders data (JSONB), AI analysis, notes, status, and timestamps. RLS policies restricting users to their own reports.
+A new page at `/admin` with tabs:
+
+### Users Tab
+- List all users (from profiles table) with email, display name, signup date
+- Click a user to see their reports
+
+### All Reports Tab
+- List ALL DD reports across all users with search by address or client name
+- Click any report to open it in the existing DDReportViewer
+- Shows who created each report (user email/name)
+
+### Stats Tab (simple)
+- Total users, total DD reports, reports this week/month
+
+### Access Control
+- Route protected: non-admins redirected to `/dashboard`
+- Loading state while role is being checked
 
 ---
 
-## 7. Dependencies
+## Phase 4: User Settings Page (`/settings`)
 
-- `html2pdf.js` for PDF generation
-- `react-markdown` for AI analysis rendering
+A new page at `/settings` for all authenticated users:
+
+### Profile Tab
+- Edit display name, company name, phone, license ID
+- Saves to expanded `profiles` table
+
+### Security Tab
+- Change password (for email-based users)
+
+### Account Tab
+- Sign out button
 
 ---
 
-## 8. Files Changed
+## Phase 5: Navigation Updates
+
+- Add "Settings" (gear icon) to Dashboard and DD Reports headers -- visible to all users
+- Add "Admin" link to headers -- only visible when `isAdmin` is true
+- Add routes `/admin` and `/settings` to App.tsx
+
+---
+
+## Technical Details
+
+### SQL Migration
+
+```text
+-- Role enum and table
+CREATE TYPE public.app_role AS ENUM ('admin', 'user');
+
+CREATE TABLE public.user_roles (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  role app_role NOT NULL,
+  UNIQUE (user_id, role)
+);
+
+ALTER TABLE public.user_roles ENABLE ROW LEVEL SECURITY;
+
+-- Security definer function (avoids recursive RLS)
+CREATE OR REPLACE FUNCTION public.has_role(_user_id uuid, _role app_role)
+RETURNS boolean
+LANGUAGE sql STABLE SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.user_roles
+    WHERE user_id = _user_id AND role = _role
+  )
+$$;
+
+-- RLS on user_roles
+CREATE POLICY "Users can view own roles"
+  ON public.user_roles FOR SELECT
+  TO authenticated
+  USING (auth.uid() = user_id);
+
+-- Admin policies on existing tables
+CREATE POLICY "Admins can view all dd reports"
+  ON public.dd_reports FOR SELECT
+  TO authenticated
+  USING (public.has_role(auth.uid(), 'admin'));
+
+CREATE POLICY "Admins can view all saved reports"
+  ON public.saved_reports FOR SELECT
+  TO authenticated
+  USING (public.has_role(auth.uid(), 'admin'));
+
+CREATE POLICY "Admins can view all profiles"
+  ON public.profiles FOR SELECT
+  TO authenticated
+  USING (public.has_role(auth.uid(), 'admin'));
+
+-- Expand profiles
+ALTER TABLE public.profiles
+  ADD COLUMN IF NOT EXISTS company_name text,
+  ADD COLUMN IF NOT EXISTS phone text,
+  ADD COLUMN IF NOT EXISTS license_id text;
+```
+
+### Files to Create/Modify
 
 | File | Action |
 |------|--------|
-| `src/index.css` | Red accent palette, Inter font, sharper variables |
-| `tailwind.config.ts` | Inter font family, updated score colors |
-| `src/pages/Index.tsx` | Redesign -- sharp, minimal, premium |
-| `src/pages/Report.tsx` | Redesign -- circular score, refined layout |
-| `src/pages/Dashboard.tsx` | Add DD Reports, red-accent styling |
-| `src/pages/DDReports.tsx` | New -- reports management |
-| `src/pages/Auth.tsx` | Restyle to match |
-| `src/components/report/*` | Redesign all 6 report components |
-| `src/lib/violation-utils.ts` | New -- ported from Property Guard |
-| `src/components/dd-reports/*` | New -- 5 components ported |
-| `supabase/functions/generate-dd-report/index.ts` | New -- ported edge function |
-| `src/App.tsx` | Add /dd-reports route |
-| Database migration | New dd_reports table + RLS |
+| Database migration | Role system + admin policies + profile columns |
+| `src/hooks/useUserRole.ts` | New -- checks admin status via RPC |
+| `src/pages/Admin.tsx` | New -- admin panel with users, reports, stats tabs |
+| `src/pages/Settings.tsx` | New -- user settings (profile, security, account) |
+| `src/App.tsx` | Add `/admin` and `/settings` routes |
+| `src/pages/Dashboard.tsx` | Add Settings + Admin nav links |
+| `src/pages/DDReports.tsx` | Add Settings + Admin nav links to header |
 
