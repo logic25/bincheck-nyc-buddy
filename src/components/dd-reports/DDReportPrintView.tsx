@@ -1,6 +1,5 @@
-import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
-import { getAgencyColor, getAgencyDisplayName } from '@/lib/violation-utils';
+import { getAgencyDisplayName } from '@/lib/violation-utils';
 import ReactMarkdown from 'react-markdown';
 
 interface UserProfile {
@@ -27,6 +26,7 @@ interface DDReportPrintViewProps {
     ai_analysis: string | null;
     general_notes: string | null;
     line_item_notes?: any[];
+    customer_concern?: string | null;
   };
   userProfile?: UserProfile;
 }
@@ -37,7 +37,7 @@ const generateReportId = (date: string): string => {
   const month = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');
   const seq = String(Math.floor(Math.random() * 999) + 1).padStart(3, '0');
-  return `bc-${year}-${month}-${day}-${seq}`;
+  return `BC-${year}${month}${day}-${seq}`;
 };
 
 const formatShortDate = (dateStr: string | null | undefined): string => {
@@ -57,6 +57,13 @@ const formatShortDate = (dateStr: string | null | undefined): string => {
   }
 };
 
+const formatBBL = (bbl: string | null | undefined): string => {
+  if (!bbl) return '—';
+  const clean = bbl.replace(/\D/g, '');
+  if (clean.length < 10) return bbl;
+  return `${clean.slice(0, 1)}-${clean.slice(1, 6).replace(/^0+/, '') || '0'}-${clean.slice(6, 10).replace(/^0+/, '') || '0'}`;
+};
+
 const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
   const violations = report.violations_data || [];
   const applications = report.applications_data || [];
@@ -65,22 +72,15 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
   const reportId = generateReportId(report.report_date);
   const lineItemNotes = report.line_item_notes || [];
 
-  // Build notes lookup
   const notesMap: Record<string, string> = {};
   lineItemNotes.forEach((n: any) => {
     notesMap[`${n.item_type}-${n.item_id}`] = n.note;
   });
+  const getNote = (type: string, id: string): string => notesMap[`${type}-${id}`] || '';
 
-  const getNote = (type: string, id: string): string => {
-    return notesMap[`${type}-${id}`] || '';
-  };
-
-  // Group violations by agency
   const dobViolations = violations.filter((v: any) => v.agency === 'DOB');
   const ecbViolations = violations.filter((v: any) => v.agency === 'ECB');
   const hpdViolations = violations.filter((v: any) => v.agency === 'HPD');
-
-  // Split applications
   const bisApplications = applications.filter((a: any) => a.source === 'BIS');
   const dobNowApplications = applications.filter((a: any) => a.source === 'DOB_NOW');
 
@@ -89,7 +89,7 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
     if (report.prepared_by) parts.push(report.prepared_by);
     else if (userProfile?.display_name) parts.push(userProfile.display_name);
     if (userProfile?.company_name) parts.push(userProfile.company_name);
-    return parts.join(', ');
+    return parts.join(' · ');
   };
 
   const buildCredentialsLine = () => {
@@ -105,40 +105,43 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
 
   const cleanFloorApt = (floor: string | null | undefined, apt: string | null | undefined): string => {
     const parts: string[] = [];
-    if (floor && floor.trim().length > 0 && !['N/A', 'NA', '-', '--'].includes(floor.trim().toUpperCase())) {
-      parts.push(floor.trim());
-    }
-    if (apt && apt.trim().length > 0 && !['N/A', 'NA', '-', '--'].includes(apt.trim().toUpperCase())) {
-      parts.push(apt.trim());
-    }
+    if (floor && floor.trim().length > 0 && !['N/A', 'NA', '-', '--'].includes(floor.trim().toUpperCase())) parts.push(floor.trim());
+    if (apt && apt.trim().length > 0 && !['N/A', 'NA', '-', '--'].includes(apt.trim().toUpperCase())) parts.push(apt.trim());
     return parts.join(' / ') || '—';
   };
+
+  const sectionHeaderStyle = "text-[13px] font-bold uppercase tracking-[0.08em] text-gray-900 border-b-2 border-gray-900 pb-1.5 mb-4";
+  const tableCellStyle = "border border-gray-200 px-2 py-1.5 text-[11px]";
+  const tableHeaderStyle = "border border-gray-200 px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-gray-600 bg-gray-50";
 
   const renderViolationGroup = (agencyViolations: any[], agencyName: string) => {
     if (agencyViolations.length === 0) return null;
     return (
-      <div className="mb-4">
-        <h4 className="text-sm font-bold mb-1">{agencyName} Violations — {agencyViolations.length}</h4>
-        <table className="w-full text-xs border-collapse">
+      <div className="mb-5">
+        <div className="flex items-center justify-between mb-2">
+          <h4 className="text-[12px] font-bold text-gray-800">{agencyName} Violations</h4>
+          <span className="text-[10px] font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded">{agencyViolations.length} items</span>
+        </div>
+        <table className="w-full border-collapse">
           <thead>
-            <tr className="bg-gray-100">
-              <th className="border p-1.5 text-left">Violation #</th>
-              <th className="border p-1.5 text-left">Type / Description</th>
-              <th className="border p-1.5 text-left">Severity</th>
-              <th className="border p-1.5 text-left">Issued</th>
-              <th className="border p-1.5 text-left">Status</th>
-              <th className="border p-1.5 text-left w-[30%]">Notes</th>
+            <tr>
+              <th className={tableHeaderStyle}>Violation #</th>
+              <th className={tableHeaderStyle}>Type / Description</th>
+              <th className={tableHeaderStyle}>Severity</th>
+              <th className={tableHeaderStyle}>Issued</th>
+              <th className={tableHeaderStyle}>Status</th>
+              <th className={`${tableHeaderStyle} w-[28%]`}>Notes</th>
             </tr>
           </thead>
           <tbody>
             {agencyViolations.slice(0, 50).map((v: any, idx: number) => (
-              <tr key={idx}>
-                <td className="border p-1.5 font-mono">{v.violation_number}</td>
-                <td className="border p-1.5 max-w-[180px]">{(v.violation_type || v.description_raw || '—').slice(0, 60)}</td>
-                <td className="border p-1.5">{v.severity || v.violation_class || '—'}</td>
-                <td className="border p-1.5">{formatShortDate(v.issued_date)}</td>
-                <td className="border p-1.5">{v.status}</td>
-                <td className="border p-1.5 text-gray-600 italic">{getNote('violation', v.id || v.violation_number)}</td>
+              <tr key={idx} className={idx % 2 === 0 ? '' : 'bg-gray-50/50'}>
+                <td className={`${tableCellStyle} font-mono text-[10px]`}>{v.violation_number}</td>
+                <td className={`${tableCellStyle} max-w-[160px]`}>{(v.violation_type || v.description_raw || '—').slice(0, 55)}</td>
+                <td className={tableCellStyle}>{v.severity || v.violation_class || '—'}</td>
+                <td className={`${tableCellStyle} whitespace-nowrap`}>{formatShortDate(v.issued_date)}</td>
+                <td className={tableCellStyle}>{v.status}</td>
+                <td className={`${tableCellStyle} text-gray-600`}>{getNote('violation', v.id || v.violation_number)}</td>
               </tr>
             ))}
           </tbody>
@@ -150,28 +153,31 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
   const renderApplicationsTable = (apps: any[], title: string) => {
     if (apps.length === 0) return null;
     return (
-      <div className="mb-4">
-        <h4 className="text-sm font-bold mb-1">{title} — {apps.length}</h4>
-        <table className="w-full text-xs border-collapse">
+      <div className="mb-5">
+        <div className="flex items-center justify-between mb-2">
+          <h4 className="text-[12px] font-bold text-gray-800">{title}</h4>
+          <span className="text-[10px] font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded">{apps.length} items</span>
+        </div>
+        <table className="w-full border-collapse">
           <thead>
-            <tr className="bg-gray-100">
-              <th className="border p-1.5 text-left">Application #</th>
-              <th className="border p-1.5 text-left">Date Filed</th>
-              <th className="border p-1.5 text-left">Floor/Apt</th>
-              <th className="border p-1.5 text-left">Description</th>
-              <th className="border p-1.5 text-left w-[25%]">Notes</th>
+            <tr>
+              <th className={tableHeaderStyle}>Application #</th>
+              <th className={tableHeaderStyle}>Date Filed</th>
+              <th className={tableHeaderStyle}>Floor/Apt</th>
+              <th className={tableHeaderStyle}>Description</th>
+              <th className={`${tableHeaderStyle} w-[24%]`}>Notes</th>
             </tr>
           </thead>
           <tbody>
             {apps.slice(0, 30).map((app: any, idx: number) => {
               const appKey = `${app.source || 'BIS'}-${app.id || app.application_number || idx}`;
               return (
-                <tr key={idx}>
-                  <td className="border p-1.5 font-mono">{app.application_number || app.job_number}</td>
-                  <td className="border p-1.5">{formatShortDate(app.filing_date)}</td>
-                  <td className="border p-1.5">{cleanFloorApt(app.floor, app.apartment)}</td>
-                  <td className="border p-1.5 max-w-[200px]">{(app.job_description || '—').slice(0, 80)}</td>
-                  <td className="border p-1.5 text-gray-600 italic">{getNote('application', appKey)}</td>
+                <tr key={idx} className={idx % 2 === 0 ? '' : 'bg-gray-50/50'}>
+                  <td className={`${tableCellStyle} font-mono text-[10px]`}>{app.application_number || app.job_number}</td>
+                  <td className={`${tableCellStyle} whitespace-nowrap`}>{formatShortDate(app.filing_date)}</td>
+                  <td className={tableCellStyle}>{cleanFloorApt(app.floor, app.apartment)}</td>
+                  <td className={`${tableCellStyle} max-w-[200px]`}>{(app.job_description || '—').slice(0, 70)}</td>
+                  <td className={`${tableCellStyle} text-gray-600`}>{getNote('application', appKey)}</td>
                 </tr>
               );
             })}
@@ -182,93 +188,119 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
   };
 
   return (
-    <div className="print-container bg-white text-black p-8 max-w-4xl mx-auto" style={{ fontFamily: 'Inter, Arial, sans-serif' }}>
-      {/* Header */}
-      <div className="border-b-2 border-black pb-4 mb-6">
-        <div className="text-center mb-4">
-          <h1 className="text-2xl font-bold">BinCheckNYC Due Diligence Report</h1>
-          <p className="text-sm text-gray-600 mt-1">
-            Generated: {format(new Date(report.report_date), 'MMMM d, yyyy')} | Report ID: {reportId}
-          </p>
+    <div className="print-container bg-white text-black p-8 max-w-4xl mx-auto" style={{ fontFamily: "'Inter', 'Helvetica Neue', Arial, sans-serif", fontSize: '12px', lineHeight: '1.5' }}>
+      {/* Letterhead */}
+      <div className="mb-8">
+        <div className="flex items-start justify-between border-b-2 border-gray-900 pb-4">
+          <div>
+            <h1 className="text-[22px] font-extrabold tracking-tight text-gray-900">Due Diligence Report</h1>
+            <p className="text-[11px] text-gray-500 mt-0.5 font-medium tracking-wide uppercase">Property Compliance Assessment</p>
+          </div>
+          <div className="text-right">
+            <p className="text-[13px] font-bold text-gray-900">BinCheck<span className="text-red-600">NYC</span></p>
+            <p className="text-[10px] text-gray-500 mt-1">Report ID: {reportId}</p>
+            <p className="text-[10px] text-gray-500">{format(new Date(report.report_date), 'MMMM d, yyyy')}</p>
+          </div>
         </div>
-        <div className="mt-4 pt-3 border-t border-gray-200">
-          {preparedByLine && <p className="text-sm"><strong>Prepared By:</strong> {preparedByLine}</p>}
-          {credentialsLine && <p className="text-sm text-gray-600">{credentialsLine}</p>}
+        {/* Meta Row */}
+        <div className="grid grid-cols-2 gap-6 mt-4 text-[11px]">
+          <div>
+            <p className="text-gray-500 text-[10px] uppercase tracking-wider font-semibold mb-0.5">Prepared For</p>
+            <p className="font-medium text-gray-900">{report.prepared_for}</p>
+          </div>
+          <div className="text-right">
+            <p className="text-gray-500 text-[10px] uppercase tracking-wider font-semibold mb-0.5">Prepared By</p>
+            <p className="font-medium text-gray-900">{preparedByLine || '—'}</p>
+            {credentialsLine && <p className="text-gray-500 text-[10px] mt-0.5">{credentialsLine}</p>}
+          </div>
         </div>
-        <p className="text-xs text-gray-500 mt-2">Proprietary analysis powered by BinCheckNYC</p>
       </div>
 
-      {/* Property Header */}
-      <div className="mb-6">
-        <h2 className="text-xl font-bold">{report.address}</h2>
-        <div className="flex justify-between mt-2 text-sm">
-          <p><strong>Prepared For:</strong> {report.prepared_for}</p>
-          <p><strong>BIN:</strong> {report.bin || '—'} | <strong>BBL:</strong> {report.bbl || '—'}</p>
+      {/* Subject Property */}
+      <div className="mb-6 p-4 bg-gray-50 rounded border border-gray-200">
+        <div className="flex items-start justify-between">
+          <div>
+            <p className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold mb-0.5">Subject Property</p>
+            <p className="text-[15px] font-bold text-gray-900">{report.address}</p>
+          </div>
+          <div className="text-right text-[11px]">
+            <p><span className="text-gray-500">BIN:</span> <span className="font-mono font-medium">{report.bin || '—'}</span></p>
+            <p><span className="text-gray-500">BBL:</span> <span className="font-mono font-medium">{formatBBL(report.bbl)}</span></p>
+          </div>
         </div>
+        {(report as any).customer_concern && (
+          <div className="mt-3 pt-3 border-t border-gray-200">
+            <p className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold mb-0.5">Scope of Review</p>
+            <p className="text-[11px] text-gray-700 italic">"{(report as any).customer_concern}"</p>
+          </div>
+        )}
       </div>
 
       {/* Building Information */}
       <section className="mb-6">
-        <h3 className="text-lg font-bold border-b border-gray-300 pb-1 mb-3">Building Information</h3>
-        <div className="grid grid-cols-4 gap-4 text-sm">
-          <div><strong>Year Built:</strong> {building.year_built || '—'}</div>
-          <div><strong>Dwelling Units:</strong> {building.dwelling_units || '—'}</div>
-          <div><strong>Zoning:</strong> {building.zoning_district || '—'}</div>
-          <div><strong>Building Area:</strong> {building.building_area_sqft ? `${building.building_area_sqft.toLocaleString()} sqft` : '—'}</div>
-          <div><strong>Landmark:</strong> {building.is_landmark ? 'Yes' : 'No'}</div>
-          <div><strong>Owner:</strong> {building.owner_name || '—'}</div>
+        <h3 className={sectionHeaderStyle}>Building Information</h3>
+        <div className="grid grid-cols-4 gap-x-6 gap-y-2 text-[11px]">
+          {[
+            ['Year Built', building.year_built || '—'],
+            ['Dwelling Units', building.dwelling_units || '—'],
+            ['Zoning', building.zoning_district || '—'],
+            ['Building Area', building.building_area_sqft ? `${building.building_area_sqft.toLocaleString()} sqft` : '—'],
+            ['Stories', building.stories || '—'],
+            ['Landmark', building.is_landmark ? 'Yes' : 'No'],
+            ['Owner', building.owner_name || '—'],
+            ['Building Class', building.building_class || '—'],
+          ].map(([label, value], i) => (
+            <div key={i}>
+              <span className="text-gray-500">{label}:</span>{' '}
+              <span className="font-medium">{value}</span>
+            </div>
+          ))}
         </div>
       </section>
 
-      {/* Summary Stats */}
+      {/* Summary */}
       <section className="mb-6">
-        <h3 className="text-lg font-bold border-b border-gray-300 pb-1 mb-3">Compliance Summary</h3>
-        <div className="grid grid-cols-4 gap-4 text-center">
-          <div className="p-3 border rounded">
-            <div className="text-2xl font-bold">{violations.length}</div>
-            <div className="text-sm">Open Violations</div>
-            <div className="text-xs text-gray-500 mt-1">DOB: {dobViolations.length} | ECB: {ecbViolations.length} | HPD: {hpdViolations.length}</div>
-          </div>
-          <div className="p-3 border rounded">
-            <div className="text-2xl font-bold">{applications.length}</div>
-            <div className="text-sm">Applications</div>
-            <div className="text-xs text-gray-500 mt-1">BIS: {bisApplications.length} | DOB NOW: {dobNowApplications.length}</div>
-          </div>
-          <div className="p-3 border rounded">
-            <div className="text-2xl font-bold text-red-600">{orders.stop_work?.length || 0}</div>
-            <div className="text-sm">Stop Work Orders</div>
-          </div>
-          <div className="p-3 border rounded">
-            <div className="text-2xl font-bold text-red-600">{orders.vacate?.length || 0}</div>
-            <div className="text-sm">Vacate Orders</div>
-          </div>
+        <h3 className={sectionHeaderStyle}>Compliance Summary</h3>
+        <div className="grid grid-cols-4 gap-3">
+          {[
+            { label: 'Open Violations', value: violations.length, sub: `DOB: ${dobViolations.length} | ECB: ${ecbViolations.length} | HPD: ${hpdViolations.length}` },
+            { label: 'Applications', value: applications.length, sub: `BIS: ${bisApplications.length} | DOB NOW: ${dobNowApplications.length}` },
+            { label: 'Stop Work Orders', value: orders.stop_work?.length || 0, danger: (orders.stop_work?.length || 0) > 0 },
+            { label: 'Vacate Orders', value: orders.vacate?.length || 0, danger: (orders.vacate?.length || 0) > 0 },
+          ].map((item, i) => (
+            <div key={i} className={`p-3 border rounded text-center ${item.danger ? 'border-red-300 bg-red-50' : 'border-gray-200'}`}>
+              <div className={`text-[20px] font-bold ${item.danger ? 'text-red-600' : 'text-gray-900'}`}>{item.value}</div>
+              <div className="text-[10px] font-medium text-gray-600">{item.label}</div>
+              {item.sub && <div className="text-[9px] text-gray-400 mt-1">{item.sub}</div>}
+            </div>
+          ))}
         </div>
       </section>
 
       {/* Critical Orders */}
       {(orders.stop_work?.length > 0 || orders.vacate?.length > 0) && (
         <section className="mb-6">
-          <h3 className="text-lg font-bold border-b border-gray-300 pb-1 mb-3 text-red-600">⚠ Active Orders</h3>
+          <h3 className={`${sectionHeaderStyle} text-red-700 border-red-700`}>⚠ Active Orders</h3>
           {orders.stop_work?.map((order: any, idx: number) => (
-            <div key={`swo-${idx}`} className="p-3 mb-2 border border-red-300 bg-red-50 rounded">
-              <p className="font-bold">Stop Work Order - {formatShortDate(order.issued_date)}</p>
-              <p className="text-sm">{order.description || 'No description available'}</p>
+            <div key={`swo-${idx}`} className="p-3 mb-2 border border-red-200 bg-red-50 rounded">
+              <p className="font-bold text-[11px] text-red-800">Stop Work Order — {formatShortDate(order.issued_date)}</p>
+              <p className="text-[11px] text-gray-700">{order.description || 'No description available'}</p>
             </div>
           ))}
           {orders.vacate?.map((order: any, idx: number) => (
-            <div key={`vacate-${idx}`} className="p-3 mb-2 border border-red-300 bg-red-50 rounded">
-              <p className="font-bold">Vacate Order - {formatShortDate(order.issued_date)}</p>
-              <p className="text-sm">{order.description || 'No description available'}</p>
+            <div key={`vacate-${idx}`} className="p-3 mb-2 border border-red-200 bg-red-50 rounded">
+              <p className="font-bold text-[11px] text-red-800">Vacate Order — {formatShortDate(order.issued_date)}</p>
+              <p className="text-[11px] text-gray-700">{order.description || 'No description available'}</p>
             </div>
           ))}
         </section>
       )}
 
-      {/* Violations - Grouped by Agency */}
+      {/* Violations by Agency */}
       <section className="mb-6">
-        <h3 className="text-lg font-bold border-b border-gray-300 pb-1 mb-3">Open Violations ({violations.length})</h3>
+        <h3 className={sectionHeaderStyle}>Open Violations ({violations.length})</h3>
         {violations.length === 0 ? (
-          <p className="text-sm text-gray-500">No open violations found.</p>
+          <p className="text-[11px] text-gray-500 italic">No open violations found.</p>
         ) : (
           <>
             {renderViolationGroup(dobViolations, 'DOB')}
@@ -278,11 +310,11 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
         )}
       </section>
 
-      {/* Applications - Split BIS / DOB NOW */}
+      {/* Applications */}
       <section className="mb-6">
-        <h3 className="text-lg font-bold border-b border-gray-300 pb-1 mb-3">Permit Applications ({applications.length})</h3>
+        <h3 className={sectionHeaderStyle}>Permit Applications ({applications.length})</h3>
         {applications.length === 0 ? (
-          <p className="text-sm text-gray-500">No applications found.</p>
+          <p className="text-[11px] text-gray-500 italic">No applications found.</p>
         ) : (
           <>
             {renderApplicationsTable(bisApplications, 'BIS Applications')}
@@ -291,21 +323,21 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
         )}
       </section>
 
-      {/* AI Analysis */}
+      {/* AI Analysis / Conclusion */}
       {report.ai_analysis && (
         <section className="mb-6">
-          <h3 className="text-lg font-bold border-b border-gray-300 pb-1 mb-3">Risk Assessment</h3>
-          <div className="text-sm prose prose-sm max-w-none">
+          <h3 className={sectionHeaderStyle}>Risk Assessment & Conclusion</h3>
+          <div className="text-[11px] leading-relaxed">
             <ReactMarkdown
               components={{
-                h1: ({ children }) => <h1 className="text-lg font-bold mt-4 mb-2">{children}</h1>,
-                h2: ({ children }) => <h2 className="text-base font-bold mt-3 mb-2">{children}</h2>,
-                h3: ({ children }) => <h3 className="text-sm font-bold mt-2 mb-1">{children}</h3>,
-                p: ({ children }) => <p className="mb-2">{children}</p>,
+                h1: ({ children }) => <h1 className="text-[14px] font-bold mt-4 mb-2 text-gray-900">{children}</h1>,
+                h2: ({ children }) => <h2 className="text-[13px] font-bold mt-3 mb-1.5 text-gray-900">{children}</h2>,
+                h3: ({ children }) => <h3 className="text-[12px] font-bold mt-2 mb-1 text-gray-800">{children}</h3>,
+                p: ({ children }) => <p className="mb-2 text-gray-700">{children}</p>,
                 ul: ({ children }) => <ul className="list-disc ml-4 mb-2">{children}</ul>,
                 ol: ({ children }) => <ol className="list-decimal ml-4 mb-2">{children}</ol>,
-                li: ({ children }) => <li className="mb-1">{children}</li>,
-                strong: ({ children }) => <strong className="font-bold">{children}</strong>,
+                li: ({ children }) => <li className="mb-0.5 text-gray-700">{children}</li>,
+                strong: ({ children }) => <strong className="font-bold text-gray-900">{children}</strong>,
               }}
             >
               {report.ai_analysis}
@@ -317,26 +349,27 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
       {/* General Notes */}
       {report.general_notes && (
         <section className="mb-6">
-          <h3 className="text-lg font-bold border-b border-gray-300 pb-1 mb-3">Notes</h3>
-          <p className="text-sm whitespace-pre-wrap">{report.general_notes}</p>
+          <h3 className={sectionHeaderStyle}>Notes</h3>
+          <p className="text-[11px] whitespace-pre-wrap text-gray-700">{report.general_notes}</p>
         </section>
       )}
 
       {/* Footer */}
-      <footer className="mt-8 pt-4 border-t-2 border-black">
-        <div className="text-center mb-4">
-          <p className="font-bold text-sm">DISCLAIMER</p>
-        </div>
-        <p className="text-xs text-gray-600 mb-4 text-justify leading-relaxed">
+      <footer className="mt-10 pt-4 border-t-2 border-gray-900">
+        <p className="text-[9px] font-bold uppercase tracking-widest text-gray-500 mb-2 text-center">Disclaimer</p>
+        <p className="text-[9px] text-gray-500 text-justify leading-[1.6]">
           This report is provided for informational purposes only in connection with real estate due diligence
-          and does not constitute legal, financial, or investment advice. Data is sourced from NYC Department
-          of Buildings, ECB, HPD, and public records, which may contain errors, omissions, or delays.
+          and does not constitute legal, financial, or investment advice. Information is derived from publicly
+          available municipal records which may contain errors, omissions, or delays.
           BinCheckNYC{userProfile?.company_name ? ` and ${userProfile.company_name}` : ''} make no warranties
           regarding accuracy or completeness. All parties should independently verify information and consult
           with licensed attorneys and professionals before closing any transaction.
         </p>
-        <div className="text-center text-xs text-gray-500 pt-3 border-t border-gray-200">
-          <p className="font-medium">© {new Date().getFullYear()} BinCheckNYC{userProfile?.company_name ? ` | ${userProfile.company_name}` : ''}</p>
+        <div className="text-center mt-4 pt-3 border-t border-gray-200">
+          <p className="text-[10px] font-semibold text-gray-600">
+            © {new Date().getFullYear()} BinCheckNYC{userProfile?.company_name ? ` · ${userProfile.company_name}` : ''}
+          </p>
+          <p className="text-[9px] text-gray-400 mt-0.5">Proprietary analysis · All rights reserved</p>
         </div>
       </footer>
     </div>
