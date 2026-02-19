@@ -1,0 +1,1 @@
+ALTER TABLE public.dd_reports ADD COLUMN IF NOT EXISTS customer_concern text;

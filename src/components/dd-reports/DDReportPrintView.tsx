@@ -26,6 +26,7 @@ interface DDReportPrintViewProps {
     orders_data: any;
     ai_analysis: string | null;
     general_notes: string | null;
+    line_item_notes?: any[];
   };
   userProfile?: UserProfile;
 }
@@ -62,6 +63,26 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
   const orders = report.orders_data || { stop_work: [], vacate: [] };
   const building = report.building_data || {};
   const reportId = generateReportId(report.report_date);
+  const lineItemNotes = report.line_item_notes || [];
+
+  // Build notes lookup
+  const notesMap: Record<string, string> = {};
+  lineItemNotes.forEach((n: any) => {
+    notesMap[`${n.item_type}-${n.item_id}`] = n.note;
+  });
+
+  const getNote = (type: string, id: string): string => {
+    return notesMap[`${type}-${id}`] || '';
+  };
+
+  // Group violations by agency
+  const dobViolations = violations.filter((v: any) => v.agency === 'DOB');
+  const ecbViolations = violations.filter((v: any) => v.agency === 'ECB');
+  const hpdViolations = violations.filter((v: any) => v.agency === 'HPD');
+
+  // Split applications
+  const bisApplications = applications.filter((a: any) => a.source === 'BIS');
+  const dobNowApplications = applications.filter((a: any) => a.source === 'DOB_NOW');
 
   const buildPreparedByLine = () => {
     const parts: string[] = [];
@@ -81,6 +102,84 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
 
   const preparedByLine = buildPreparedByLine();
   const credentialsLine = buildCredentialsLine();
+
+  const cleanFloorApt = (floor: string | null | undefined, apt: string | null | undefined): string => {
+    const parts: string[] = [];
+    if (floor && floor.trim().length > 0 && !['N/A', 'NA', '-', '--'].includes(floor.trim().toUpperCase())) {
+      parts.push(floor.trim());
+    }
+    if (apt && apt.trim().length > 0 && !['N/A', 'NA', '-', '--'].includes(apt.trim().toUpperCase())) {
+      parts.push(apt.trim());
+    }
+    return parts.join(' / ') || '—';
+  };
+
+  const renderViolationGroup = (agencyViolations: any[], agencyName: string) => {
+    if (agencyViolations.length === 0) return null;
+    return (
+      <div className="mb-4">
+        <h4 className="text-sm font-bold mb-1">{agencyName} Violations — {agencyViolations.length}</h4>
+        <table className="w-full text-xs border-collapse">
+          <thead>
+            <tr className="bg-gray-100">
+              <th className="border p-1.5 text-left">Violation #</th>
+              <th className="border p-1.5 text-left">Type / Description</th>
+              <th className="border p-1.5 text-left">Severity</th>
+              <th className="border p-1.5 text-left">Issued</th>
+              <th className="border p-1.5 text-left">Status</th>
+              <th className="border p-1.5 text-left w-[30%]">Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            {agencyViolations.slice(0, 50).map((v: any, idx: number) => (
+              <tr key={idx}>
+                <td className="border p-1.5 font-mono">{v.violation_number}</td>
+                <td className="border p-1.5 max-w-[180px]">{(v.violation_type || v.description_raw || '—').slice(0, 60)}</td>
+                <td className="border p-1.5">{v.severity || v.violation_class || '—'}</td>
+                <td className="border p-1.5">{formatShortDate(v.issued_date)}</td>
+                <td className="border p-1.5">{v.status}</td>
+                <td className="border p-1.5 text-gray-600 italic">{getNote('violation', v.id || v.violation_number)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  };
+
+  const renderApplicationsTable = (apps: any[], title: string) => {
+    if (apps.length === 0) return null;
+    return (
+      <div className="mb-4">
+        <h4 className="text-sm font-bold mb-1">{title} — {apps.length}</h4>
+        <table className="w-full text-xs border-collapse">
+          <thead>
+            <tr className="bg-gray-100">
+              <th className="border p-1.5 text-left">Application #</th>
+              <th className="border p-1.5 text-left">Date Filed</th>
+              <th className="border p-1.5 text-left">Floor/Apt</th>
+              <th className="border p-1.5 text-left">Description</th>
+              <th className="border p-1.5 text-left w-[25%]">Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            {apps.slice(0, 30).map((app: any, idx: number) => {
+              const appKey = `${app.source || 'BIS'}-${app.id || app.application_number || idx}`;
+              return (
+                <tr key={idx}>
+                  <td className="border p-1.5 font-mono">{app.application_number || app.job_number}</td>
+                  <td className="border p-1.5">{formatShortDate(app.filing_date)}</td>
+                  <td className="border p-1.5">{cleanFloorApt(app.floor, app.apartment)}</td>
+                  <td className="border p-1.5 max-w-[200px]">{(app.job_description || '—').slice(0, 80)}</td>
+                  <td className="border p-1.5 text-gray-600 italic">{getNote('application', appKey)}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    );
+  };
 
   return (
     <div className="print-container bg-white text-black p-8 max-w-4xl mx-auto" style={{ fontFamily: 'Inter, Arial, sans-serif' }}>
@@ -128,10 +227,12 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
           <div className="p-3 border rounded">
             <div className="text-2xl font-bold">{violations.length}</div>
             <div className="text-sm">Open Violations</div>
+            <div className="text-xs text-gray-500 mt-1">DOB: {dobViolations.length} | ECB: {ecbViolations.length} | HPD: {hpdViolations.length}</div>
           </div>
           <div className="p-3 border rounded">
             <div className="text-2xl font-bold">{applications.length}</div>
             <div className="text-sm">Applications</div>
+            <div className="text-xs text-gray-500 mt-1">BIS: {bisApplications.length} | DOB NOW: {dobNowApplications.length}</div>
           </div>
           <div className="p-3 border rounded">
             <div className="text-2xl font-bold text-red-600">{orders.stop_work?.length || 0}</div>
@@ -163,6 +264,33 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
         </section>
       )}
 
+      {/* Violations - Grouped by Agency */}
+      <section className="mb-6">
+        <h3 className="text-lg font-bold border-b border-gray-300 pb-1 mb-3">Open Violations ({violations.length})</h3>
+        {violations.length === 0 ? (
+          <p className="text-sm text-gray-500">No open violations found.</p>
+        ) : (
+          <>
+            {renderViolationGroup(dobViolations, 'DOB')}
+            {renderViolationGroup(ecbViolations, 'ECB')}
+            {renderViolationGroup(hpdViolations, 'HPD')}
+          </>
+        )}
+      </section>
+
+      {/* Applications - Split BIS / DOB NOW */}
+      <section className="mb-6">
+        <h3 className="text-lg font-bold border-b border-gray-300 pb-1 mb-3">Permit Applications ({applications.length})</h3>
+        {applications.length === 0 ? (
+          <p className="text-sm text-gray-500">No applications found.</p>
+        ) : (
+          <>
+            {renderApplicationsTable(bisApplications, 'BIS Applications')}
+            {renderApplicationsTable(dobNowApplications, 'DOB NOW Build Applications')}
+          </>
+        )}
+      </section>
+
       {/* AI Analysis */}
       {report.ai_analysis && (
         <section className="mb-6">
@@ -185,72 +313,6 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
           </div>
         </section>
       )}
-
-      {/* Violations Table */}
-      <section className="mb-6">
-        <h3 className="text-lg font-bold border-b border-gray-300 pb-1 mb-3">Open Violations ({violations.length})</h3>
-        {violations.length === 0 ? (
-          <p className="text-sm text-gray-500">No open violations found.</p>
-        ) : (
-          <table className="w-full text-xs border-collapse">
-            <thead>
-              <tr className="bg-gray-100">
-                <th className="border p-2 text-left">Violation #</th>
-                <th className="border p-2 text-left">Agency</th>
-                <th className="border p-2 text-left">Type</th>
-                <th className="border p-2 text-left">Severity</th>
-                <th className="border p-2 text-left">Issued</th>
-                <th className="border p-2 text-left">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {violations.slice(0, 50).map((v: any, idx: number) => (
-                <tr key={idx}>
-                  <td className="border p-2 font-mono">{v.violation_number}</td>
-                  <td className="border p-2">{v.agency}</td>
-                  <td className="border p-2 max-w-[200px] truncate">{v.violation_type || v.description_raw || '—'}</td>
-                  <td className="border p-2">{v.severity || '—'}</td>
-                  <td className="border p-2">{formatShortDate(v.issued_date)}</td>
-                  <td className="border p-2">{v.status}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </section>
-
-      {/* Applications Table */}
-      <section className="mb-6">
-        <h3 className="text-lg font-bold border-b border-gray-300 pb-1 mb-3">Permit Applications ({applications.length})</h3>
-        {applications.length === 0 ? (
-          <p className="text-sm text-gray-500">No applications found.</p>
-        ) : (
-          <table className="w-full text-xs border-collapse">
-            <thead>
-              <tr className="bg-gray-100">
-                <th className="border p-2 text-left">Application #</th>
-                <th className="border p-2 text-left">Source</th>
-                <th className="border p-2 text-left">Type</th>
-                <th className="border p-2 text-left">Status</th>
-                <th className="border p-2 text-left">Filed</th>
-                <th className="border p-2 text-left">Est. Cost</th>
-              </tr>
-            </thead>
-            <tbody>
-              {applications.slice(0, 30).map((app: any, idx: number) => (
-                <tr key={idx}>
-                  <td className="border p-2 font-mono">{app.application_number}</td>
-                  <td className="border p-2">{app.source}</td>
-                  <td className="border p-2">{app.application_type || app.job_type || '—'}</td>
-                  <td className="border p-2">{app.status || '—'}</td>
-                  <td className="border p-2">{formatShortDate(app.filing_date)}</td>
-                  <td className="border p-2">{app.estimated_cost ? `$${Number(app.estimated_cost).toLocaleString()}` : '—'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </section>
 
       {/* General Notes */}
       {report.general_notes && (

@@ -81,10 +81,13 @@ const ExpandableViolationRow = ({ violation, index, note, onNoteChange, bbl }: E
             {violation.status}
           </Badge>
         </TableCell>
+        <TableCell className="max-w-[200px] text-xs text-muted-foreground truncate" title={note || ''}>
+          {note || <span className="italic opacity-50">—</span>}
+        </TableCell>
       </TableRow>
       {isOpen && (
         <TableRow className="bg-muted/30 hover:bg-muted/30">
-          <TableCell colSpan={7} className="p-4">
+          <TableCell colSpan={8} className="p-4">
             <div className="space-y-4">
               {violation.description_raw && (
                 <div>
