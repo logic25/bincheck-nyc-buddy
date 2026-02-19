@@ -12,6 +12,7 @@ interface ExpandableViolationRowProps {
   note: string;
   onNoteChange: (note: string) => void;
   bbl?: string | null;
+  readOnly?: boolean;
 }
 
 const formatDate = (dateStr: string | null | undefined): string => {
@@ -31,7 +32,7 @@ const formatDate = (dateStr: string | null | undefined): string => {
   }
 };
 
-const ExpandableViolationRow = ({ violation, index, note, onNoteChange, bbl }: ExpandableViolationRowProps) => {
+const ExpandableViolationRow = ({ violation, index, note, onNoteChange, bbl, readOnly = false }: ExpandableViolationRowProps) => {
   const [isOpen, setIsOpen] = useState(false);
 
   const getSeverityVariant = (severity: string) => {
@@ -134,8 +135,11 @@ const ExpandableViolationRow = ({ violation, index, note, onNoteChange, bbl }: E
                   value={note}
                   onChange={(e) => onNoteChange(e.target.value)}
                   onClick={(e) => e.stopPropagation()}
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onFocus={(e) => e.stopPropagation()}
                   rows={2}
                   className="resize-none"
+                  disabled={readOnly}
                 />
               </div>
               <div>

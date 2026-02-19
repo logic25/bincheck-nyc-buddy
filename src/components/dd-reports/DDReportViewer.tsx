@@ -17,7 +17,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import {
   ArrowLeft, Building2, AlertTriangle, FileStack, FileWarning, Download, Trash2,
-  Save, StickyNote, Calendar, User, Loader2, RefreshCw, CheckCircle2, Shield, MapPin, Hash
+  Save, StickyNote, Calendar, User, Loader2, RefreshCw, CheckCircle2, Shield, MapPin, Hash, Pencil, Eye
 } from 'lucide-react';
 import { format } from 'date-fns';
 import DDReportPrintView from './DDReportPrintView';
@@ -97,6 +97,8 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
   const printRef = useRef<HTMLDivElement>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [generalNotes, setGeneralNotes] = useState(report.general_notes || '');
+  const [aiAnalysis, setAiAnalysis] = useState(report.ai_analysis || '');
+  const [isEditingAI, setIsEditingAI] = useState(false);
   const [lineItemNotes, setLineItemNotes] = useState<Record<string, string>>(
     (report.line_item_notes || []).reduce((acc: Record<string, string>, item: any) => {
       acc[`${item.item_type}-${item.item_id}`] = item.note;
@@ -142,6 +144,7 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
         .update({
           general_notes: generalNotes.trim() || null,
           line_item_notes: formattedNotes,
+          ai_analysis: aiAnalysis.trim() || null,
         } as any)
         .eq('id', report.id);
 
@@ -486,6 +489,7 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
                         note={lineItemNotes[`violation-${v.id || idx}`] || ''}
                         onNoteChange={(note) => updateLineItemNote('violation', v.id || String(idx), note)}
                         bbl={report.bbl || building.bbl}
+                        readOnly={isReadOnly}
                       />
                     ))}
                 </TableBody>
@@ -552,6 +556,7 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
                           index={idx}
                           note={lineItemNotes[`application-${appKey}`] || ''}
                           onNoteChange={(note) => updateLineItemNote('application', appKey, note)}
+                          readOnly={isReadOnly}
                         />
                       );
                     })}
@@ -565,8 +570,23 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
       {/* AI Analysis Section */}
       {activeSection === 'analysis' && (
         <div className="border border-border rounded-xl p-6 bg-card">
-          <h3 className="text-base font-semibold mb-4">AI Risk Assessment</h3>
-          {report.ai_analysis ? (
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-base font-semibold">AI Risk Assessment</h3>
+            {!isReadOnly && aiAnalysis && (
+              <Button variant="outline" size="sm" onClick={() => setIsEditingAI(!isEditingAI)}>
+                {isEditingAI ? <><Eye className="w-3 h-3 mr-1.5" /> Preview</> : <><Pencil className="w-3 h-3 mr-1.5" /> Edit</>}
+              </Button>
+            )}
+          </div>
+          {isEditingAI && !isReadOnly ? (
+            <Textarea
+              value={aiAnalysis}
+              onChange={(e) => setAiAnalysis(e.target.value)}
+              rows={16}
+              className="resize-none font-mono text-sm"
+              placeholder="Edit AI risk assessment (Markdown supported)..."
+            />
+          ) : aiAnalysis ? (
             <div className="prose prose-sm max-w-none dark:prose-invert">
               <ReactMarkdown
                 components={{
@@ -580,7 +600,7 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
                   strong: ({ children }) => <strong className="font-semibold text-foreground">{children}</strong>,
                 }}
               >
-                {report.ai_analysis}
+                {aiAnalysis}
               </ReactMarkdown>
             </div>
           ) : (
@@ -610,6 +630,7 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
           <DDReportPrintView report={{
             ...report,
             general_notes: generalNotes || report.general_notes,
+            ai_analysis: aiAnalysis || report.ai_analysis,
             line_item_notes: Object.entries(lineItemNotes).map(([key, note]) => {
               const [item_type, ...rest] = key.split('-');
               return { item_type, item_id: rest.join('-'), note };

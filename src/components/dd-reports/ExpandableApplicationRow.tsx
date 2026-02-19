@@ -10,6 +10,7 @@ interface ExpandableApplicationRowProps {
   index: number;
   note: string;
   onNoteChange: (note: string) => void;
+  readOnly?: boolean;
 }
 
 const formatDate = (dateStr: string | null | undefined): string => {
@@ -29,7 +30,7 @@ const formatDate = (dateStr: string | null | undefined): string => {
   }
 };
 
-const ExpandableApplicationRow = ({ application, index, note, onNoteChange }: ExpandableApplicationRowProps) => {
+const ExpandableApplicationRow = ({ application, index, note, onNoteChange, readOnly = false }: ExpandableApplicationRowProps) => {
   const [isOpen, setIsOpen] = useState(false);
 
   const getStatusColor = (status: string) => {
@@ -204,8 +205,11 @@ const ExpandableApplicationRow = ({ application, index, note, onNoteChange }: Ex
                   value={note}
                   onChange={(e) => onNoteChange(e.target.value)}
                   onClick={(e) => e.stopPropagation()}
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onFocus={(e) => e.stopPropagation()}
                   rows={2}
                   className="resize-none"
+                  disabled={readOnly}
                 />
               </div>
 
