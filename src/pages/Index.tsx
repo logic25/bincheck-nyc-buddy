@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Building2, Shield, FileText, ArrowRight, AlertTriangle, MapPin } from "lucide-react";
+import { Search, Building2, Shield, FileText, ArrowRight, AlertTriangle, MapPin, LogOut, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { supabase } from "@/integrations/supabase/client";
+import { useUserRole } from "@/hooks/useUserRole";
 
 interface GeoSuggestion {
   label: string;
@@ -14,9 +16,17 @@ const Index = () => {
   const [suggestions, setSuggestions] = useState<GeoSuggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
+  const [session, setSession] = useState<any>(null);
   const navigate = useNavigate();
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const wrapperRef = useRef<HTMLFormElement>(null);
+  const { isAdmin } = useUserRole();
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => setSession(data.session));
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, s) => setSession(s));
+    return () => subscription.unsubscribe();
+  }, []);
 
   const fetchSuggestions = useCallback(async (text: string) => {
     if (text.length < 3 || /^\d+$/.test(text.trim())) {
@@ -97,13 +107,37 @@ const Index = () => {
             <Shield className="h-6 w-6 text-primary" />
             <span className="font-display text-xl tracking-tight">BinCheck<span className="text-primary">NYC</span></span>
           </div>
-          <nav className="flex items-center gap-3">
-            <Button variant="ghost" size="sm" onClick={() => navigate("/auth")} className="text-muted-foreground hover:text-foreground">
-              Log In
-            </Button>
-            <Button size="sm" onClick={() => navigate("/auth?tab=signup")}>
-              Sign Up
-            </Button>
+          <nav className="flex items-center gap-2">
+            {session ? (
+              <>
+                <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard")}>
+                  Dashboard
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => navigate("/dd-reports")}>
+                  <FileText className="h-4 w-4 mr-1" /> DD Reports
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => navigate("/settings")}>
+                  <Settings className="h-4 w-4 mr-1" /> Settings
+                </Button>
+                {isAdmin && (
+                  <Button variant="ghost" size="sm" onClick={() => navigate("/admin")}>
+                    <Shield className="h-4 w-4 mr-1" /> Admin
+                  </Button>
+                )}
+                <Button variant="ghost" size="sm" onClick={async () => { await supabase.auth.signOut(); setSession(null); }}>
+                  <LogOut className="h-4 w-4 mr-1" /> Sign Out
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button variant="ghost" size="sm" onClick={() => navigate("/auth")} className="text-muted-foreground hover:text-foreground">
+                  Log In
+                </Button>
+                <Button size="sm" onClick={() => navigate("/auth?tab=signup")}>
+                  Sign Up
+                </Button>
+              </>
+            )}
           </nav>
         </div>
       </header>
