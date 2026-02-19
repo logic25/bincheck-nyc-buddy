@@ -40,11 +40,11 @@ const Index = () => {
         <div className="max-w-3xl w-full text-center space-y-10">
           <div className="space-y-5">
             <h1 className="font-display text-5xl md:text-6xl font-extrabold tracking-tight leading-[1.1]">
-              Property compliance,{" "}
-              <span className="text-primary">verified.</span>
+              Due diligence,{" "}
+              <span className="text-primary">delivered.</span>
             </h1>
             <p className="text-lg text-muted-foreground max-w-xl mx-auto leading-relaxed">
-              The most comprehensive NYC property due diligence platform. DOB, ECB, and HPD violations with AI-powered risk analysis — from public data.
+              The definitive NYC property risk platform for real estate transactions. Open violations, stop work orders, and AI-powered risk analysis — built for attorneys, investors, and deal teams.
             </p>
           </div>
 
@@ -66,15 +66,15 @@ const Index = () => {
           </form>
 
           <p className="text-sm text-muted-foreground">
-            Free to search. Sign in to save reports, generate DD reports, and export PDFs.
+            Free to search. Sign in to generate transaction-ready DD reports and share with counsel.
           </p>
 
           {/* Features */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4">
             {[
-              { icon: Building2, title: "DOB Violations", desc: "Building code violations, complaints, and enforcement actions" },
-              { icon: AlertTriangle, title: "HPD Records", desc: "Housing preservation violations by class severity (A/B/C)" },
-              { icon: FileText, title: "DD Reports", desc: "AI-powered due diligence reports with PLUTO data & risk analysis" },
+              { icon: Building2, title: "Open Violations", desc: "DOB, ECB & HPD violations that affect closing — with severity and penalty data" },
+              { icon: AlertTriangle, title: "Critical Orders", desc: "Stop work orders, vacate orders, and enforcement actions that can kill a deal" },
+              { icon: FileText, title: "DD Reports", desc: "Transaction-ready reports with AI risk analysis — built to share with attorneys and stakeholders" },
             ].map((f) => (
               <div key={f.title} className="p-6 rounded-lg bg-card/50 text-left space-y-3 hover:bg-card transition-colors">
                 <f.icon className="h-5 w-5 text-primary" />
@@ -89,7 +89,7 @@ const Index = () => {
       {/* Footer */}
       <footer className="border-t border-border/40 py-6">
         <div className="container text-center text-sm text-muted-foreground">
-          Data sourced from NYC Open Data. Not legal advice. © {new Date().getFullYear()} BinCheckNYC
+          Data sourced from NYC DOB, ECB & HPD public records. Not legal or investment advice. © {new Date().getFullYear()} BinCheckNYC
         </div>
       </footer>
     </div>

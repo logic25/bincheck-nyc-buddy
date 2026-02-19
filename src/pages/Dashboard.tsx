@@ -87,7 +87,7 @@ const Dashboard = () => {
 
       <main className="container py-8 max-w-4xl space-y-6">
         <div className="flex items-center justify-between">
-          <h1 className="font-display text-2xl font-bold">Saved Reports</h1>
+          <h1 className="font-display text-2xl font-bold">Saved Searches</h1>
           <Button variant="outline" size="sm" onClick={fetchReports}>
             <RefreshCw className="h-4 w-4 mr-1" /> Refresh
           </Button>
@@ -100,7 +100,7 @@ const Dashboard = () => {
         ) : reports.length === 0 ? (
           <Card>
             <CardContent className="py-16 text-center">
-              <p className="text-muted-foreground">No saved reports yet. Search a property and save the report!</p>
+              <p className="text-muted-foreground">No saved searches yet. Look up a property to get started.</p>
               <Button className="mt-4" onClick={() => navigate("/")}>Search Properties</Button>
             </CardContent>
           </Card>

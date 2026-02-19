@@ -223,8 +223,8 @@ const DDReports = () => {
       <main className="container py-8 max-w-5xl space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-display font-bold">DD Reports</h1>
-            <p className="text-muted-foreground mt-1">Generate comprehensive due diligence reports for any NYC property</p>
+            <h1 className="text-3xl font-display font-bold">Due Diligence Reports</h1>
+            <p className="text-muted-foreground mt-1">Transaction-ready property risk reports for attorneys, investors, and deal teams</p>
           </div>
           <Button onClick={() => setCreateDialogOpen(true)}>
             <Plus className="w-4 h-4 mr-2" /> New Report
@@ -235,7 +235,7 @@ const DDReports = () => {
           <CardContent className="pt-6">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input placeholder="Search by address or recipient..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-10" />
+              <Input placeholder="Search by address or client..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-10" />
             </div>
           </CardContent>
         </Card>
@@ -255,7 +255,7 @@ const DDReports = () => {
               <div className="text-center py-12">
                 <FileText className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
                 <h3 className="text-lg font-medium mb-1">No reports yet</h3>
-                <p className="text-muted-foreground mb-4">Create your first due diligence report to get started.</p>
+                <p className="text-muted-foreground mb-4">Generate your first DD report to share with counsel or transaction stakeholders.</p>
                 <Button onClick={() => setCreateDialogOpen(true)}>
                   <Plus className="w-4 h-4 mr-2" /> Create Report
                 </Button>
