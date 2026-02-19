@@ -56,7 +56,7 @@ export function ReportActions({ data, score }: ReportActionsProps) {
     <Card className="border-border bg-card h-full">
       <CardContent className="p-6 flex flex-col justify-center h-full gap-3">
         <p className="text-sm text-muted-foreground mb-2">
-          Save this report or export as PDF for your records.
+          Save this search or export as PDF to share with your transaction team.
         </p>
         <Button onClick={handleSave} disabled={saving} className="w-full">
           {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}

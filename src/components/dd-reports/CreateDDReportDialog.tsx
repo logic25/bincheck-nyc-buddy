@@ -104,7 +104,7 @@ const CreateDDReportDialog = ({ open, onOpenChange, onSuccess }: CreateDDReportD
             Generate DD Report
           </DialogTitle>
           <DialogDescription>
-            Enter a NYC property address to generate a comprehensive due diligence report.
+            Enter a NYC property address to generate a transaction-ready due diligence report with violations, orders, and AI risk analysis.
           </DialogDescription>
         </DialogHeader>
 
@@ -133,7 +133,7 @@ const CreateDDReportDialog = ({ open, onOpenChange, onSuccess }: CreateDDReportD
             </Label>
             <Input
               id="preparedFor"
-              placeholder="e.g., ABC Investors LLC"
+              placeholder="e.g., Smith & Associates LLP"
               value={preparedFor}
               onChange={(e) => setPreparedFor(e.target.value)}
               disabled={createReport.isPending}

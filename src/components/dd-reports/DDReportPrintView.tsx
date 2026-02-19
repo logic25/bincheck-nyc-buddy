@@ -96,7 +96,7 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
           {preparedByLine && <p className="text-sm"><strong>Prepared By:</strong> {preparedByLine}</p>}
           {credentialsLine && <p className="text-sm text-gray-600">{credentialsLine}</p>}
         </div>
-        <p className="text-xs text-gray-500 mt-2">Data Sources: NYC Department of Buildings, NYC Open Data</p>
+        <p className="text-xs text-gray-500 mt-2">Data Sources: NYC DOB, ECB, HPD, PLUTO | For real estate transaction due diligence</p>
       </div>
 
       {/* Property Header */}
@@ -266,11 +266,12 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
           <p className="font-bold text-sm">DISCLAIMER</p>
         </div>
         <p className="text-xs text-gray-600 mb-4 text-justify leading-relaxed">
-          This report is provided for informational purposes only and does not constitute legal, financial,
-          or investment advice. Data is sourced from NYC Open Data and public records, which may contain
-          errors, omissions, or be out of date. BinCheckNYC{userProfile?.company_name ? ` and ${userProfile.company_name}` : ''} make no
-          warranties regarding accuracy or completeness. Users should independently verify all information
-          and consult with licensed professionals before making decisions.
+          This report is provided for informational purposes only in connection with real estate due diligence
+          and does not constitute legal, financial, or investment advice. Data is sourced from NYC Department
+          of Buildings, ECB, HPD, and public records, which may contain errors, omissions, or delays.
+          BinCheckNYC{userProfile?.company_name ? ` and ${userProfile.company_name}` : ''} make no warranties
+          regarding accuracy or completeness. All parties should independently verify information and consult
+          with licensed attorneys and professionals before closing any transaction.
         </p>
         <div className="text-center text-xs text-gray-500 pt-3 border-t border-gray-200">
           <p className="font-medium">© {new Date().getFullYear()} BinCheckNYC{userProfile?.company_name ? ` | ${userProfile.company_name}` : ''}</p>
