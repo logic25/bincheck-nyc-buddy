@@ -28,20 +28,32 @@ async function fetchJSON(url: string) {
 }
 
 async function lookupBINByAddress(address: string): Promise<string | null> {
-  // Use DOB violations dataset to reverse-lookup BIN from address
-  const encoded = encodeURIComponent(address.toUpperCase());
-  const url = `${NYC_DATA_BASE}/${DOB_VIOLATIONS}.json?$where=upper(house__)%20||%20%27%20%27%20||%20upper(street)%20like%20%27%25${encoded}%25%27&$limit=1&$select=bin`;
-  const data = await fetchJSON(url);
-  if (data.length > 0 && data[0].bin) {
-    return data[0].bin;
+  // Use NYC GeoSearch API for reliable address resolution
+  const geoUrl = `https://geosearch.planninglabs.nyc/v2/search?text=${encodeURIComponent(address)}&size=1`;
+  try {
+    const res = await fetch(geoUrl);
+    if (!res.ok) {
+      console.error(`GeoSearch failed: ${res.status}`);
+      await res.text();
+      return null;
+    }
+    const geo = await res.json();
+    const props = geo?.features?.[0]?.properties;
+    if (props?.addendum?.pad?.bin) {
+      return props.addendum.pad.bin;
+    }
+    // Fallback: try DOB violations dataset
+    const encoded = encodeURIComponent(address.toUpperCase());
+    const url = `${NYC_DATA_BASE}/${DOB_VIOLATIONS}.json?$where=upper(house__||' '||street) like '%25${encoded}%25'&$limit=1&$select=bin`;
+    const data = await fetchJSON(url);
+    if (data.length > 0 && data[0].bin) {
+      return data[0].bin;
+    }
+    return null;
+  } catch (e) {
+    console.error('Address lookup error:', e);
+    return null;
   }
-  // Try permits dataset
-  const url2 = `${NYC_DATA_BASE}/${DOB_PERMITS}.json?$where=upper(house__)%20||%20%27%20%27%20||%20upper(street_name)%20like%20%27%25${encoded}%25%27&$limit=1&$select=bin__`;
-  const data2 = await fetchJSON(url2);
-  if (data2.length > 0 && data2[0].bin__) {
-    return data2[0].bin__;
-  }
-  return null;
 }
 
 serve(async (req) => {
