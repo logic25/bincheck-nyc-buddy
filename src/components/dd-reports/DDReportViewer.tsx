@@ -8,17 +8,16 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Separator } from '@/components/ui/separator';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import {
   ArrowLeft, Building2, AlertTriangle, FileStack, FileWarning, Download, Trash2,
-  Save, StickyNote, Calendar, User, Loader2, ChevronDown, ChevronRight, RefreshCw, CheckCircle2
+  Save, StickyNote, Calendar, User, Loader2, RefreshCw, CheckCircle2, Shield, MapPin, Hash
 } from 'lucide-react';
 import { format } from 'date-fns';
 import DDReportPrintView from './DDReportPrintView';
@@ -26,6 +25,7 @@ import ExpandableViolationRow from './ExpandableViolationRow';
 import ExpandableApplicationRow from './ExpandableApplicationRow';
 import html2pdf from 'html2pdf.js';
 import { getAgencyColor } from '@/lib/violation-utils';
+import ReactMarkdown from 'react-markdown';
 
 const formatBBL = (bbl: string | null | undefined): string => {
   if (!bbl) return '—';
@@ -82,6 +82,7 @@ interface DDReportViewerProps {
     general_notes: string | null;
     ai_analysis: string | null;
     created_at: string;
+    customer_concern?: string | null;
   };
   onBack: () => void;
   onDelete: () => void;
@@ -102,11 +103,9 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
       return acc;
     }, {})
   );
-  const [violationsOpen, setViolationsOpen] = useState(true);
-  const [applicationsOpen, setApplicationsOpen] = useState(true);
   const [applicationFilter, setApplicationFilter] = useState<string>('all');
   const [violationFilter, setViolationFilter] = useState<string>('all');
-  const [criticalOrdersOpen, setCriticalOrdersOpen] = useState(false);
+  const [activeSection, setActiveSection] = useState<'violations' | 'applications' | 'analysis' | 'notes'>('violations');
 
   const handleExportPDF = async () => {
     if (!printRef.current) return;
@@ -133,7 +132,8 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
   const saveNotes = useMutation({
     mutationFn: async () => {
       const formattedNotes = Object.entries(lineItemNotes).map(([key, note]) => {
-        const [item_type, item_id] = key.split('-');
+        const [item_type, ...rest] = key.split('-');
+        const item_id = rest.join('-');
         return { item_type, item_id, note };
       }).filter(n => n.note.trim());
 
@@ -158,7 +158,6 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
 
   const approveReport = useMutation({
     mutationFn: async () => {
-      // Save notes first, then approve
       const formattedNotes = Object.entries(lineItemNotes).map(([key, note]) => {
         const [item_type, ...rest] = key.split('-');
         const item_id = rest.join('-');
@@ -205,43 +204,43 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
     setLineItemNotes(prev => ({ ...prev, [`${itemType}-${itemId}`]: note }));
   };
 
+  const statusLabel = report.status === 'approved' ? 'Approved' : report.status === 'pending_review' ? 'Pending Review' : report.status === 'generating' ? 'Generating' : report.status;
+
+  const sectionNav = [
+    { key: 'violations' as const, label: 'Violations', count: violations.length, icon: AlertTriangle },
+    { key: 'applications' as const, label: 'Applications', count: applications.length, icon: FileStack },
+    { key: 'analysis' as const, label: 'AI Analysis', icon: Shield },
+    { key: 'notes' as const, label: 'Notes', icon: StickyNote },
+  ];
+
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={onBack}>
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
-          <div>
-            <h1 className="text-2xl font-display font-bold">{report.address}</h1>
-            <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
-              <span className="flex items-center gap-1"><User className="w-4 h-4" /> {report.prepared_for}</span>
-              <span className="flex items-center gap-1"><Calendar className="w-4 h-4" /> {format(new Date(report.report_date), 'MMMM d, yyyy')}</span>
-            </div>
-          </div>
-        </div>
-        <div className="flex items-center gap-2 flex-wrap">
+    <div className="space-y-0">
+      {/* Compact Header Bar */}
+      <div className="flex items-center justify-between pb-6">
+        <Button variant="ghost" size="sm" onClick={onBack} className="text-muted-foreground hover:text-foreground">
+          <ArrowLeft className="w-4 h-4 mr-1" /> Back
+        </Button>
+        <div className="flex items-center gap-2">
           {isAdmin && report.status === 'pending_review' && (
-            <Button size="sm" onClick={() => approveReport.mutate()} disabled={approveReport.isPending} className="bg-green-600 hover:bg-green-700 text-white">
-              {approveReport.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <CheckCircle2 className="w-4 h-4 mr-2" />}
-              Approve & Finalize
+            <Button size="sm" onClick={() => approveReport.mutate()} disabled={approveReport.isPending} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+              {approveReport.isPending ? <Loader2 className="w-3 h-3 mr-1.5 animate-spin" /> : <CheckCircle2 className="w-3 h-3 mr-1.5" />}
+              Approve
             </Button>
           )}
           <Button variant="outline" size="sm" onClick={() => saveNotes.mutate()} disabled={saveNotes.isPending || isReadOnly}>
-            <Save className="w-4 h-4 mr-2" /> Save Notes
+            <Save className="w-3 h-3 mr-1.5" /> Save
           </Button>
           <Button variant="outline" size="sm" onClick={() => onRegenerate?.(report.id, report.address)} disabled={isRegenerating || !onRegenerate}>
-            {isRegenerating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <RefreshCw className="w-4 h-4 mr-2" />}
-            {isRegenerating ? 'Regenerating...' : 'Regenerate'}
+            {isRegenerating ? <Loader2 className="w-3 h-3 mr-1.5 animate-spin" /> : <RefreshCw className="w-3 h-3 mr-1.5" />}
+            Regen
           </Button>
           <Button variant="outline" size="sm" onClick={handleExportPDF} disabled={isExporting}>
-            {isExporting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
-            Export PDF
+            {isExporting ? <Loader2 className="w-3 h-3 mr-1.5 animate-spin" /> : <Download className="w-3 h-3 mr-1.5" />}
+            PDF
           </Button>
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button variant="destructive" size="icon" className="h-8 w-8">
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
                 <Trash2 className="w-4 h-4" />
               </Button>
             </AlertDialogTrigger>
@@ -259,322 +258,351 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
         </div>
       </div>
 
-      {/* Building Summary */}
-      <Card>
-        <CardHeader className="pb-4">
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Building2 className="w-5 h-5 text-primary" /> Building Information
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="pt-0">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            <div className="space-y-1">
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">BIN</p>
-              <p className="font-mono text-sm font-medium">{report.bin || building.bin || '—'}</p>
+      {/* Report Title Block */}
+      <div className="border border-border rounded-xl p-6 bg-card mb-6">
+        <div className="flex items-start justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl font-display font-bold tracking-tight">{report.address}</h1>
+              <Badge
+                variant={report.status === 'approved' ? 'default' : report.status === 'pending_review' ? 'secondary' : 'outline'}
+                className={report.status === 'approved' ? 'bg-emerald-600 text-white' : ''}
+              >
+                {statusLabel}
+              </Badge>
             </div>
-            <div className="space-y-1">
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">BBL</p>
-              <p className="font-mono text-sm font-medium">{formatBBL(report.bbl || building.bbl)}</p>
-            </div>
-            <div className="space-y-1">
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Year Built</p>
-              <p className="text-sm font-medium">{building.year_built || '—'}</p>
-            </div>
-            <div className="space-y-1">
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Dwelling Units</p>
-              <p className="text-sm font-medium">{building.dwelling_units || '—'}</p>
-            </div>
-            <div className="space-y-1">
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Zoning</p>
-              <p className="text-sm font-medium">{building.zoning_district || '—'}</p>
-            </div>
-            <div className="space-y-1">
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Landmark</p>
-              <p className="text-sm font-medium">{building.is_landmark ? 'Yes' : building.historic_district ? `Historic: ${building.historic_district}` : 'No'}</p>
-            </div>
-            <div className="space-y-1">
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Owner</p>
-              <p className="text-sm font-medium truncate">{building.owner_name || '—'}</p>
-            </div>
-            <div className="space-y-1">
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Building Area</p>
-              <p className="text-sm font-medium">{building.building_area_sqft ? `${building.building_area_sqft.toLocaleString()} sqft` : '—'}</p>
+            <div className="flex items-center gap-5 text-sm text-muted-foreground">
+              <span className="flex items-center gap-1.5"><User className="w-3.5 h-3.5" /> {report.prepared_for}</span>
+              <span className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5" /> {format(new Date(report.report_date), 'MMMM d, yyyy')}</span>
+              {report.bin && <span className="flex items-center gap-1.5 font-mono text-xs"><Hash className="w-3.5 h-3.5" /> BIN {report.bin}</span>}
+              {report.bbl && <span className="font-mono text-xs">BBL {formatBBL(report.bbl)}</span>}
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
 
-      {/* Compliance Summary */}
-      <Card>
-        <CardHeader className="pb-4">
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <FileStack className="w-5 h-5 text-primary" /> Compliance Summary
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="pt-0">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="p-5 rounded-xl bg-muted/50 border border-border">
-              <p className="text-3xl font-bold tracking-tight">{violations.length}</p>
-              <p className="text-sm font-medium text-muted-foreground mt-1">Open Violations</p>
-              <div className="text-xs text-muted-foreground mt-2 space-x-2">
-                <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-orange-500/30 text-orange-400">DOB {dobViolations.length}</Badge>
-                <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-blue-500/30 text-blue-400">ECB {ecbViolations.length}</Badge>
-                <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-purple-500/30 text-purple-400">HPD {hpdViolations.length}</Badge>
+        {/* Customer Concern */}
+        {(report as any).customer_concern && (
+          <div className="mt-4 pt-4 border-t border-border">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Customer Concern</p>
+            <p className="text-sm italic text-foreground/80">"{(report as any).customer_concern}"</p>
+          </div>
+        )}
+      </div>
+
+      {/* Building + Compliance Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+        {/* Building Info */}
+        <div className="border border-border rounded-xl p-5 bg-card">
+          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4 flex items-center gap-2">
+            <Building2 className="w-3.5 h-3.5" /> Building Information
+          </h3>
+          <div className="grid grid-cols-2 gap-y-3 gap-x-6 text-sm">
+            <div>
+              <p className="text-muted-foreground text-xs">Year Built</p>
+              <p className="font-medium">{building.year_built || '—'}</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground text-xs">Dwelling Units</p>
+              <p className="font-medium">{building.dwelling_units || '—'}</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground text-xs">Zoning</p>
+              <p className="font-medium">{building.zoning_district || '—'}</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground text-xs">Building Area</p>
+              <p className="font-medium">{building.building_area_sqft ? `${building.building_area_sqft.toLocaleString()} sqft` : '—'}</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground text-xs">Landmark</p>
+              <p className="font-medium">{building.is_landmark ? 'Yes' : building.historic_district ? `Historic: ${building.historic_district}` : 'No'}</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground text-xs">Owner</p>
+              <p className="font-medium truncate">{building.owner_name || '—'}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Compliance Summary */}
+        <div className="border border-border rounded-xl p-5 bg-card">
+          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4 flex items-center gap-2">
+            <FileStack className="w-3.5 h-3.5" /> Compliance Summary
+          </h3>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="p-3 rounded-lg bg-muted/40 border border-border">
+              <p className="text-2xl font-bold tracking-tight">{violations.length}</p>
+              <p className="text-xs text-muted-foreground font-medium">Open Violations</p>
+              <div className="flex gap-1.5 mt-2">
+                <Badge variant="outline" className="text-[10px] px-1.5 py-0">DOB {dobViolations.length}</Badge>
+                <Badge variant="outline" className="text-[10px] px-1.5 py-0">ECB {ecbViolations.length}</Badge>
+                <Badge variant="outline" className="text-[10px] px-1.5 py-0">HPD {hpdViolations.length}</Badge>
               </div>
             </div>
-            <div className="p-5 rounded-xl bg-muted/50 border border-border">
-              <p className="text-3xl font-bold tracking-tight">{applications.length}</p>
-              <p className="text-sm font-medium text-muted-foreground mt-1">Active Applications</p>
-              <div className="text-xs text-muted-foreground mt-2 space-x-2">
+            <div className="p-3 rounded-lg bg-muted/40 border border-border">
+              <p className="text-2xl font-bold tracking-tight">{applications.length}</p>
+              <p className="text-xs text-muted-foreground font-medium">Applications</p>
+              <div className="flex gap-1.5 mt-2">
                 <Badge variant="outline" className="text-[10px] px-1.5 py-0">BIS {bisApplications.length}</Badge>
                 <Badge variant="outline" className="text-[10px] px-1.5 py-0">Build {dobNowApplications.length}</Badge>
               </div>
             </div>
-            <div
-              className={`p-4 rounded-xl border col-span-2 cursor-pointer transition-colors ${
-                hasCriticalOrders
-                  ? 'bg-destructive/10 border-destructive/30 hover:bg-destructive/20'
-                  : 'bg-muted/50 border-border hover:bg-muted/70'
-              }`}
-              onClick={() => { if (hasCriticalOrders) { setCriticalOrdersOpen(true); setTimeout(() => { document.getElementById('critical-orders-section')?.scrollIntoView({ behavior: 'smooth' }); }, 100); } }}
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className={`text-2xl font-bold ${hasCriticalOrders ? 'text-destructive' : ''}`}>
-                    {(orders.stop_work?.length || 0) + (orders.partial_stop_work?.length || 0) + (orders.vacate?.length || 0)}
-                  </p>
-                  <p className="text-sm text-muted-foreground">Critical Items</p>
+            {hasCriticalOrders && (
+              <div className="col-span-2 p-3 rounded-lg bg-destructive/10 border border-destructive/30">
+                <div className="flex items-center gap-2 mb-1">
+                  <FileWarning className="w-4 h-4 text-destructive" />
+                  <span className="text-sm font-semibold text-destructive">Critical Orders</span>
                 </div>
-                <div className="text-right text-sm">
-                  {hasStopWorkOrder && <div className="text-destructive">⚠ {orders.stop_work?.length} Full SWO</div>}
-                  {hasPartialStopWork && <div className="text-score-yellow">⚠ {orders.partial_stop_work?.length} Partial SWO</div>}
-                  {hasVacateOrder && <div className="text-destructive">⚠ {orders.vacate?.length} Vacate</div>}
-                  {!hasCriticalOrders && <div className="text-muted-foreground">None detected</div>}
+                <div className="text-xs space-y-0.5">
+                  {hasStopWorkOrder && <p className="text-destructive">⚠ {orders.stop_work?.length} Full Stop Work Order</p>}
+                  {hasPartialStopWork && <p className="text-yellow-500">⚠ {orders.partial_stop_work?.length} Partial Stop Work</p>}
+                  {hasVacateOrder && <p className="text-destructive">⚠ {orders.vacate?.length} Vacate Order</p>}
                 </div>
               </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Critical Orders */}
-      {hasCriticalOrders && (
-        <Card id="critical-orders-section" className="border-destructive/50 bg-destructive/5">
-          <Collapsible open={criticalOrdersOpen} onOpenChange={setCriticalOrdersOpen}>
-            <CardHeader className="cursor-pointer" onClick={() => setCriticalOrdersOpen(!criticalOrdersOpen)}>
-              <CollapsibleTrigger asChild>
-                <div className="flex items-center justify-between w-full">
-                  <CardTitle className="flex items-center gap-2 text-destructive">
-                    {criticalOrdersOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-                    <FileWarning className="w-5 h-5" />
-                    Critical Items ({(orders.stop_work?.length || 0) + (orders.partial_stop_work?.length || 0) + (orders.vacate?.length || 0)})
-                  </CardTitle>
+            )}
+            {!hasCriticalOrders && (
+              <div className="col-span-2 p-3 rounded-lg bg-emerald-500/5 border border-emerald-500/20">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                  <span className="text-sm font-medium text-emerald-500">No Critical Orders</span>
                 </div>
-              </CollapsibleTrigger>
-            </CardHeader>
-            <CollapsibleContent>
-              <CardContent className="space-y-4 pt-0">
-                {orders.stop_work?.map((order: any, idx: number) => (
-                  <div key={`swo-${idx}`} className="p-3 rounded-lg bg-destructive/10 border border-destructive/20">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <Badge variant="destructive">Full Stop Work Order</Badge>
-                        <span className="font-mono text-sm text-muted-foreground">#{order.violation_number || order.id || `SWO-${idx + 1}`}</span>
-                      </div>
-                      <span className="text-sm font-medium">{safeFormatDate(order.issued_date)}</span>
-                    </div>
-                    <p className="text-sm">{order.description_raw || order.violation_type || 'No description'}</p>
-                    <Input placeholder="Add note..." value={lineItemNotes[`swo-${idx}`] || ''} onChange={(e) => updateLineItemNote('swo', String(idx), e.target.value)} className="mt-2 bg-background" />
-                  </div>
-                ))}
-                {orders.partial_stop_work?.map((order: any, idx: number) => (
-                  <div key={`pswo-${idx}`} className="p-3 rounded-lg bg-score-yellow/10 border border-score-yellow/30">
-                    <div className="flex items-center justify-between mb-2">
-                      <Badge variant="secondary">Partial Stop Work</Badge>
-                      <span className="text-sm font-medium">{safeFormatDate(order.issued_date)}</span>
-                    </div>
-                    <p className="text-sm">{order.description_raw || order.violation_type || 'No description'}</p>
-                    <Input placeholder="Add note..." value={lineItemNotes[`pswo-${idx}`] || ''} onChange={(e) => updateLineItemNote('pswo', String(idx), e.target.value)} className="mt-2 bg-background" />
-                  </div>
-                ))}
-                {orders.vacate?.map((order: any, idx: number) => (
-                  <div key={`vacate-${idx}`} className="p-3 rounded-lg bg-destructive/10 border border-destructive/20">
-                    <div className="flex items-center justify-between mb-2">
-                      <Badge variant="destructive">Vacate Order</Badge>
-                      <span className="text-sm font-medium">{safeFormatDate(order.issued_date)}</span>
-                    </div>
-                    <p className="text-sm">{order.description_raw || order.violation_type || 'No description'}</p>
-                    <Input placeholder="Add note..." value={lineItemNotes[`vacate-${idx}`] || ''} onChange={(e) => updateLineItemNote('vacate', String(idx), e.target.value)} className="mt-2 bg-background" />
-                  </div>
-                ))}
-              </CardContent>
-            </CollapsibleContent>
-          </Collapsible>
-        </Card>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Critical Orders Detail */}
+      {hasCriticalOrders && (
+        <div className="border border-destructive/40 rounded-xl p-5 bg-destructive/5 mb-6">
+          <h3 className="text-sm font-semibold text-destructive mb-3 flex items-center gap-2">
+            <FileWarning className="w-4 h-4" /> Active Orders
+          </h3>
+          <div className="space-y-2">
+            {orders.stop_work?.map((order: any, idx: number) => (
+              <div key={`swo-${idx}`} className="p-3 rounded-lg bg-destructive/10 border border-destructive/20">
+                <div className="flex items-center justify-between mb-1">
+                  <Badge variant="destructive" className="text-xs">Full Stop Work Order</Badge>
+                  <span className="text-xs font-mono text-muted-foreground">{safeFormatDate(order.issued_date)}</span>
+                </div>
+                <p className="text-sm">{order.description_raw || order.violation_type || 'No description'}</p>
+                {!isReadOnly && (
+                  <Input placeholder="Add note..." value={lineItemNotes[`swo-${idx}`] || ''} onChange={(e) => updateLineItemNote('swo', String(idx), e.target.value)} className="mt-2 h-8 text-sm bg-background" />
+                )}
+              </div>
+            ))}
+            {orders.partial_stop_work?.map((order: any, idx: number) => (
+              <div key={`pswo-${idx}`} className="p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
+                <div className="flex items-center justify-between mb-1">
+                  <Badge variant="secondary" className="text-xs">Partial Stop Work</Badge>
+                  <span className="text-xs font-mono text-muted-foreground">{safeFormatDate(order.issued_date)}</span>
+                </div>
+                <p className="text-sm">{order.description_raw || order.violation_type || 'No description'}</p>
+                {!isReadOnly && (
+                  <Input placeholder="Add note..." value={lineItemNotes[`pswo-${idx}`] || ''} onChange={(e) => updateLineItemNote('pswo', String(idx), e.target.value)} className="mt-2 h-8 text-sm bg-background" />
+                )}
+              </div>
+            ))}
+            {orders.vacate?.map((order: any, idx: number) => (
+              <div key={`vacate-${idx}`} className="p-3 rounded-lg bg-destructive/10 border border-destructive/20">
+                <div className="flex items-center justify-between mb-1">
+                  <Badge variant="destructive" className="text-xs">Vacate Order</Badge>
+                  <span className="text-xs font-mono text-muted-foreground">{safeFormatDate(order.issued_date)}</span>
+                </div>
+                <p className="text-sm">{order.description_raw || order.violation_type || 'No description'}</p>
+                {!isReadOnly && (
+                  <Input placeholder="Add note..." value={lineItemNotes[`vacate-${idx}`] || ''} onChange={(e) => updateLineItemNote('vacate', String(idx), e.target.value)} className="mt-2 h-8 text-sm bg-background" />
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
       )}
 
-      {/* Tabs */}
-      <Tabs defaultValue="violations" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3 h-12">
-          <TabsTrigger value="violations" className="flex items-center gap-2 text-sm font-medium">
-            <AlertTriangle className="w-4 h-4 shrink-0" /> Violations
-            <Badge variant="secondary" className="ml-1 text-xs px-1.5 py-0">{violations.length}</Badge>
-          </TabsTrigger>
-          <TabsTrigger value="applications" className="flex items-center gap-2 text-sm font-medium">
-            <FileStack className="w-4 h-4 shrink-0" /> Applications
-            <Badge variant="secondary" className="ml-1 text-xs px-1.5 py-0">{applications.length}</Badge>
-          </TabsTrigger>
-          <TabsTrigger value="ai-analysis" className="flex items-center gap-2 text-sm font-medium">
-            <StickyNote className="w-4 h-4 shrink-0" /> AI Analysis
-          </TabsTrigger>
-        </TabsList>
+      {/* Section Navigation */}
+      <div className="flex items-center border-b border-border mb-6">
+        {sectionNav.map(({ key, label, count, icon: Icon }) => (
+          <button
+            key={key}
+            onClick={() => setActiveSection(key)}
+            className={`flex items-center gap-1.5 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+              activeSection === key
+                ? 'border-primary text-foreground'
+                : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
+            }`}
+          >
+            <Icon className="w-3.5 h-3.5" />
+            {label}
+            {count !== undefined && (
+              <span className="ml-1 text-xs bg-muted px-1.5 py-0.5 rounded-full">{count}</span>
+            )}
+          </button>
+        ))}
+      </div>
 
-        <TabsContent value="violations">
-          <Card>
-            <CardHeader>
-              <CardTitle>Open Violations ({violations.length})</CardTitle>
-              <CardDescription>{dobViolations.length} DOB • {ecbViolations.length} ECB • {hpdViolations.length} HPD</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-wrap gap-2 mb-4">
-                {['all', 'DOB', 'ECB', 'HPD'].map(f => (
-                  <Button key={f} variant={violationFilter === f ? 'default' : 'outline'} size="sm" onClick={() => setViolationFilter(f)}>
-                    {f === 'all' ? `All (${violations.length})` : `${f} (${violations.filter((v: any) => v.agency === f).length})`}
-                  </Button>
-                ))}
+      {/* Violations Section */}
+      {activeSection === 'violations' && (
+        <div className="border border-border rounded-xl bg-card">
+          <div className="p-4 border-b border-border">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <h3 className="text-base font-semibold">Open Violations</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">{dobViolations.length} DOB · {ecbViolations.length} ECB · {hpdViolations.length} HPD</p>
               </div>
-              {violations.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">No open violations found.</div>
-              ) : (
-                <ScrollArea className="h-[500px]">
-                  <Table className="text-sm">
-                    <TableHeader>
-                      <TableRow className="bg-muted/40 hover:bg-muted/40">
-                        <TableHead className="w-8"></TableHead>
-                        <TableHead>Violation #</TableHead>
-                        <TableHead>Agency</TableHead>
-                        <TableHead>Type</TableHead>
-                        <TableHead>Severity</TableHead>
-                        <TableHead>Issued</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Notes</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {violations
-                        .filter((v: any) => violationFilter === 'all' || v.agency === violationFilter)
-                        .map((v: any, idx: number) => (
-                          <ExpandableViolationRow
-                            key={v.id || idx}
-                            violation={v}
-                            index={idx}
-                            note={lineItemNotes[`violation-${v.id || idx}`] || ''}
-                            onNoteChange={(note) => updateLineItemNote('violation', v.id || String(idx), note)}
-                            bbl={report.bbl || building.bbl}
-                          />
-                        ))}
-                    </TableBody>
-                  </Table>
-                </ScrollArea>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
+            </div>
+            <div className="flex gap-1.5">
+              {['all', 'DOB', 'ECB', 'HPD'].map(f => (
+                <Button key={f} variant={violationFilter === f ? 'default' : 'outline'} size="sm" className="h-7 text-xs" onClick={() => setViolationFilter(f)}>
+                  {f === 'all' ? `All (${violations.length})` : `${f} (${violations.filter((v: any) => v.agency === f).length})`}
+                </Button>
+              ))}
+            </div>
+          </div>
+          {violations.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground text-sm">No open violations found.</div>
+          ) : (
+            <ScrollArea className="h-[520px]">
+              <Table className="text-sm">
+                <TableHeader>
+                  <TableRow className="bg-muted/30 hover:bg-muted/30">
+                    <TableHead className="w-8"></TableHead>
+                    <TableHead className="text-xs font-semibold uppercase tracking-wider">Violation #</TableHead>
+                    <TableHead className="text-xs font-semibold uppercase tracking-wider">Agency</TableHead>
+                    <TableHead className="text-xs font-semibold uppercase tracking-wider">Type</TableHead>
+                    <TableHead className="text-xs font-semibold uppercase tracking-wider">Severity</TableHead>
+                    <TableHead className="text-xs font-semibold uppercase tracking-wider">Issued</TableHead>
+                    <TableHead className="text-xs font-semibold uppercase tracking-wider">Status</TableHead>
+                    <TableHead className="text-xs font-semibold uppercase tracking-wider">Notes</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {violations
+                    .filter((v: any) => violationFilter === 'all' || v.agency === violationFilter)
+                    .map((v: any, idx: number) => (
+                      <ExpandableViolationRow
+                        key={v.id || idx}
+                        violation={v}
+                        index={idx}
+                        note={lineItemNotes[`violation-${v.id || idx}`] || ''}
+                        onNoteChange={(note) => updateLineItemNote('violation', v.id || String(idx), note)}
+                        bbl={report.bbl || building.bbl}
+                      />
+                    ))}
+                </TableBody>
+              </Table>
+            </ScrollArea>
+          )}
+        </div>
+      )}
 
-        <TabsContent value="applications">
-          <Card>
-            <CardHeader>
-              <CardTitle>Permit Applications ({applications.length})</CardTitle>
-              <CardDescription>{bisApplications.length} BIS • {dobNowApplications.length} DOB NOW Build</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-wrap gap-2 mb-4">
-                <Button variant={applicationFilter === 'all' ? 'default' : 'outline'} size="sm" onClick={() => setApplicationFilter('all')}>
-                  All ({applications.length})
-                </Button>
-                <Button variant={applicationFilter === 'R' ? 'default' : 'outline'} size="sm" onClick={() => setApplicationFilter('R')}>
-                  Permit Entire ({applications.filter((a: any) => { const s = (a.status || '').toUpperCase(); return s === 'R' || s.includes('PERMIT ENTIRE'); }).length})
-                </Button>
-                <Button variant={applicationFilter === 'in_process' ? 'default' : 'outline'} size="sm" onClick={() => setApplicationFilter('in_process')}>
-                  In Process ({applications.filter((a: any) => { const s = (a.status || '').toUpperCase(); return ['A','B','C','D','E','F','G','H','K','L','M'].includes(s) || s.includes('FILED') || s.includes('PLAN EXAM'); }).length})
-                </Button>
+      {/* Applications Section */}
+      {activeSection === 'applications' && (
+        <div className="border border-border rounded-xl bg-card">
+          <div className="p-4 border-b border-border">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <h3 className="text-base font-semibold">Permit Applications</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">{bisApplications.length} BIS · {dobNowApplications.length} DOB NOW Build</p>
               </div>
-              {applications.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">No applications found.</div>
-              ) : (
-                <ScrollArea className="h-[500px]">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="w-8"></TableHead>
-                        <TableHead>Job #</TableHead>
-                        <TableHead>Job Type</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Filed</TableHead>
-                        <TableHead>Description</TableHead>
-                        <TableHead>Floor/Apt</TableHead>
-                        <TableHead>Notes</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {applications
-                        .filter((app: any) => {
-                          if (applicationFilter === 'all') return true;
-                          const s = (app.status || '').toUpperCase();
-                          if (applicationFilter === 'R') return s === 'R' || s.includes('PERMIT ENTIRE');
-                          if (applicationFilter === 'in_process') return ['A','B','C','D','E','F','G','H','K','L','M'].includes(s) || s.includes('FILED') || s.includes('PLAN EXAM');
-                          return true;
-                        })
-                        .map((app: any, idx: number) => {
-                          const appKey = `${app.source || 'BIS'}-${app.id || app.application_number || idx}`;
-                          return (
-                            <ExpandableApplicationRow
-                              key={appKey}
-                              application={app}
-                              index={idx}
-                              note={lineItemNotes[`application-${appKey}`] || ''}
-                              onNoteChange={(note) => updateLineItemNote('application', appKey, note)}
-                            />
-                          );
-                        })}
-                    </TableBody>
-                  </Table>
-                </ScrollArea>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
+            </div>
+            <div className="flex gap-1.5">
+              <Button variant={applicationFilter === 'all' ? 'default' : 'outline'} size="sm" className="h-7 text-xs" onClick={() => setApplicationFilter('all')}>
+                All ({applications.length})
+              </Button>
+              <Button variant={applicationFilter === 'R' ? 'default' : 'outline'} size="sm" className="h-7 text-xs" onClick={() => setApplicationFilter('R')}>
+                Permit Entire ({applications.filter((a: any) => { const s = (a.status || '').toUpperCase(); return s === 'R' || s.includes('PERMIT ENTIRE'); }).length})
+              </Button>
+              <Button variant={applicationFilter === 'in_process' ? 'default' : 'outline'} size="sm" className="h-7 text-xs" onClick={() => setApplicationFilter('in_process')}>
+                In Process ({applications.filter((a: any) => { const s = (a.status || '').toUpperCase(); return ['A','B','C','D','E','F','G','H','K','L','M'].includes(s) || s.includes('FILED') || s.includes('PLAN EXAM'); }).length})
+              </Button>
+            </div>
+          </div>
+          {applications.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground text-sm">No applications found.</div>
+          ) : (
+            <ScrollArea className="h-[520px]">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/30 hover:bg-muted/30">
+                    <TableHead className="w-8"></TableHead>
+                    <TableHead className="text-xs font-semibold uppercase tracking-wider">Job #</TableHead>
+                    <TableHead className="text-xs font-semibold uppercase tracking-wider">Job Type</TableHead>
+                    <TableHead className="text-xs font-semibold uppercase tracking-wider">Status</TableHead>
+                    <TableHead className="text-xs font-semibold uppercase tracking-wider">Filed</TableHead>
+                    <TableHead className="text-xs font-semibold uppercase tracking-wider">Description</TableHead>
+                    <TableHead className="text-xs font-semibold uppercase tracking-wider">Floor/Apt</TableHead>
+                    <TableHead className="text-xs font-semibold uppercase tracking-wider">Notes</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {applications
+                    .filter((app: any) => {
+                      if (applicationFilter === 'all') return true;
+                      const s = (app.status || '').toUpperCase();
+                      if (applicationFilter === 'R') return s === 'R' || s.includes('PERMIT ENTIRE');
+                      if (applicationFilter === 'in_process') return ['A','B','C','D','E','F','G','H','K','L','M'].includes(s) || s.includes('FILED') || s.includes('PLAN EXAM');
+                      return true;
+                    })
+                    .map((app: any, idx: number) => {
+                      const appKey = `${app.source || 'BIS'}-${app.id || app.application_number || idx}`;
+                      return (
+                        <ExpandableApplicationRow
+                          key={appKey}
+                          application={app}
+                          index={idx}
+                          note={lineItemNotes[`application-${appKey}`] || ''}
+                          onNoteChange={(note) => updateLineItemNote('application', appKey, note)}
+                        />
+                      );
+                    })}
+                </TableBody>
+              </Table>
+            </ScrollArea>
+          )}
+        </div>
+      )}
 
-        <TabsContent value="ai-analysis">
-          <Card>
-            <CardHeader>
-              <CardTitle>AI Analysis</CardTitle>
-              <CardDescription>AI-generated risk assessment</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {report.ai_analysis ? (
-                <div className="prose prose-sm max-w-none dark:prose-invert">
-                  <div className="whitespace-pre-wrap">{report.ai_analysis}</div>
-                </div>
-              ) : (
-                <div className="text-center py-8 text-muted-foreground">AI analysis not available.</div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+      {/* AI Analysis Section */}
+      {activeSection === 'analysis' && (
+        <div className="border border-border rounded-xl p-6 bg-card">
+          <h3 className="text-base font-semibold mb-4">AI Risk Assessment</h3>
+          {report.ai_analysis ? (
+            <div className="prose prose-sm max-w-none dark:prose-invert">
+              <ReactMarkdown
+                components={{
+                  h1: ({ children }) => <h1 className="text-lg font-bold mt-6 mb-2 text-foreground">{children}</h1>,
+                  h2: ({ children }) => <h2 className="text-base font-bold mt-4 mb-2 text-foreground">{children}</h2>,
+                  h3: ({ children }) => <h3 className="text-sm font-bold mt-3 mb-1 text-foreground">{children}</h3>,
+                  p: ({ children }) => <p className="mb-3 text-foreground/90 leading-relaxed">{children}</p>,
+                  ul: ({ children }) => <ul className="list-disc ml-4 mb-3 space-y-1">{children}</ul>,
+                  ol: ({ children }) => <ol className="list-decimal ml-4 mb-3 space-y-1">{children}</ol>,
+                  li: ({ children }) => <li className="text-foreground/90">{children}</li>,
+                  strong: ({ children }) => <strong className="font-semibold text-foreground">{children}</strong>,
+                }}
+              >
+                {report.ai_analysis}
+              </ReactMarkdown>
+            </div>
+          ) : (
+            <div className="text-center py-12 text-muted-foreground text-sm">AI analysis not available for this report.</div>
+          )}
+        </div>
+      )}
 
-      {/* General Notes */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <StickyNote className="w-5 h-5" /> General Notes
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Textarea placeholder="Enter general notes..." value={generalNotes} onChange={(e) => setGeneralNotes(e.target.value)} rows={5} />
-        </CardContent>
-      </Card>
+      {/* Notes Section */}
+      {activeSection === 'notes' && (
+        <div className="border border-border rounded-xl p-6 bg-card">
+          <h3 className="text-base font-semibold mb-4">General Notes</h3>
+          <Textarea
+            placeholder="Enter general notes about this property or transaction..."
+            value={generalNotes}
+            onChange={(e) => setGeneralNotes(e.target.value)}
+            rows={8}
+            disabled={isReadOnly}
+            className="resize-none"
+          />
+        </div>
+      )}
 
       {/* Hidden print view */}
       <div className="fixed -left-[9999px] -top-[9999px]">
