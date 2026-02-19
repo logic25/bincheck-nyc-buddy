@@ -1,19 +1,92 @@
-import { useState } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Building2, Shield, FileText, ArrowRight, AlertTriangle } from "lucide-react";
+import { Search, Building2, Shield, FileText, ArrowRight, AlertTriangle, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
+interface GeoSuggestion {
+  label: string;
+  borough: string;
+}
+
 const Index = () => {
   const [query, setQuery] = useState("");
+  const [suggestions, setSuggestions] = useState<GeoSuggestion[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const navigate = useNavigate();
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const wrapperRef = useRef<HTMLFormElement>(null);
+
+  const fetchSuggestions = useCallback(async (text: string) => {
+    if (text.length < 3 || /^\d+$/.test(text.trim())) {
+      setSuggestions([]);
+      return;
+    }
+    try {
+      const res = await fetch(
+        `https://geosearch.planninglabs.nyc/v2/autocomplete?text=${encodeURIComponent(text)}&size=6`
+      );
+      if (!res.ok) { await res.text(); return; }
+      const data = await res.json();
+      const results: GeoSuggestion[] = (data.features || []).map((f: any) => ({
+        label: f.properties?.label || f.properties?.name || "",
+        borough: f.properties?.borough || "",
+      }));
+      setSuggestions(results);
+      setShowSuggestions(results.length > 0);
+      setHighlightedIndex(-1);
+    } catch {
+      setSuggestions([]);
+    }
+  }, []);
+
+  const handleInputChange = (value: string) => {
+    setQuery(value);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => fetchSuggestions(value), 200);
+  };
+
+  const selectSuggestion = (label: string) => {
+    setQuery(label);
+    setShowSuggestions(false);
+    setSuggestions([]);
+  };
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (!query.trim()) return;
+    setShowSuggestions(false);
     const isNumeric = /^\d+$/.test(query.trim());
     navigate(`/report?${isNumeric ? "bin" : "address"}=${encodeURIComponent(query.trim())}`);
   };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (!showSuggestions || suggestions.length === 0) return;
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setHighlightedIndex(i => (i < suggestions.length - 1 ? i + 1 : 0));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setHighlightedIndex(i => (i > 0 ? i - 1 : suggestions.length - 1));
+    } else if (e.key === "Enter" && highlightedIndex >= 0) {
+      e.preventDefault();
+      selectSuggestion(suggestions[highlightedIndex].label);
+    } else if (e.key === "Escape") {
+      setShowSuggestions(false);
+    }
+  };
+
+  // Close on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -48,21 +121,44 @@ const Index = () => {
             </p>
           </div>
 
-          {/* Search */}
-          <form onSubmit={handleSearch} className="relative max-w-2xl mx-auto">
-            <div className="relative flex items-center bg-card border border-border rounded-lg overflow-hidden shadow-sm">
+          {/* Search with autocomplete */}
+          <form onSubmit={handleSearch} className="relative max-w-2xl mx-auto" ref={wrapperRef}>
+            <div className="relative flex items-center bg-card border border-border rounded-lg overflow-visible shadow-sm">
               <Search className="h-5 w-5 text-muted-foreground ml-4 shrink-0" />
               <Input
                 value={query}
-                onChange={(e) => setQuery(e.target.value)}
+                onChange={(e) => handleInputChange(e.target.value)}
+                onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
+                onKeyDown={handleKeyDown}
                 placeholder="Enter BIN number or NYC address..."
                 className="border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 text-base h-14 pl-3"
+                autoComplete="off"
               />
               <Button type="submit" size="lg" className="m-1.5 shrink-0 font-semibold">
                 Search
                 <ArrowRight className="h-4 w-4 ml-1" />
               </Button>
             </div>
+
+            {/* Suggestions dropdown */}
+            {showSuggestions && suggestions.length > 0 && (
+              <div className="absolute left-0 right-0 top-full mt-1 z-50 bg-card border border-border rounded-lg shadow-lg overflow-hidden">
+                {suggestions.map((s, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    className={`w-full flex items-center gap-3 px-4 py-3 text-left text-sm transition-colors ${
+                      i === highlightedIndex ? "bg-muted" : "hover:bg-muted/50"
+                    }`}
+                    onClick={() => selectSuggestion(s.label)}
+                    onMouseEnter={() => setHighlightedIndex(i)}
+                  >
+                    <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <span className="truncate text-foreground">{s.label}</span>
+                  </button>
+                ))}
+              </div>
+            )}
           </form>
 
           <p className="text-sm text-muted-foreground">
