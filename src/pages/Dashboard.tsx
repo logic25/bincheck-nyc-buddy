@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Shield, ArrowLeft, LogOut, RefreshCw, Loader2, Trash2 } from "lucide-react";
+import { Shield, ArrowLeft, LogOut, RefreshCw, Loader2, Trash2, FileText } from "lucide-react";
 import { getScoreColor } from "@/lib/scoring";
 import { toast } from "sonner";
 
@@ -65,15 +65,18 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b border-border/50 backdrop-blur-sm sticky top-0 z-50 bg-background/80">
+      <header className="border-b border-border/40 sticky top-0 z-50 bg-background/90 backdrop-blur-md">
         <div className="container flex items-center justify-between h-16">
           <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate("/")}>
             <Shield className="h-6 w-6 text-primary" />
-            <span className="font-display text-xl font-bold tracking-tight">BinCheck<span className="text-primary">NYC</span></span>
+            <span className="font-display text-xl tracking-tight">BinCheck<span className="text-primary">NYC</span></span>
           </div>
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="sm" onClick={() => navigate("/")}>
               <ArrowLeft className="h-4 w-4 mr-1" /> Search
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => navigate("/dd-reports")}>
+              <FileText className="h-4 w-4 mr-1" /> DD Reports
             </Button>
             <Button variant="ghost" size="sm" onClick={handleLogout}>
               <LogOut className="h-4 w-4 mr-1" /> Sign Out
@@ -95,7 +98,7 @@ const Dashboard = () => {
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
           </div>
         ) : reports.length === 0 ? (
-          <Card className="border-border bg-card">
+          <Card>
             <CardContent className="py-16 text-center">
               <p className="text-muted-foreground">No saved reports yet. Search a property and save the report!</p>
               <Button className="mt-4" onClick={() => navigate("/")}>Search Properties</Button>
@@ -104,7 +107,7 @@ const Dashboard = () => {
         ) : (
           <div className="space-y-3">
             {reports.map((r) => (
-              <Card key={r.id} className="border-border bg-card hover:bg-card/80 transition-colors cursor-pointer" onClick={() => navigate(`/report?bin=${r.bin}`)}>
+              <Card key={r.id} className="hover:bg-card/80 transition-colors cursor-pointer" onClick={() => navigate(`/report?bin=${r.bin}`)}>
                 <CardContent className="p-4 flex items-center justify-between">
                   <div className="space-y-1">
                     <p className="font-semibold">{r.address || "Unknown"}</p>
