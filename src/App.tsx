@@ -8,6 +8,7 @@ import Report from "./pages/Report";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import DDReports from "./pages/DDReports";
+import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -23,6 +24,7 @@ const App = () => (
           <Route path="/report" element={<Report />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/dd-reports" element={<DDReports />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
