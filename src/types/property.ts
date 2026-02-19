@@ -63,12 +63,15 @@ export interface DOBPermit {
   job_type: string;
   job_status: string;
   job_status_descrp: string;
+  job_description?: string;
   filing_date: string;
   filing_status: string;
   permit_type: string;
   permit_status: string;
   permit_status_date?: string;
   work_type?: string;
+  floor?: string;
+  apartment?: string;
   applicant_s_first_name?: string;
   applicant_s_last_name?: string;
   owner_s_first_name?: string;
