@@ -4,9 +4,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Shield, ArrowLeft, LogOut, RefreshCw, Loader2, Trash2, FileText } from "lucide-react";
+import { Shield, ArrowLeft, LogOut, RefreshCw, Loader2, Trash2, FileText, Settings } from "lucide-react";
 import { getScoreColor } from "@/lib/scoring";
 import { toast } from "sonner";
+import { useUserRole } from "@/hooks/useUserRole";
 
 interface ReportRow {
   id: string;
@@ -19,6 +20,7 @@ interface ReportRow {
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const { isAdmin } = useUserRole();
   const [reports, setReports] = useState<ReportRow[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -78,6 +80,14 @@ const Dashboard = () => {
             <Button variant="ghost" size="sm" onClick={() => navigate("/dd-reports")}>
               <FileText className="h-4 w-4 mr-1" /> DD Reports
             </Button>
+            <Button variant="ghost" size="sm" onClick={() => navigate("/settings")}>
+              <Settings className="h-4 w-4 mr-1" /> Settings
+            </Button>
+            {isAdmin && (
+              <Button variant="ghost" size="sm" onClick={() => navigate("/admin")}>
+                <Shield className="h-4 w-4 mr-1" /> Admin
+              </Button>
+            )}
             <Button variant="ghost" size="sm" onClick={handleLogout}>
               <LogOut className="h-4 w-4 mr-1" /> Sign Out
             </Button>
