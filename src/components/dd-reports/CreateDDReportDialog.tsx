@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Loader2, Building2, User, FileText } from 'lucide-react';
 
@@ -27,6 +28,7 @@ const CreateDDReportDialog = ({ open, onOpenChange, onSuccess }: CreateDDReportD
   const [address, setAddress] = useState('');
   const [preparedFor, setPreparedFor] = useState('');
   const [preparedBy, setPreparedBy] = useState('');
+  const [customerConcern, setCustomerConcern] = useState('');
 
   const createReport = useMutation({
     mutationFn: async () => {
@@ -52,7 +54,7 @@ const CreateDDReportDialog = ({ open, onOpenChange, onSuccess }: CreateDDReportD
       if (insertError) throw insertError;
 
       const { error: genError } = await supabase.functions.invoke('generate-dd-report', {
-        body: { reportId: (report as any).id, address: address.trim() }
+        body: { reportId: (report as any).id, address: address.trim(), customerConcern: customerConcern.trim() || null }
       });
 
       if (genError) {
@@ -78,6 +80,7 @@ const CreateDDReportDialog = ({ open, onOpenChange, onSuccess }: CreateDDReportD
       setAddress('');
       setPreparedFor('');
       setPreparedBy('');
+      setCustomerConcern('');
       onSuccess(report);
     },
     onError: (error: any) => {
@@ -149,6 +152,22 @@ const CreateDDReportDialog = ({ open, onOpenChange, onSuccess }: CreateDDReportD
               onChange={(e) => setPreparedBy(e.target.value)}
               disabled={createReport.isPending}
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="customerConcern">What should we look for? (Optional)</Label>
+            <Textarea
+              id="customerConcern"
+              placeholder="e.g., I'm buying Unit 10B and want to ensure no violations or permits affect it, and that future combination work is possible"
+              value={customerConcern}
+              onChange={(e) => setCustomerConcern(e.target.value)}
+              disabled={createReport.isPending}
+              rows={3}
+              className="resize-none"
+            />
+            <p className="text-xs text-muted-foreground">
+              Describe the customer's specific concern so the AI can tailor notes for each violation and application
+            </p>
           </div>
 
           <DialogFooter>

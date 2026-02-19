@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useUserRole } from '@/hooks/useUserRole';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -17,7 +18,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import {
   ArrowLeft, Building2, AlertTriangle, FileStack, FileWarning, Download, Trash2,
-  Save, StickyNote, Calendar, User, Loader2, ChevronDown, ChevronRight, RefreshCw
+  Save, StickyNote, Calendar, User, Loader2, ChevronDown, ChevronRight, RefreshCw, CheckCircle2
 } from 'lucide-react';
 import { format } from 'date-fns';
 import DDReportPrintView from './DDReportPrintView';
@@ -91,6 +92,7 @@ interface DDReportViewerProps {
 
 const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating = false, userProfile }: DDReportViewerProps) => {
   const queryClient = useQueryClient();
+  const { isAdmin } = useUserRole();
   const printRef = useRef<HTMLDivElement>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [generalNotes, setGeneralNotes] = useState(report.general_notes || '');
@@ -154,6 +156,35 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
     },
   });
 
+  const approveReport = useMutation({
+    mutationFn: async () => {
+      // Save notes first, then approve
+      const formattedNotes = Object.entries(lineItemNotes).map(([key, note]) => {
+        const [item_type, ...rest] = key.split('-');
+        const item_id = rest.join('-');
+        return { item_type, item_id, note };
+      }).filter(n => n.note.trim());
+
+      const { error } = await supabase
+        .from('dd_reports')
+        .update({
+          general_notes: generalNotes.trim() || null,
+          line_item_notes: formattedNotes,
+          status: 'approved',
+        } as any)
+        .eq('id', report.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['dd-reports'] });
+      toast.success('Report approved and finalized');
+    },
+    onError: () => {
+      toast.error('Failed to approve report');
+    },
+  });
+
+  const isReadOnly = report.status === 'approved';
   const violations = report.violations_data || [];
   const applications = report.applications_data || [];
   const orders = report.orders_data || { stop_work: [], partial_stop_work: [], vacate: [] };
@@ -191,7 +222,13 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
           </div>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          <Button variant="outline" size="sm" onClick={() => saveNotes.mutate()} disabled={saveNotes.isPending}>
+          {isAdmin && report.status === 'pending_review' && (
+            <Button size="sm" onClick={() => approveReport.mutate()} disabled={approveReport.isPending} className="bg-green-600 hover:bg-green-700 text-white">
+              {approveReport.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <CheckCircle2 className="w-4 h-4 mr-2" />}
+              Approve & Finalize
+            </Button>
+          )}
+          <Button variant="outline" size="sm" onClick={() => saveNotes.mutate()} disabled={saveNotes.isPending || isReadOnly}>
             <Save className="w-4 h-4 mr-2" /> Save Notes
           </Button>
           <Button variant="outline" size="sm" onClick={() => onRegenerate?.(report.id, report.address)} disabled={isRegenerating || !onRegenerate}>
@@ -420,6 +457,7 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
                         <TableHead>Severity</TableHead>
                         <TableHead>Issued</TableHead>
                         <TableHead>Status</TableHead>
+                        <TableHead>Notes</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -475,6 +513,7 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
                         <TableHead>Filed</TableHead>
                         <TableHead>Description</TableHead>
                         <TableHead>Floor/Apt</TableHead>
+                        <TableHead>Notes</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -540,7 +579,14 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
       {/* Hidden print view */}
       <div className="fixed -left-[9999px] -top-[9999px]">
         <div ref={printRef}>
-          <DDReportPrintView report={report} userProfile={userProfile} />
+          <DDReportPrintView report={{
+            ...report,
+            general_notes: generalNotes || report.general_notes,
+            line_item_notes: Object.entries(lineItemNotes).map(([key, note]) => {
+              const [item_type, ...rest] = key.split('-');
+              return { item_type, item_id: rest.join('-'), note };
+            }).filter(n => n.note.trim()),
+          }} userProfile={userProfile} />
         </div>
       </div>
     </div>

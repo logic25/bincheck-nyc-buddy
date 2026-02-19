@@ -259,12 +259,122 @@ async function fetchApplications(bin: string): Promise<any[]> {
   return applications;
 }
 
-async function generateAIAnalysis(reportData: any, LOVABLE_API_KEY: string): Promise<string> {
+async function generateLineItemNotes(
+  violations: any[],
+  applications: any[],
+  address: string,
+  customerConcern: string | null,
+  LOVABLE_API_KEY: string
+): Promise<any[]> {
+  const concernText = customerConcern
+    ? `The customer's specific concern: "${customerConcern}"`
+    : "No specific customer concern was provided. Write general impact notes.";
+
+  // Build compact item list for AI
+  const violationItems = violations.slice(0, 60).map((v: any) => ({
+    type: "violation",
+    id: v.violation_number || v.id,
+    agency: v.agency,
+    desc: (v.violation_type || v.description_raw || 'Unknown').slice(0, 100),
+    floor: v.story || null,
+    apt: v.apartment || null,
+  }));
+
+  const applicationItems = applications.slice(0, 40).map((a: any) => ({
+    type: "application",
+    id: `${a.source || 'BIS'}-${a.application_number || a.id}`,
+    source: a.source,
+    desc: (a.job_description || a.application_type || 'Unknown').slice(0, 100),
+    floor: a.floor || null,
+    apt: a.apartment || null,
+  }));
+
+  const allItems = [...violationItems, ...applicationItems];
+  if (allItems.length === 0) return [];
+
+  const prompt = `You are reviewing NYC DOB/ECB/HPD records for ${address}.
+${concernText}
+
+For EACH item below, write a brief note (under 15 words) assessing its relevance/impact.
+Format: "[brief what it is]; [impact assessment relative to concern]"
+Examples:
+- "related to elevator; no impact on unit 10B"
+- "exterior facade repairs floors 1-ROF; no impact on unit 10B"
+- "LAA for kitchen work apt 3G; unrelated to 10th floor"
+- "gas piping violation; building-wide concern, verify compliance"
+
+Items to review:
+${JSON.stringify(allItems, null, 2)}`;
+
+  try {
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: { "Authorization": `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "google/gemini-3-flash-preview",
+        messages: [
+          { role: "system", content: "You generate brief per-item notes for NYC property due diligence reports. Return structured JSON via the tool call." },
+          { role: "user", content: prompt },
+        ],
+        tools: [{
+          type: "function",
+          function: {
+            name: "save_line_item_notes",
+            description: "Save the generated notes for each violation and application.",
+            parameters: {
+              type: "object",
+              properties: {
+                notes: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      item_type: { type: "string", enum: ["violation", "application"] },
+                      item_id: { type: "string" },
+                      note: { type: "string" },
+                    },
+                    required: ["item_type", "item_id", "note"],
+                    additionalProperties: false,
+                  },
+                },
+              },
+              required: ["notes"],
+              additionalProperties: false,
+            },
+          },
+        }],
+        tool_choice: { type: "function", function: { name: "save_line_item_notes" } },
+      }),
+    });
+
+    if (!response.ok) {
+      console.error("AI line-item notes error:", response.status);
+      return [];
+    }
+
+    const data = await response.json();
+    const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
+    if (toolCall?.function?.arguments) {
+      const parsed = JSON.parse(toolCall.function.arguments);
+      return parsed.notes || [];
+    }
+    return [];
+  } catch (error) {
+    console.error("AI line-item notes generation error:", error);
+    return [];
+  }
+}
+
+async function generateAIAnalysis(reportData: any, customerConcern: string | null, LOVABLE_API_KEY: string): Promise<string> {
   const { building, violations, applications, orders } = reportData;
   const openViolations = violations.filter((v: any) => v.status === 'open');
   const dobV = openViolations.filter((v: any) => v.agency === 'DOB');
   const ecbV = openViolations.filter((v: any) => v.agency === 'ECB');
   const hpdV = openViolations.filter((v: any) => v.agency === 'HPD');
+
+  const concernSection = customerConcern
+    ? `\n\nCUSTOMER CONCERN: "${customerConcern}"\nPlease specifically address this concern in your analysis and conclusion.`
+    : '';
 
   const prompt = `You are a professional real estate due diligence analyst. Analyze this NYC property data and provide a comprehensive risk assessment.
 
@@ -279,8 +389,9 @@ RECENT: ${openViolations.slice(0, 10).map((v: any) => `[${v.agency}] ${v.violati
 
 APPLICATIONS: ${applications.length} total
 ${applications.slice(0, 5).map((a: any) => `[${a.source}] ${a.application_type || 'Unknown'} - ${a.status || 'Unknown'}`).join('; ') || 'None'}
+${concernSection}
 
-Provide: 1. Risk Level (Low/Medium/High/Critical) 2. Key Findings 3. Violation Analysis 4. Permit Activity 5. Recommendations`;
+Provide: 1. Risk Level (Low/Medium/High/Critical) 2. Key Findings 3. Violation Analysis 4. Permit Activity 5. Recommendations${customerConcern ? ' 6. Conclusion addressing the customer concern directly' : ''}`;
 
   try {
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -330,13 +441,18 @@ serve(async (req) => {
     }
 
     const userId = claimsData.user.id;
-    const { reportId, address } = await req.json();
+    const { reportId, address, customerConcern } = await req.json();
     if (!reportId || !address) {
       return new Response(JSON.stringify({ error: "Missing reportId or address" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     console.log(`=== Generating DD report for: ${address} ===`);
+
+    // Save customer concern if provided
+    if (customerConcern) {
+      await supabase.from('dd_reports').update({ customer_concern: customerConcern }).eq('id', reportId);
+    }
 
     let bin = '', bbl = '', resolvedAddress = address;
     const geoResult = await geoSearchAddress(address);
@@ -380,22 +496,29 @@ serve(async (req) => {
       vacate: violations.filter(v => v.is_vacate_order),
     };
 
-    const aiAnalysis = await generateAIAnalysis(
-      { building: building || { address: resolvedAddress, bin, bbl }, violations, applications, orders },
-      LOVABLE_API_KEY
-    );
+    // Generate AI analysis and line-item notes in parallel
+    const [aiAnalysis, lineItemNotes] = await Promise.all([
+      generateAIAnalysis(
+        { building: building || { address: resolvedAddress, bin, bbl }, violations, applications, orders },
+        customerConcern || null,
+        LOVABLE_API_KEY
+      ),
+      generateLineItemNotes(violations, applications, resolvedAddress, customerConcern || null, LOVABLE_API_KEY),
+    ]);
 
     const { error: updateError } = await supabase.from('dd_reports').update({
       bin: bin || null, bbl: bbl || null,
       building_data: building || { address: resolvedAddress, bin, bbl },
       violations_data: violations, applications_data: applications, orders_data: orders,
-      ai_analysis: aiAnalysis, status: 'completed',
+      ai_analysis: aiAnalysis,
+      line_item_notes: lineItemNotes,
+      status: 'pending_review',
     }).eq('id', reportId);
 
     if (updateError) throw updateError;
-    console.log(`=== Report generated successfully ===`);
+    console.log(`=== Report generated successfully with ${lineItemNotes.length} line-item notes ===`);
 
-    return new Response(JSON.stringify({ success: true, bin, bbl, violationsCount: violations.length, applicationsCount: applications.length }), {
+    return new Response(JSON.stringify({ success: true, bin, bbl, violationsCount: violations.length, applicationsCount: applications.length, notesCount: lineItemNotes.length }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {

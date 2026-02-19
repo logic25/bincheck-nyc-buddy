@@ -23,6 +23,7 @@ export type Database = {
           bin: string | null
           building_data: Json | null
           created_at: string
+          customer_concern: string | null
           general_notes: string | null
           id: string
           line_item_notes: Json | null
@@ -44,6 +45,7 @@ export type Database = {
           bin?: string | null
           building_data?: Json | null
           created_at?: string
+          customer_concern?: string | null
           general_notes?: string | null
           id?: string
           line_item_notes?: Json | null
@@ -65,6 +67,7 @@ export type Database = {
           bin?: string | null
           building_data?: Json | null
           created_at?: string
+          customer_concern?: string | null
           general_notes?: string | null
           id?: string
           line_item_notes?: Json | null
