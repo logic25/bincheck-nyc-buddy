@@ -74,7 +74,7 @@ const Auth = () => {
             <CardTitle className="font-display text-2xl">{isLogin ? "Welcome Back" : "Create Account"}</CardTitle>
             <CardDescription>{isLogin ? "Sign in to access saved reports" : "Sign up to save reports and export PDFs"}</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
             {/* Google Sign In */}
             <Button
               type="button"
