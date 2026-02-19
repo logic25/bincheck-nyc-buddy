@@ -142,18 +142,29 @@ const Index = () => {
         </div>
       </header>
 
-      {/* Hero */}
+      {/* Main content */}
       <main className="flex-1 flex items-center justify-center px-4">
         <div className="max-w-3xl w-full text-center space-y-10">
-          <div className="space-y-5">
-            <h1 className="font-display text-5xl md:text-6xl font-extrabold tracking-tight leading-[1.1]">
-              Due diligence,{" "}
-              <span className="text-primary">delivered.</span>
-            </h1>
-            <p className="text-lg text-muted-foreground max-w-xl mx-auto leading-relaxed">
-              The definitive NYC property risk platform for real estate transactions. Open violations, stop work orders, and AI-powered risk analysis — built for attorneys, investors, and deal teams.
-            </p>
-          </div>
+          {session ? (
+            <div className="space-y-3">
+              <h1 className="font-display text-3xl font-bold tracking-tight">
+                Property Search
+              </h1>
+              <p className="text-muted-foreground">
+                Look up any NYC property by BIN number or address
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-5">
+              <h1 className="font-display text-5xl md:text-6xl font-extrabold tracking-tight leading-[1.1]">
+                Due diligence,{" "}
+                <span className="text-primary">delivered.</span>
+              </h1>
+              <p className="text-lg text-muted-foreground max-w-xl mx-auto leading-relaxed">
+                The definitive NYC property risk platform for real estate transactions. Open violations, stop work orders, and AI-powered risk analysis — built for attorneys, investors, and deal teams.
+              </p>
+            </div>
+          )}
 
           {/* Search with autocomplete */}
           <form onSubmit={handleSearch} className="relative max-w-2xl mx-auto" ref={wrapperRef}>
@@ -195,24 +206,27 @@ const Index = () => {
             )}
           </form>
 
-          <p className="text-sm text-muted-foreground">
-            Free to search. Sign in to generate transaction-ready DD reports and share with counsel.
-          </p>
+          {!session && (
+            <>
+              <p className="text-sm text-muted-foreground">
+                Free to search. Sign in to generate transaction-ready DD reports and share with counsel.
+              </p>
 
-          {/* Features */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4">
-            {[
-              { icon: Building2, title: "Open Violations", desc: "DOB, ECB & HPD violations that affect closing — with severity and penalty data" },
-              { icon: AlertTriangle, title: "Critical Orders", desc: "Stop work orders, vacate orders, and enforcement actions that can kill a deal" },
-              { icon: FileText, title: "DD Reports", desc: "Transaction-ready reports with AI risk analysis — built to share with attorneys and stakeholders" },
-            ].map((f) => (
-              <div key={f.title} className="p-6 rounded-lg bg-card/50 text-left space-y-3 hover:bg-card transition-colors">
-                <f.icon className="h-5 w-5 text-primary" />
-                <h3 className="font-display font-semibold text-sm">{f.title}</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">{f.desc}</p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4">
+                {[
+                  { icon: Building2, title: "Open Violations", desc: "DOB, ECB & HPD violations that affect closing — with severity and penalty data" },
+                  { icon: AlertTriangle, title: "Critical Orders", desc: "Stop work orders, vacate orders, and enforcement actions that can kill a deal" },
+                  { icon: FileText, title: "DD Reports", desc: "Transaction-ready reports with AI risk analysis — built to share with attorneys and stakeholders" },
+                ].map((f) => (
+                  <div key={f.title} className="p-6 rounded-lg bg-card/50 text-left space-y-3 hover:bg-card transition-colors">
+                    <f.icon className="h-5 w-5 text-primary" />
+                    <h3 className="font-display font-semibold text-sm">{f.title}</h3>
+                    <p className="text-sm text-muted-foreground leading-relaxed">{f.desc}</p>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            </>
+          )}
         </div>
       </main>
 
