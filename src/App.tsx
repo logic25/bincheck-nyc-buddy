@@ -7,6 +7,7 @@ import Index from "./pages/Index";
 import Report from "./pages/Report";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
+import DDReports from "./pages/DDReports";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -22,6 +23,7 @@ const App = () => (
           <Route path="/report" element={<Report />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/dd-reports" element={<DDReports />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

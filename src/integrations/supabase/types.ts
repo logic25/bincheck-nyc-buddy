@@ -14,6 +14,72 @@ export type Database = {
   }
   public: {
     Tables: {
+      dd_reports: {
+        Row: {
+          address: string
+          ai_analysis: string | null
+          applications_data: Json | null
+          bbl: string | null
+          bin: string | null
+          building_data: Json | null
+          created_at: string
+          general_notes: string | null
+          id: string
+          line_item_notes: Json | null
+          orders_data: Json | null
+          pdf_url: string | null
+          prepared_by: string | null
+          prepared_for: string
+          report_date: string
+          status: string
+          updated_at: string
+          user_id: string
+          violations_data: Json | null
+        }
+        Insert: {
+          address?: string
+          ai_analysis?: string | null
+          applications_data?: Json | null
+          bbl?: string | null
+          bin?: string | null
+          building_data?: Json | null
+          created_at?: string
+          general_notes?: string | null
+          id?: string
+          line_item_notes?: Json | null
+          orders_data?: Json | null
+          pdf_url?: string | null
+          prepared_by?: string | null
+          prepared_for?: string
+          report_date?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+          violations_data?: Json | null
+        }
+        Update: {
+          address?: string
+          ai_analysis?: string | null
+          applications_data?: Json | null
+          bbl?: string | null
+          bin?: string | null
+          building_data?: Json | null
+          created_at?: string
+          general_notes?: string | null
+          id?: string
+          line_item_notes?: Json | null
+          orders_data?: Json | null
+          pdf_url?: string | null
+          prepared_by?: string | null
+          prepared_for?: string
+          report_date?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+          violations_data?: Json | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string

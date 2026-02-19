@@ -14,8 +14,8 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ["Space Grotesk", "sans-serif"],
-        display: ["Space Grotesk", "sans-serif"],
+        sans: ["Inter", "sans-serif"],
+        display: ["Inter", "sans-serif"],
         mono: ["JetBrains Mono", "monospace"],
       },
       colors: {
@@ -63,9 +63,9 @@ export default {
           ring: "hsl(var(--sidebar-ring))",
         },
         score: {
-          green: "hsl(142 71% 45%)",
-          yellow: "hsl(38 92% 50%)",
-          red: "hsl(0 72% 51%)",
+          green: "hsl(145 60% 42%)",
+          yellow: "hsl(40 80% 52%)",
+          red: "hsl(0 70% 50%)",
         },
       },
       borderRadius: {
