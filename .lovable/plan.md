@@ -1,136 +1,128 @@
 
-# Client Portal — Making the Logged-In Experience "Wow"
+# Adding DSNY + All Missing Agency Violations (FDNY, DEP, DOT, LPC, DOF)
 
-## What the Client Sees Today
+## What We Found in CitiSignal
 
-Right now, when an attorney (or any client) logs in they land on a basic "Saved Searches" dashboard showing a list of BIN lookups with a score badge. The DD Reports section is a separate page that functions as your internal team tool. There is no unified client experience — it reads like an admin panel, not a client portal.
+The [CitiSignal](/projects/9d9b6494-36da-4c50-a4c2-79428913d706) project already solved this exact problem. The key insight: **DSNY, FDNY, DEP, DOT, LPC, and DOF do not have their own reliable per-property Open Data datasets.** Instead, all of their violations that went to a hearing are recorded in a single dataset:
 
----
+- **OATH Hearings Dataset**: `https://data.cityofnewyork.us/resource/jz4z-kudi.json`
 
-## What We're Building: A Unified Client Portal
+This is queried by **BBL components** (borough, block, lot) and filtered by `issuing_agency` name. This is the battle-tested approach from CitiSignal that correctly returns violations for all of these agencies.
 
-The goal: when an attorney logs in, they see a polished, professional portal that feels like it was built specifically for them. Everything organized, nothing confusing.
+The agency name mappings used in OATH:
 
-### The New Client Dashboard (`/dashboard`)
-
-Replace the current plain list with a proper portal homepage:
-
-**Top section — At a Glance cards:**
-- Total DD Reports ordered
-- Reports pending / in review
-- Reports approved and ready
-
-**Main content — Two tabs:**
-1. **My Reports** — Shows all DD reports with status badges (Generating, Under Review, Ready), address, date ordered, and a "View Report" button. No admin controls visible.
-2. **Quick Searches** — The existing saved BIN searches list, moved here as a secondary tab.
-
-**Empty state** — When they have no reports yet, a clean call-to-action: "Order your first DD Report" that links to `/dd-reports`.
-
----
-
-### Client-Facing Report View (Read-Only)
-
-When a client clicks into a completed/approved report, they see a clean read-only viewer — no edit buttons, no save/regen/delete controls, no "Approve" button. Just:
-- The professional report layout (building info, compliance summary, violations with notes, applications with notes)
-- AI Risk Assessment section (read-only, rendered Markdown)
-- A prominent **Download PDF** button
-- Their customer concern shown at the top as "Scope of Review"
-
-The notes your team has reviewed and approved show cleanly in the table — exactly what the attorney cares about: "Is this my problem or not?"
-
----
-
-### Status Flow the Client Sees
-
-Instead of raw status strings like `pending_review`, they see human-friendly labels:
-
-| Internal Status | Client Sees |
+| Code | OATH Agency Name |
 |---|---|
-| `generating` | "Being Prepared" (with spinner) |
-| `pending_review` | "Under Review by GLE Team" |
-| `approved` | "Ready to Download" (green, prominent) |
-| `draft` | "Draft" |
+| FDNY | `FIRE DEPARTMENT OF NYC` |
+| DEP | `DEPT OF ENVIRONMENT PROT` |
+| DOT | `DEPT OF TRANSPORTATION` |
+| DSNY | `DEPT OF SANITATION` |
+| LPC | `LANDMARKS PRESERV COMM` |
+| DOF | `DEPT OF FINANCE` |
 
 ---
 
-### What Makes It "Wow"
+## What's Being Fixed
 
-1. **Status timeline** — A small visual progress tracker on each report card: Ordered → Being Prepared → Under Review → Ready. Like a package tracker. Clients love this — they know exactly where their report is.
+### 1. Edge Function — Add OATH Violation Fetching
 
-2. **Report card design** — Each report card shows: address prominently, their concern/scope in italic, ordered date, status pill, and a big "View Report" or "Download PDF" CTA depending on status.
+In `supabase/functions/generate-dd-report/index.ts`, add a new `fetchOATHViolations` function that:
+- Takes `bbl` (already available), `agency` code, and the OATH agency name
+- Queries the OATH Hearings dataset by `issuing_agency`, `violation_location_borough`, `violation_location_block_no`, `violation_location_lot_no`
+- Returns normalized violations in the same shape already used (id, agency, violation_number, description_raw, issued_date, status, penalty_amount, etc.)
+- Determines `status: 'open' | 'closed'` by checking OATH fields `hearing_status`, `hearing_result`, `compliance_status` against resolved terms (paid, written off, dismissed, etc.)
 
-3. **Clean navigation** — No "Admin", no "Regen", no internal tool language. The nav for a non-admin user is just: Logo | My Reports | Settings | Sign Out.
-
-4. **PDF download front and center** — When a report is approved, the PDF button is the #1 action. One click, done.
-
-5. **Professional empty state** — First-time users see a clear onboarding message: "Your reports will appear here once you've placed an order. Contact GLE to get started." (Until the self-serve order page is built.)
-
----
-
-## Technical Plan
-
-### Files to Modify
-
-**`src/pages/Dashboard.tsx`** — Full redesign:
-- Replace the saved-searches-only list with a proper portal layout
-- Add at-a-glance stat cards (total reports, pending, ready)
-- Query `dd_reports` table (not just `saved_reports`) for the user's DD reports
-- Show status timeline per report card
-- Filter: client only sees their own reports (RLS already enforces this)
-- Tab between DD Reports and Quick Searches
-- Non-admin users: hide all internal controls
-
-**`src/pages/DDReports.tsx`** — Split behavior by role:
-- Admin view: current internal tool as-is (full controls, edit notes, approve button)
-- Non-admin / client view: redirect to `/dashboard` — clients don't need this raw page
-
-**`src/components/dd-reports/DDReportViewer.tsx`** — Add a `readOnly` prop that hides all editing UI:
-- When `isAdmin === false` and `status === 'approved'`, render in pure client view mode
-- No Save, Regen, Delete, or Approve buttons shown
-- Notes column shows the approved notes as plain text (not editable textareas)
-- PDF download button is prominent at top
-
-**`src/pages/Dashboard.tsx`** — Navigation cleanup:
-- Logged-in non-admin nav: `My Reports | Settings | Sign Out` (no Admin link, no raw DD Reports link)
-- Admin nav: unchanged (full access)
-
-### No Database Changes Needed
-
-The `dd_reports` table already has everything needed:
-- `status` — drives the status timeline
-- `customer_concern` — shown as Scope of Review
-- `line_item_notes` — displayed in read-only notes column
-- `ai_analysis` — rendered as Markdown in Risk Assessment section
-- RLS already ensures clients can only see their own reports
-
-### New Component: `ReportStatusTimeline`
-
-A small reusable component showing 4 steps as connected dots:
-
-```text
-● Ordered  →  ● Being Prepared  →  ● Under Review  →  ● Ready
-(filled)      (spinning if active)   (filled if past)   (green if done)
+Add a new `NYC_ENDPOINTS.OATH_HEARINGS` constant:
+```
+https://data.cityofnewyork.us/resource/jz4z-kudi.json
 ```
 
-Used on both the dashboard card list and inside the report viewer header.
+Call this for all 6 agencies in parallel using `Promise.all()` inside `fetchViolations()`.
+
+The OATH record fields we use:
+- `ticket_number` → `violation_number`
+- `violation_date` → `issued_date`
+- `hearing_date` → hearing info
+- `charge_1_code_description` + `charge_2_code_description` → `description_raw`
+- `penalty_imposed` / `total_violation_amount` → `penalty_amount`
+- `respondent_last_name` + `respondent_first_name` → `respondent_name`
+- `hearing_status` + `hearing_result` + `compliance_status` → determines `status`
+
+### 2. Edge Function — Fix Applicant Label (Architect not GC)
+
+In `fetchApplications()`, rename the `applicant_name` field for BIS jobs to clarify it is the **filing professional (architect/PE)**, not the general contractor. This is a data mapping label issue, not a data source issue. The field `applicant_s_first_name`/`applicant_s_last_name` in the BIS dataset is always the design professional of record.
+
+Change field name from `applicant_name` to `filing_professional_name` in the returned object for BIS jobs.
+
+### 3. Edge Function — Fix DOB NOW External Link Logic
+
+In `ExpandableApplicationRow.tsx`, the "View on DOB BIS" button always opens a BIS URL even for DOB NOW jobs. Fix:
+- BIS jobs (`source === 'BIS'`): keep `https://a810-bisweb.nyc.gov/bisweb/JobsQueryByNumberServlet?passjobnumber=<number>` — this deep-links directly to the job
+- DOB NOW jobs (`source === 'DOB_NOW'`): change button label to "Search on DOB NOW Build" and link to `https://a810-bisweb.nyc.gov/bisweb/bispi00.jsp` (public search portal, no deep-link available for DOB NOW filings)
+
+### 4. UI — Add DSNY, FDNY, DEP, DOT, LPC, DOF to Violation Filter Buttons
+
+In `DDReportViewer.tsx`, the hardcoded filter buttons currently only show `['all', 'DOB', 'ECB', 'HPD']`. This needs to be **data-driven** — generate the agency filter buttons dynamically from the actual agencies present in the violations data. This way all new agencies automatically appear when they have violations, with no further UI changes needed.
+
+Replace:
+```tsx
+{['all', 'DOB', 'ECB', 'HPD'].map(f => ( ... ))}
+```
+With dynamic buttons generated from `[...new Set(violations.map(v => v.agency))]`.
+
+Also update the Compliance Summary badge row (currently shows just DOB/ECB/HPD counts) to be dynamically generated from the agencies present.
+
+### 5. UI — Fix "Applicant Information" Label in ExpandableApplicationRow
+
+Change the section label from `"Applicant Information"` to `"Filing Professional (Architect/PE)"` for BIS source applications. This corrects the misleading label — the person listed is the licensed architect or PE who filed the job, not the contractor doing the work.
 
 ---
 
-## What Stays the Same
-
-- The internal DD Reports tool at `/dd-reports` — unchanged for GLE team
-- Admin controls, note editing, approve button — unchanged, admin-only
-- PDF export logic — unchanged
-- All existing RLS policies — unchanged
-- Auth flow — unchanged
-
----
-
-## Summary of Changes
+## Files to Change
 
 | File | Change |
 |---|---|
-| `src/pages/Dashboard.tsx` | Full redesign: stat cards, DD report list with status timeline, tabs for Reports vs Quick Searches |
-| `src/pages/DDReports.tsx` | Non-admins redirected to /dashboard; page stays as internal tool for GLE team |
-| `src/components/dd-reports/DDReportViewer.tsx` | Add client read-only mode: hides all edit/admin controls when non-admin viewing approved report |
-| New `src/components/dd-reports/ReportStatusTimeline.tsx` | Visual 4-step progress tracker component |
+| `supabase/functions/generate-dd-report/index.ts` | Add `fetchOATHViolations()`, add `OATH_HEARINGS` endpoint, call for DSNY/FDNY/DEP/DOT/LPC/DOF in parallel inside `fetchViolations()`, rename `applicant_name` → `filing_professional_name` for BIS jobs |
+| `src/components/dd-reports/ExpandableApplicationRow.tsx` | Fix external link: BIS→deep link, DOB_NOW→portal search; fix label "Applicant Information" → "Filing Professional (Architect/PE)" |
+| `src/components/dd-reports/DDReportViewer.tsx` | Make violation filter buttons data-driven from actual agencies in violations array; update compliance summary to be dynamic |
+
+---
+
+## What Does NOT Change
+
+- DOB, ECB, HPD fetching logic — untouched
+- The normalized violation shape — new agencies use the same fields
+- AI analysis prompt — it already handles generic violations
+- The AI line-item notes format and key construction — unchanged
+- All UI layout, authentication, client portal changes from the previous sprint
+- No database migrations needed — `violations_data` JSONB column stores any shape
+
+---
+
+## Technical Note on OATH Query
+
+The OATH dataset requires BBL broken into parts. We already parse BBL in `fetchViolations()`:
+```
+borough = bbl.slice(0, 1)   // "3"
+block = bbl.slice(1, 6)     // "00410" 
+lot = bbl.slice(6, 10)      // "0023"
+```
+
+The OATH query (per agency, run in parallel):
+```
+?issuing_agency=DEPT OF SANITATION
+&violation_location_borough=BROOKLYN
+&violation_location_block_no=00410
+&violation_location_lot_no=0023
+&$limit=100
+&$order=violation_date DESC
+```
+
+Borough names needed for OATH (different from borough codes):
+- `1` → MANHATTAN
+- `2` → BRONX  
+- `3` → BROOKLYN
+- `4` → QUEENS
+- `5` → STATEN ISLAND
+
+This is the exact same logic already proven in CitiSignal.
