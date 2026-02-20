@@ -1,128 +1,140 @@
 
-# Adding DSNY + All Missing Agency Violations (FDNY, DEP, DOT, LPC, DOF)
+# Two Fixes: AI Inline Notes Prompt + Quick Search UX
 
-## What We Found in CitiSignal
+## Problem 1: AI Inline Notes Prompt Is Too Weak
 
-The [CitiSignal](/projects/9d9b6494-36da-4c50-a4c2-79428913d706) project already solved this exact problem. The key insight: **DSNY, FDNY, DEP, DOT, LPC, and DOF do not have their own reliable per-property Open Data datasets.** Instead, all of their violations that went to a hearing are recorded in a single dataset:
+### What the current prompt actually says (lines 376-388 of edge function):
 
-- **OATH Hearings Dataset**: `https://data.cityofnewyork.us/resource/jz4z-kudi.json`
+```
+You are reviewing NYC DOB/ECB/HPD records for [ADDRESS].
+[concern or "No specific customer concern provided. Write general impact notes."]
 
-This is queried by **BBL components** (borough, block, lot) and filtered by `issuing_agency` name. This is the battle-tested approach from CitiSignal that correctly returns violations for all of these agencies.
+For EACH item below, write a brief note (under 15 words) assessing its relevance/impact.
+Format: "[brief what it is]; [impact assessment relative to concern]"
+Examples:
+- "related to elevator; no impact on unit 10B"
+- "exterior facade repairs floors 1-ROF; no impact on unit 10B"
 
-The agency name mappings used in OATH:
+Items to review: [JSON]
+```
 
-| Code | OATH Agency Name |
-|---|---|
-| FDNY | `FIRE DEPARTMENT OF NYC` |
-| DEP | `DEPT OF ENVIRONMENT PROT` |
-| DOT | `DEPT OF TRANSPORTATION` |
-| DSNY | `DEPT OF SANITATION` |
-| LPC | `LANDMARKS PRESERV COMM` |
-| DOF | `DEPT OF FINANCE` |
+### Problems identified:
+
+1. **The customer concern IS passed in** — the variable `concernText` includes it — but the instruction says "assessing its relevance/impact" without explicitly telling the AI to compare against that concern. The AI treats it as context but doesn't consistently use it as a filter.
+
+2. **"Under 15 words" is too aggressive.** It produces clipped outputs like "elevator-related; no impact" with zero professional value. An attorney reading this has no useful information.
+
+3. **No severity guidance at all.** The AI has no instruction for how to treat:
+   - An ECB violation with a $4,000 balance due vs. one that's dismissed
+   - A stop-work order vs. a routine LAA permit
+   - An HPD Class C (immediately hazardous) vs. Class A (non-hazardous)
+   - An OATH hearing with an open compliance status vs. paid
+
+4. **The system role is too casual**: "You generate brief per-item notes" — no professional framing.
+
+5. **Agency list is hardcoded to DOB/ECB/HPD in the opening line**, even though we now fetch FDNY, DSNY, DOT, LPC, DOF violations too.
+
+6. **No instruction on what "status" means** — `partial permit status` is meaningless without telling the AI what partial means (permit issued for part of a job, not the full scope — which can indicate incomplete work or stalled project).
 
 ---
 
-## What's Being Fixed
+### The Improved Prompt (complete replacement for lines 376-388):
 
-### 1. Edge Function — Add OATH Violation Fetching
+```typescript
+const concernInstruction = customerConcern
+  ? `The client's specific question is: "${customerConcern}"
+Each note MUST assess whether this item is relevant to that question. 
+If the item clearly cannot affect the client's concern (e.g., it's on a different floor, different system, or already resolved), say so briefly.
+If it IS relevant or potentially relevant, explain the specific risk or implication.`
+  : `No specific concern was provided. Write a general professional impact note for each item focusing on open issues, outstanding balances, and unresolved compliance status.`;
 
-In `supabase/functions/generate-dd-report/index.ts`, add a new `fetchOATHViolations` function that:
-- Takes `bbl` (already available), `agency` code, and the OATH agency name
-- Queries the OATH Hearings dataset by `issuing_agency`, `violation_location_borough`, `violation_location_block_no`, `violation_location_lot_no`
-- Returns normalized violations in the same shape already used (id, agency, violation_number, description_raw, issued_date, status, penalty_amount, etc.)
-- Determines `status: 'open' | 'closed'` by checking OATH fields `hearing_status`, `hearing_result`, `compliance_status` against resolved terms (paid, written off, dismissed, etc.)
+const prompt = `You are a licensed NYC real estate compliance analyst writing transaction notes for a due diligence report.
 
-Add a new `NYC_ENDPOINTS.OATH_HEARINGS` constant:
+Property: ${address}
+${concernInstruction}
+
+For EACH item below, write one professional note of 1-2 sentences (maximum 25 words) that:
+1. Identifies what the item is (agency, type, location such as floor/apt if present in the data)
+2. States whether it is resolved, open, or pending — using the status field
+3. Assesses relevance and impact relative to the client's concern (or general risk if no concern)
+
+SEVERITY GUIDANCE — use these rules to frame your notes:
+- ECB violation with penalty_amount > 0 and status=open: flag as financial exposure, note balance
+- HPD Class C violation (immediately hazardous): always flag as high priority regardless of concern
+- HPD Class B violation (hazardous): flag if open
+- Stop-work order or vacate order: always flag as critical
+- FDNY or DSNY violation with open hearing_status: flag as requiring follow-up
+- Permit application with status "PARTIAL": note that work was partially permitted — indicates incomplete or staged work; assess if relevant to concern
+- Permit application with status "APPROVED" or "COMPLETED": generally resolved, note briefly
+- Dismissed, Resolved, Paid, Written Off, Closed items: note as resolved, no further action required
+
+Use [ACTION REQUIRED] at the start of any note where there is an outstanding balance, open enforcement hearing, or unresolved compliance issue that requires attorney attention.
+
+Items to review:
+${JSON.stringify(allItems, null, 2)}`;
 ```
-https://data.cityofnewyork.us/resource/jz4z-kudi.json
+
+And update the system role to:
+```typescript
+{ role: "system", content: "You are a licensed NYC real estate compliance analyst writing professional due diligence transaction notes. Be precise, professional, and attorney-ready. Return structured JSON via the tool call." }
 ```
 
-Call this for all 6 agencies in parallel using `Promise.all()` inside `fetchViolations()`.
+---
 
-The OATH record fields we use:
-- `ticket_number` → `violation_number`
-- `violation_date` → `issued_date`
-- `hearing_date` → hearing info
-- `charge_1_code_description` + `charge_2_code_description` → `description_raw`
-- `penalty_imposed` / `total_violation_amount` → `penalty_amount`
-- `respondent_last_name` + `respondent_first_name` → `respondent_name`
-- `hearing_status` + `hearing_result` + `compliance_status` → determines `status`
+## Problem 2: Quick Search Tab UX Is Broken
 
-### 2. Edge Function — Fix Applicant Label (Architect not GC)
+### What currently happens:
+- User is on `/dashboard`, "Quick Searches" tab
+- They see a list of past saved reports (BIN lookup cards) — that's fine
+- When there are NO saved reports, the empty state shows a `Button` that calls `navigate("/")` — this navigates away from the dashboard to the home page search
+- This is the broken interaction — the user expected an inline search, not a page redirect
 
-In `fetchApplications()`, rename the `applicant_name` field for BIS jobs to clarify it is the **filing professional (architect/PE)**, not the general contractor. This is a data mapping label issue, not a data source issue. The field `applicant_s_first_name`/`applicant_s_last_name` in the BIS dataset is always the design professional of record.
-
-Change field name from `applicant_name` to `filing_professional_name` in the returned object for BIS jobs.
-
-### 3. Edge Function — Fix DOB NOW External Link Logic
-
-In `ExpandableApplicationRow.tsx`, the "View on DOB BIS" button always opens a BIS URL even for DOB NOW jobs. Fix:
-- BIS jobs (`source === 'BIS'`): keep `https://a810-bisweb.nyc.gov/bisweb/JobsQueryByNumberServlet?passjobnumber=<number>` — this deep-links directly to the job
-- DOB NOW jobs (`source === 'DOB_NOW'`): change button label to "Search on DOB NOW Build" and link to `https://a810-bisweb.nyc.gov/bisweb/bispi00.jsp` (public search portal, no deep-link available for DOB NOW filings)
-
-### 4. UI — Add DSNY, FDNY, DEP, DOT, LPC, DOF to Violation Filter Buttons
-
-In `DDReportViewer.tsx`, the hardcoded filter buttons currently only show `['all', 'DOB', 'ECB', 'HPD']`. This needs to be **data-driven** — generate the agency filter buttons dynamically from the actual agencies present in the violations data. This way all new agencies automatically appear when they have violations, with no further UI changes needed.
-
-Replace:
+### Root cause (line 374 of Dashboard.tsx):
 ```tsx
-{['all', 'DOB', 'ECB', 'HPD'].map(f => ( ... ))}
+<Button className="mt-4" onClick={() => navigate("/")}>Search Properties</Button>
 ```
-With dynamic buttons generated from `[...new Set(violations.map(v => v.agency))]`.
 
-Also update the Compliance Summary badge row (currently shows just DOB/ECB/HPD counts) to be dynamically generated from the agencies present.
+### What it should be:
+The "Quick Search" tab should have an inline search box at the top — identical in behavior to the search on the home page (the `Index.tsx` search already has the autocomplete/geosearch logic). The user types an address, picks a suggestion, clicks Search, and it navigates to `/report?address=...` — exactly what `Index.tsx` does.
 
-### 5. UI — Fix "Applicant Information" Label in ExpandableApplicationRow
+The saved reports list below the search box remains, showing past searches. When empty, there's no more awkward "go to another page" button — the search IS right there on the tab.
 
-Change the section label from `"Applicant Information"` to `"Filing Professional (Architect/PE)"` for BIS source applications. This corrects the misleading label — the person listed is the licensed architect or PE who filed the job, not the contractor doing the work.
+This is a **self-contained UX pattern** — the search logic from `Index.tsx` (fetch suggestions from `geosearch.planninglabs.nyc`, debounce, keyboard navigation, autocomplete dropdown) gets extracted into a reusable component or inlined into the Quick Search tab.
 
 ---
 
 ## Files to Change
 
-| File | Change |
-|---|---|
-| `supabase/functions/generate-dd-report/index.ts` | Add `fetchOATHViolations()`, add `OATH_HEARINGS` endpoint, call for DSNY/FDNY/DEP/DOT/LPC/DOF in parallel inside `fetchViolations()`, rename `applicant_name` → `filing_professional_name` for BIS jobs |
-| `src/components/dd-reports/ExpandableApplicationRow.tsx` | Fix external link: BIS→deep link, DOB_NOW→portal search; fix label "Applicant Information" → "Filing Professional (Architect/PE)" |
-| `src/components/dd-reports/DDReportViewer.tsx` | Make violation filter buttons data-driven from actual agencies in violations array; update compliance summary to be dynamic |
+### 1. `supabase/functions/generate-dd-report/index.ts`
+- Replace the `generateLineItemNotes` prompt (lines 350-388) with the improved version above
+- Update the system role message (line 397)
+- Fix the agency reference from hardcoded "DOB/ECB/HPD" to generic "NYC agency"
+
+### 2. `src/pages/Dashboard.tsx`
+- Add inline address search state variables: `searchQuery`, `searchSuggestions`, `showSuggestions`, debounce ref
+- Add `fetchSearchSuggestions` function (identical logic to Index.tsx)
+- Replace the Quick Search tab content: add a search form at the TOP of the tab (above the saved reports list) with the same autocomplete dropdown as the home page
+- Replace the empty state button (`navigate("/")`) with the inline search — now the search box IS there so the empty state just says "No past searches yet"
+- Remove the "Refresh" button from the top of the tab (it's a minor clutter item — searches update on tab switch)
+- On submit, navigate to `/report?address=...` exactly as Index.tsx does
 
 ---
 
 ## What Does NOT Change
-
-- DOB, ECB, HPD fetching logic — untouched
-- The normalized violation shape — new agencies use the same fields
-- AI analysis prompt — it already handles generic violations
-- The AI line-item notes format and key construction — unchanged
-- All UI layout, authentication, client portal changes from the previous sprint
-- No database migrations needed — `violations_data` JSONB column stores any shape
+- The actual data fetching for saved reports
+- The DD Reports tab and its cards
+- All admin routing and role checks
+- The edge function's AI analysis prompt (separate from line-item notes)
+- All other pages
 
 ---
 
-## Technical Note on OATH Query
+## Technical Note on Search Reuse
 
-The OATH dataset requires BBL broken into parts. We already parse BBL in `fetchViolations()`:
-```
-borough = bbl.slice(0, 1)   // "3"
-block = bbl.slice(1, 6)     // "00410" 
-lot = bbl.slice(6, 10)      // "0023"
-```
+The geosearch autocomplete logic in `Index.tsx` uses:
+- `fetchSuggestions` → `geosearch.planninglabs.nyc/v2/autocomplete`
+- `handleInputChange` with 200ms debounce
+- Keyboard navigation (ArrowUp/Down, Enter, Escape)
+- Click-outside to close
 
-The OATH query (per agency, run in parallel):
-```
-?issuing_agency=DEPT OF SANITATION
-&violation_location_borough=BROOKLYN
-&violation_location_block_no=00410
-&violation_location_lot_no=0023
-&$limit=100
-&$order=violation_date DESC
-```
-
-Borough names needed for OATH (different from borough codes):
-- `1` → MANHATTAN
-- `2` → BRONX  
-- `3` → BROOKLYN
-- `4` → QUEENS
-- `5` → STATEN ISLAND
-
-This is the exact same logic already proven in CitiSignal.
+This exact pattern gets duplicated into the Dashboard Quick Search tab. If this pattern is used a third time, it should be extracted into a shared `useAddressSearch` hook — but for now, keeping it in the two page files is fine and avoids premature abstraction.
