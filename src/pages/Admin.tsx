@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Shield, ArrowLeft, Loader2, Users, FileText, BarChart3, Search, Settings, Eye, Mail, Building2 } from 'lucide-react';
+import { Shield, ArrowLeft, Loader2, Users, FileText, BarChart3, Search, Settings, Eye, Mail, Building2, BookOpen } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface UserWithEmail {
@@ -170,6 +170,12 @@ const Admin = () => {
             </Button>
             <Button variant="ghost" size="sm" onClick={() => navigate('/settings')}>
               <Settings className="h-4 w-4 mr-1" /> Settings
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => navigate('/dd-reports')}>
+              <FileText className="h-4 w-4 mr-1" /> DD Reports
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => navigate('/help')}>
+              <BookOpen className="h-4 w-4 mr-1" /> Help Center
             </Button>
           </div>
         </div>

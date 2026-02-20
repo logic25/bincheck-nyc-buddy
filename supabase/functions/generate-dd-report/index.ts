@@ -655,6 +655,22 @@ serve(async (req) => {
     if (updateError) throw updateError;
     console.log(`=== Report generated successfully with ${lineItemNotes.length} line-item notes ===`);
 
+    // Log AI usage (best-effort — don't fail report if this fails)
+    try {
+      const totalTokens = 2000; // conservative estimate per report
+      await supabase.from('ai_usage_logs').insert({
+        feature: 'report_generation',
+        model: 'google/gemini-3-flash-preview',
+        prompt_tokens: 0,
+        completion_tokens: 0,
+        total_tokens: totalTokens,
+        estimated_cost_usd: 0.000300,
+        metadata: { reportId, address },
+      });
+    } catch (logErr) {
+      console.warn('Failed to log AI usage:', logErr);
+    }
+
     return new Response(JSON.stringify({ success: true, bin, bbl, violationsCount: violations.length, applicationsCount: applications.length, notesCount: lineItemNotes.length }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
