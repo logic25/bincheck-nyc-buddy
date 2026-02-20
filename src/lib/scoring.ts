@@ -1,9 +1,17 @@
 import { PropertyData, ComplianceScore, CategoryScore } from "@/types/property";
 
 export function calculateComplianceScore(data: PropertyData): ComplianceScore {
-  const dobScore = calculateDOBScore(data);
-  const ecbScore = calculateECBScore(data);
-  const hpdScore = calculateHPDScore(data);
+  // Defensive: ensure arrays always exist
+  const safeData: PropertyData = {
+    ...data,
+    dobViolations: data.dobViolations || [],
+    ecbViolations: data.ecbViolations || [],
+    hpdViolations: data.hpdViolations || [],
+    permits: data.permits || [],
+  };
+  const dobScore = calculateDOBScore(safeData);
+  const ecbScore = calculateECBScore(safeData);
+  const hpdScore = calculateHPDScore(safeData);
 
   // Weights: HPD=0.4, DOB=0.35, ECB=0.25
   const overall = Math.round(

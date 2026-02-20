@@ -22,16 +22,23 @@ export type Database = {
           bbl: string | null
           bin: string | null
           building_data: Json | null
+          client_email: string | null
+          client_firm: string | null
+          client_name: string | null
           created_at: string
           customer_concern: string | null
           general_notes: string | null
           id: string
           line_item_notes: Json | null
           orders_data: Json | null
+          payment_amount: number | null
+          payment_status: string | null
           pdf_url: string | null
           prepared_by: string | null
           prepared_for: string
           report_date: string
+          requested_delivery_date: string | null
+          rush_requested: boolean | null
           status: string
           updated_at: string
           user_id: string
@@ -44,16 +51,23 @@ export type Database = {
           bbl?: string | null
           bin?: string | null
           building_data?: Json | null
+          client_email?: string | null
+          client_firm?: string | null
+          client_name?: string | null
           created_at?: string
           customer_concern?: string | null
           general_notes?: string | null
           id?: string
           line_item_notes?: Json | null
           orders_data?: Json | null
+          payment_amount?: number | null
+          payment_status?: string | null
           pdf_url?: string | null
           prepared_by?: string | null
           prepared_for?: string
           report_date?: string
+          requested_delivery_date?: string | null
+          rush_requested?: boolean | null
           status?: string
           updated_at?: string
           user_id: string
@@ -66,16 +80,23 @@ export type Database = {
           bbl?: string | null
           bin?: string | null
           building_data?: Json | null
+          client_email?: string | null
+          client_firm?: string | null
+          client_name?: string | null
           created_at?: string
           customer_concern?: string | null
           general_notes?: string | null
           id?: string
           line_item_notes?: Json | null
           orders_data?: Json | null
+          payment_amount?: number | null
+          payment_status?: string | null
           pdf_url?: string | null
           prepared_by?: string | null
           prepared_for?: string
           report_date?: string
+          requested_delivery_date?: string | null
+          rush_requested?: boolean | null
           status?: string
           updated_at?: string
           user_id?: string
