@@ -7,17 +7,29 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Shield, ArrowLeft, Loader2, Users, FileText, BarChart3, Search, Settings, Eye } from 'lucide-react';
+import { Shield, ArrowLeft, Loader2, Users, FileText, BarChart3, Search, Settings, Eye, Mail, Building2 } from 'lucide-react';
 import { format } from 'date-fns';
+
+interface UserWithEmail {
+  user_id: string;
+  display_name: string | null;
+  company_name: string | null;
+  phone: string | null;
+  profile_created_at: string;
+  email: string | null;
+  auth_created_at: string | null;
+}
 
 const Admin = () => {
   const navigate = useNavigate();
   const { isAdmin, isLoading: roleLoading } = useUserRole();
-  const [users, setUsers] = useState<any[]>([]);
+  const [users, setUsers] = useState<UserWithEmail[]>([]);
   const [reports, setReports] = useState<any[]>([]);
-  const [stats, setStats] = useState({ totalUsers: 0, totalReports: 0, reportsThisMonth: 0 });
+  const [leads, setLeads] = useState<any[]>([]);
+  const [stats, setStats] = useState({ totalUsers: 0, totalReports: 0, reportsThisMonth: 0, totalLeads: 0 });
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [leadSearch, setLeadSearch] = useState('');
   const [selectedUserReports, setSelectedUserReports] = useState<{ userId: string; name: string } | null>(null);
   const [userReports, setUserReports] = useState<any[]>([]);
   const [loadingUserReports, setLoadingUserReports] = useState(false);
@@ -33,33 +45,58 @@ const Admin = () => {
     const fetchData = async () => {
       setLoading(true);
 
-      // Fetch all profiles
+      // Fetch profiles
       const { data: profilesData } = await supabase
         .from('profiles')
         .select('user_id, display_name, company_name, phone, created_at')
         .order('created_at', { ascending: false });
 
+      // Fetch auth emails via security-definer function
+      const { data: authUsersData } = await supabase.rpc('get_users_with_email');
+
+      // Merge profiles with auth emails
+      const emailMap: Record<string, { email: string; created_at: string }> = {};
+      (authUsersData || []).forEach((u: any) => {
+        emailMap[u.user_id] = { email: u.email, created_at: u.created_at };
+      });
+
+      const merged: UserWithEmail[] = (profilesData || []).map((p: any) => ({
+        user_id: p.user_id,
+        display_name: p.display_name,
+        company_name: p.company_name,
+        phone: p.phone,
+        profile_created_at: p.created_at,
+        email: emailMap[p.user_id]?.email || null,
+        auth_created_at: emailMap[p.user_id]?.created_at || null,
+      }));
+
       // Fetch all DD reports
       const { data: reportsData } = await supabase
         .from('dd_reports')
-        .select('id, address, prepared_for, report_date, status, user_id, created_at')
+        .select('id, address, prepared_for, report_date, status, user_id, created_at, rush_requested, client_email, client_firm')
         .order('created_at', { ascending: false });
 
-      const allUsers = profilesData || [];
+      // Fetch order leads
+      const { data: leadsData } = await supabase
+        .from('order_leads' as any)
+        .select('*')
+        .order('created_at', { ascending: false });
+
       const allReports = reportsData || [];
 
-      setUsers(allUsers);
+      setUsers(merged);
       setReports(allReports);
+      setLeads(leadsData || []);
 
-      // Calculate stats
       const now = new Date();
       const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
       const reportsThisMonth = allReports.filter(r => r.created_at >= monthStart).length;
 
       setStats({
-        totalUsers: allUsers.length,
+        totalUsers: merged.length,
         totalReports: allReports.length,
         reportsThisMonth,
+        totalLeads: (leadsData || []).length,
       });
 
       setLoading(false);
@@ -79,15 +116,34 @@ const Admin = () => {
     setLoadingUserReports(false);
   };
 
+  const getStatusBadge = (status: string) => {
+    const map: Record<string, { label: string; variant: any }> = {
+      approved: { label: 'Approved', variant: 'default' },
+      pending_review: { label: 'Pending Review', variant: 'secondary' },
+      generating: { label: 'Generating', variant: 'outline' },
+      error: { label: 'Error', variant: 'destructive' },
+      draft: { label: 'Draft', variant: 'outline' },
+    };
+    return map[status] || { label: status, variant: 'outline' };
+  };
+
   const filteredReports = reports.filter(r =>
     searchQuery === '' ||
     r.address?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    r.prepared_for?.toLowerCase().includes(searchQuery.toLowerCase())
+    r.prepared_for?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    r.client_email?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const getUserName = (userId: string) => {
-    const user = users.find(u => u.user_id === userId);
-    return user?.display_name || user?.company_name || userId.slice(0, 8);
+  const filteredLeads = leads.filter((l: any) =>
+    leadSearch === '' ||
+    l.email?.toLowerCase().includes(leadSearch.toLowerCase()) ||
+    l.first_name?.toLowerCase().includes(leadSearch.toLowerCase()) ||
+    l.last_name?.toLowerCase().includes(leadSearch.toLowerCase()) ||
+    l.company?.toLowerCase().includes(leadSearch.toLowerCase())
+  );
+
+  const getUserDisplayName = (user: UserWithEmail) => {
+    return user.display_name || user.email?.split('@')[0] || user.user_id.slice(0, 8);
   };
 
   if (roleLoading || (loading && isAdmin)) {
@@ -130,10 +186,12 @@ const Admin = () => {
             <TabsTrigger value="stats"><BarChart3 className="h-4 w-4 mr-1" /> Stats</TabsTrigger>
             <TabsTrigger value="users"><Users className="h-4 w-4 mr-1" /> Users</TabsTrigger>
             <TabsTrigger value="reports"><FileText className="h-4 w-4 mr-1" /> All Reports</TabsTrigger>
+            <TabsTrigger value="leads"><Mail className="h-4 w-4 mr-1" /> Leads</TabsTrigger>
           </TabsList>
 
+          {/* Stats */}
           <TabsContent value="stats">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <Card>
                 <CardHeader className="pb-2">
                   <CardDescription>Total Users</CardDescription>
@@ -152,9 +210,16 @@ const Admin = () => {
                   <CardTitle className="text-3xl">{stats.reportsThisMonth}</CardTitle>
                 </CardHeader>
               </Card>
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardDescription>Order Leads</CardDescription>
+                  <CardTitle className="text-3xl">{stats.totalLeads}</CardTitle>
+                </CardHeader>
+              </Card>
             </div>
           </TabsContent>
 
+          {/* Users */}
           <TabsContent value="users">
             {selectedUserReports ? (
               <Card>
@@ -173,15 +238,18 @@ const Admin = () => {
                     <p className="text-muted-foreground text-center py-8">No reports found for this user.</p>
                   ) : (
                     <div className="space-y-2">
-                      {userReports.map(r => (
-                        <div key={r.id} className="flex items-center justify-between p-3 rounded-lg border border-border">
-                          <div>
-                            <p className="font-medium">{r.address}</p>
-                            <p className="text-sm text-muted-foreground">For: {r.prepared_for} • {format(new Date(r.report_date), 'MMM d, yyyy')}</p>
+                      {userReports.map(r => {
+                        const s = getStatusBadge(r.status);
+                        return (
+                          <div key={r.id} className="flex items-center justify-between p-3 rounded-lg border border-border">
+                            <div>
+                              <p className="font-medium">{r.address}</p>
+                              <p className="text-sm text-muted-foreground">For: {r.prepared_for} · {format(new Date(r.report_date), 'MMM d, yyyy')}</p>
+                            </div>
+                            <Badge variant={s.variant}>{s.label}</Badge>
                           </div>
-                          <Badge variant={r.status === 'completed' ? 'default' : r.status === 'error' ? 'destructive' : 'secondary'}>{r.status}</Badge>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
                 </CardContent>
@@ -190,6 +258,7 @@ const Admin = () => {
               <Card>
                 <CardHeader>
                   <CardTitle>All Users ({users.length})</CardTitle>
+                  <CardDescription>Registered accounts with email and signup date</CardDescription>
                 </CardHeader>
                 <CardContent>
                   {users.length === 0 ? (
@@ -198,14 +267,27 @@ const Admin = () => {
                     <div className="space-y-2">
                       {users.map(u => (
                         <div key={u.user_id} className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors">
-                          <div>
-                            <p className="font-medium">{u.display_name || 'No name'}</p>
-                            <p className="text-sm text-muted-foreground">
-                              {u.company_name && `${u.company_name} • `}
-                              Joined {format(new Date(u.created_at), 'MMM d, yyyy')}
-                            </p>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <p className="font-medium truncate">{getUserDisplayName(u)}</p>
+                            </div>
+                            <div className="flex items-center gap-3 mt-0.5 flex-wrap">
+                              {u.email && (
+                                <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                                  <Mail className="h-3 w-3" /> {u.email}
+                                </span>
+                              )}
+                              {u.company_name && (
+                                <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                                  <Building2 className="h-3 w-3" /> {u.company_name}
+                                </span>
+                              )}
+                              <span className="text-xs text-muted-foreground">
+                                Signed up {u.auth_created_at ? format(new Date(u.auth_created_at), 'MMM d, yyyy') : format(new Date(u.profile_created_at), 'MMM d, yyyy')}
+                              </span>
+                            </div>
                           </div>
-                          <Button variant="ghost" size="sm" onClick={() => handleViewUserReports(u.user_id, u.display_name || u.user_id.slice(0, 8))}>
+                          <Button variant="ghost" size="sm" onClick={() => handleViewUserReports(u.user_id, getUserDisplayName(u))}>
                             <Eye className="h-4 w-4 mr-1" /> Reports
                           </Button>
                         </div>
@@ -217,13 +299,14 @@ const Admin = () => {
             )}
           </TabsContent>
 
+          {/* All Reports */}
           <TabsContent value="reports">
             <Card>
               <CardHeader>
                 <CardTitle>All DD Reports ({filteredReports.length})</CardTitle>
                 <div className="relative mt-2">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input placeholder="Search by address or client..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-10" />
+                  <Input placeholder="Search by address, client, or email..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-10" />
                 </div>
               </CardHeader>
               <CardContent>
@@ -231,15 +314,72 @@ const Admin = () => {
                   <p className="text-muted-foreground text-center py-8">No reports found.</p>
                 ) : (
                   <div className="space-y-2">
-                    {filteredReports.map(r => (
-                      <div key={r.id} className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors">
-                        <div>
-                          <p className="font-medium">{r.address}</p>
-                          <p className="text-sm text-muted-foreground">
-                            For: {r.prepared_for} • By: {getUserName(r.user_id)} • {format(new Date(r.report_date), 'MMM d, yyyy')}
-                          </p>
+                    {filteredReports.map(r => {
+                      const s = getStatusBadge(r.status);
+                      return (
+                        <div key={r.id} className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              {r.rush_requested && <Badge variant="destructive" className="text-xs">🚨 RUSH</Badge>}
+                              <p className="font-medium truncate">{r.address}</p>
+                            </div>
+                            <p className="text-sm text-muted-foreground mt-0.5">
+                              {r.prepared_for}
+                              {r.client_firm && ` · ${r.client_firm}`}
+                              {r.client_email && ` · ${r.client_email}`}
+                              {' · '}{format(new Date(r.created_at), 'MMM d, yyyy')}
+                            </p>
+                          </div>
+                          <Badge variant={s.variant}>{s.label}</Badge>
                         </div>
-                        <Badge variant={r.status === 'completed' ? 'default' : r.status === 'error' ? 'destructive' : 'secondary'}>{r.status}</Badge>
+                      );
+                    })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Leads */}
+          <TabsContent value="leads">
+            <Card>
+              <CardHeader>
+                <CardTitle>Order Leads ({filteredLeads.length})</CardTitle>
+                <CardDescription>Emails captured from the order form — including abandoned orders</CardDescription>
+                <div className="relative mt-2">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input placeholder="Search by email, name, or company..." value={leadSearch} onChange={(e) => setLeadSearch(e.target.value)} className="pl-10" />
+                </div>
+              </CardHeader>
+              <CardContent>
+                {filteredLeads.length === 0 ? (
+                  <p className="text-muted-foreground text-center py-8">No leads captured yet.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {filteredLeads.map((l: any) => (
+                      <div key={l.id} className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium">{l.first_name} {l.last_name}</p>
+                            {l.converted && <Badge className="text-xs bg-primary text-primary-foreground border-transparent">Converted</Badge>}
+                            {l.rush_requested && <Badge variant="destructive" className="text-xs">RUSH</Badge>}
+                          </div>
+                          <div className="flex items-center gap-3 flex-wrap mt-0.5">
+                            <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                              <Mail className="h-3 w-3" /> {l.email}
+                            </span>
+                            {l.company && (
+                              <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                                <Building2 className="h-3 w-3" /> {l.company}
+                              </span>
+                            )}
+                            {l.address && <span className="text-xs text-muted-foreground truncate max-w-48">{l.address}</span>}
+                          </div>
+                        </div>
+                        <div className="text-right ml-4 shrink-0">
+                          <Badge variant="outline" className="text-xs">Step {l.step_reached}</Badge>
+                          <p className="text-xs text-muted-foreground mt-1">{format(new Date(l.created_at), 'MMM d, yyyy')}</p>
+                        </div>
                       </div>
                     ))}
                   </div>

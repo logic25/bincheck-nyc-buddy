@@ -104,6 +104,57 @@ export type Database = {
         }
         Relationships: []
       }
+      order_leads: {
+        Row: {
+          address: string | null
+          company: string | null
+          concern: string | null
+          converted: boolean | null
+          created_at: string
+          email: string
+          first_name: string | null
+          id: string
+          last_name: string | null
+          phone: string | null
+          requested_delivery_date: string | null
+          rush_requested: boolean | null
+          step_reached: number | null
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          company?: string | null
+          concern?: string | null
+          converted?: boolean | null
+          created_at?: string
+          email: string
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          phone?: string | null
+          requested_delivery_date?: string | null
+          rush_requested?: boolean | null
+          step_reached?: number | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          company?: string | null
+          concern?: string | null
+          converted?: boolean | null
+          created_at?: string
+          email?: string
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          phone?: string | null
+          requested_delivery_date?: string | null
+          rush_requested?: boolean | null
+          step_reached?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           company_name: string | null
@@ -193,6 +244,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_users_with_email: {
+        Args: never
+        Returns: {
+          created_at: string
+          email: string
+          user_id: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
