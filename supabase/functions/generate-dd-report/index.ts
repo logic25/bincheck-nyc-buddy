@@ -347,42 +347,63 @@ async function generateLineItemNotes(
   customerConcern: string | null,
   LOVABLE_API_KEY: string
 ): Promise<any[]> {
-  const concernText = customerConcern
-    ? `The customer's specific concern: "${customerConcern}"`
-    : "No specific customer concern was provided. Write general impact notes.";
-
-  // Build compact item list for AI
+  // Build compact item list for AI — include penalty/status data for severity guidance
   const violationItems = violations.slice(0, 60).map((v: any) => ({
     type: "violation",
     id: v.violation_number || v.id,
     agency: v.agency,
-    desc: (v.violation_type || v.description_raw || 'Unknown').slice(0, 100),
+    desc: (v.violation_type || v.description_raw || 'Unknown').slice(0, 120),
     floor: v.story || null,
     apt: v.apartment || null,
+    status: v.violation_status || v.status || null,
+    penalty_amount: v.penalty_amount || v.penalty_imposed || null,
+    hearing_status: v.hearing_status || null,
+    class: v.nov_class || v.class_value || null,
   }));
 
   const applicationItems = applications.slice(0, 40).map((a: any) => ({
     type: "application",
     id: `${a.source || 'BIS'}-${a.application_number || a.id}`,
     source: a.source,
-    desc: (a.job_description || a.application_type || 'Unknown').slice(0, 100),
+    desc: (a.job_description || a.application_type || 'Unknown').slice(0, 120),
     floor: a.floor || null,
     apt: a.apartment || null,
+    status: a.permit_status || a.application_status || a.status || null,
   }));
 
   const allItems = [...violationItems, ...applicationItems];
   if (allItems.length === 0) return [];
 
-  const prompt = `You are reviewing NYC DOB/ECB/HPD records for ${address}.
-${concernText}
+  const concernInstruction = customerConcern
+    ? `The client's specific question is: "${customerConcern}"
 
-For EACH item below, write a brief note (under 15 words) assessing its relevance/impact.
-Format: "[brief what it is]; [impact assessment relative to concern]"
-Examples:
-- "related to elevator; no impact on unit 10B"
-- "exterior facade repairs floors 1-ROF; no impact on unit 10B"
-- "LAA for kitchen work apt 3G; unrelated to 10th floor"
-- "gas piping violation; building-wide concern, verify compliance"
+Each note MUST assess whether this item is relevant to that question.
+If the item clearly cannot affect the client's concern (e.g., it is on a different floor, different system, or already resolved), say so briefly.
+If it IS relevant or potentially relevant, explain the specific risk or implication in plain professional language.`
+    : `No specific concern was provided. Write a general professional impact note for each item, focusing on open issues, outstanding balances, and unresolved compliance status.`;
+
+  const prompt = `You are a licensed NYC real estate compliance analyst writing transaction notes for a due diligence report.
+
+Property: ${address}
+${concernInstruction}
+
+For EACH item below, write one professional note of 1-2 sentences (maximum 25 words) that:
+1. Identifies what the item is (agency, type, location — floor/apt — if present in the data)
+2. States whether it is resolved, open, or pending based on the status field
+3. Assesses relevance and impact relative to the client's concern (or general risk if no concern)
+
+SEVERITY GUIDANCE — apply these rules when framing notes:
+- ECB violation with penalty_amount > 0 and status open: flag as financial exposure, note the balance amount
+- HPD Class C violation (immediately hazardous): always flag as high priority regardless of client concern
+- HPD Class B violation (hazardous): flag if open or unresolved
+- Stop-work order or vacate order: always flag as critical, regardless of concern
+- FDNY or DSNY violation with open hearing_status: flag as requiring follow-up
+- Permit application with status "PARTIAL": note that work was only partially permitted — this may indicate incomplete work, a stalled project, or scope change; assess if relevant to client concern
+- Permit application with status "APPROVED" or "COMPLETED": generally resolved; note briefly
+- Dismissed, Resolved, Paid, Written Off, Closed: note as resolved, no further action required
+- DOT, LPC, DOF violations: treat like ECB — flag if open, note any outstanding balance
+
+Use [ACTION REQUIRED] at the start of any note where there is an outstanding balance, open enforcement hearing, or unresolved compliance issue that requires attorney attention.
 
 Items to review:
 ${JSON.stringify(allItems, null, 2)}`;

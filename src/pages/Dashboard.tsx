@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -6,9 +6,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
 import {
-  Shield, LogOut, RefreshCw, Loader2, Trash2, FileText, Settings,
-  ArrowRight, Download, ClipboardList, Clock, CheckCircle2, Search,
+  Shield, LogOut, Loader2, Trash2, FileText, Settings,
+  ArrowRight, Download, ClipboardList, Clock, CheckCircle2, Search, MapPin,
 } from "lucide-react";
 import { getScoreColor } from "@/lib/scoring";
 import { toast } from "sonner";
@@ -43,6 +44,10 @@ const CLIENT_STATUS_LABELS: Record<string, { label: string; variant: 'default' |
   draft: { label: 'Draft', variant: 'outline' },
 };
 
+interface GeoSuggestion {
+  label: string;
+}
+
 const Dashboard = () => {
   const navigate = useNavigate();
   const { isAdmin, isLoading: roleLoading } = useUserRole();
@@ -51,6 +56,14 @@ const Dashboard = () => {
   const [userId, setUserId] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
+
+  // Quick search state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchSuggestions, setSearchSuggestions] = useState<GeoSuggestion[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [highlightedIndex, setHighlightedIndex] = useState(-1);
+  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const searchWrapperRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
     const check = async () => {
@@ -64,6 +77,76 @@ const Dashboard = () => {
       fetchSavedReports();
     };
     check();
+  }, []);
+
+  // Geo search autocomplete
+  const fetchSearchSuggestions = useCallback(async (text: string) => {
+    if (text.length < 3 || /^\d+$/.test(text.trim())) {
+      setSearchSuggestions([]);
+      return;
+    }
+    try {
+      const res = await fetch(
+        `https://geosearch.planninglabs.nyc/v2/autocomplete?text=${encodeURIComponent(text)}&size=6`
+      );
+      if (!res.ok) return;
+      const data = await res.json();
+      const results: GeoSuggestion[] = (data.features || []).map((f: any) => ({
+        label: f.properties?.label || f.properties?.name || "",
+      }));
+      setSearchSuggestions(results);
+      setShowSuggestions(results.length > 0);
+      setHighlightedIndex(-1);
+    } catch {
+      setSearchSuggestions([]);
+    }
+  }, []);
+
+  const handleSearchInputChange = (value: string) => {
+    setSearchQuery(value);
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    searchDebounceRef.current = setTimeout(() => fetchSearchSuggestions(value), 200);
+  };
+
+  const selectSearchSuggestion = (label: string) => {
+    setSearchQuery(label);
+    setShowSuggestions(false);
+    setSearchSuggestions([]);
+  };
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!searchQuery.trim()) return;
+    setShowSuggestions(false);
+    const isNumeric = /^\d+$/.test(searchQuery.trim());
+    navigate(`/report?${isNumeric ? "bin" : "address"}=${encodeURIComponent(searchQuery.trim())}`);
+  };
+
+  const handleSearchKeyDown = (e: React.KeyboardEvent) => {
+    if (!showSuggestions || searchSuggestions.length === 0) return;
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setHighlightedIndex(i => (i < searchSuggestions.length - 1 ? i + 1 : 0));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setHighlightedIndex(i => (i > 0 ? i - 1 : searchSuggestions.length - 1));
+    } else if (e.key === "Enter" && highlightedIndex >= 0) {
+      e.preventDefault();
+      selectSearchSuggestion(searchSuggestions[highlightedIndex].label);
+    } else if (e.key === "Escape") {
+      setShowSuggestions(false);
+    }
+  };
+
+  // Close suggestions on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (searchWrapperRef.current && !searchWrapperRef.current.contains(e.target as Node)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
   }, []);
 
   const fetchSavedReports = async () => {
@@ -355,27 +438,57 @@ const Dashboard = () => {
           </TabsContent>
 
           {/* Quick Searches Tab */}
-          <TabsContent value="searches" className="mt-4">
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-sm text-muted-foreground">Recent property BIN lookups</p>
-              <Button variant="outline" size="sm" onClick={fetchSavedReports}>
-                <RefreshCw className="h-3.5 w-3.5 mr-1" /> Refresh
-              </Button>
-            </div>
+          <TabsContent value="searches" className="mt-4 space-y-4">
+            {/* Inline address search */}
+            <form onSubmit={handleSearchSubmit} className="relative" ref={searchWrapperRef}>
+              <div className="relative flex items-center bg-card border border-border rounded-lg overflow-visible shadow-sm">
+                <Search className="h-5 w-5 text-muted-foreground ml-4 shrink-0" />
+                <Input
+                  value={searchQuery}
+                  onChange={(e) => handleSearchInputChange(e.target.value)}
+                  onFocus={() => searchSuggestions.length > 0 && setShowSuggestions(true)}
+                  onKeyDown={handleSearchKeyDown}
+                  placeholder="Enter BIN number or NYC address..."
+                  className="border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 text-base h-12 pl-3"
+                  autoComplete="off"
+                />
+                <Button type="submit" size="sm" className="m-1.5 shrink-0 font-semibold">
+                  Search
+                  <ArrowRight className="h-4 w-4 ml-1" />
+                </Button>
+              </div>
+
+              {/* Autocomplete dropdown */}
+              {showSuggestions && searchSuggestions.length > 0 && (
+                <div className="absolute left-0 right-0 top-full mt-1 z-50 bg-card border border-border rounded-lg shadow-lg overflow-hidden">
+                  {searchSuggestions.map((s, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      className={`w-full flex items-center gap-3 px-4 py-3 text-left text-sm transition-colors ${
+                        i === highlightedIndex ? "bg-muted" : "hover:bg-muted/50"
+                      }`}
+                      onClick={() => selectSearchSuggestion(s.label)}
+                      onMouseEnter={() => setHighlightedIndex(i)}
+                    >
+                      <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
+                      <span className="truncate text-foreground">{s.label}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </form>
+
+            {/* Past searches list */}
             {loadingSaved ? (
-              <div className="flex justify-center py-16">
+              <div className="flex justify-center py-10">
                 <Loader2 className="h-6 w-6 animate-spin text-primary" />
               </div>
             ) : savedReports.length === 0 ? (
-              <Card>
-                <CardContent className="py-16 text-center">
-                  <Search className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                  <p className="text-muted-foreground">No saved searches yet.</p>
-                  <Button className="mt-4" onClick={() => navigate("/")}>Search Properties</Button>
-                </CardContent>
-              </Card>
+              <p className="text-sm text-muted-foreground text-center py-6">No past searches yet — search above to get started.</p>
             ) : (
               <div className="space-y-3">
+                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Recent BIN lookups</p>
                 {savedReports.map((r) => (
                   <Card
                     key={r.id}
