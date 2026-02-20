@@ -343,10 +343,16 @@ const Index = () => {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-border/40 py-6">
-        <div className="container text-center text-xs text-muted-foreground space-y-1">
-          <p>Data sourced from NYC DOB, ECB, HPD, FDNY, DSNY, DOT, LPC, DOF & DEP public records via NYC Open Data.</p>
-          <p>Not legal or investment advice. © {new Date().getFullYear()} BinCheckNYC</p>
+      <footer className="border-t border-border/40 py-8">
+        <div className="container max-w-4xl text-center text-xs text-muted-foreground space-y-3">
+          <p className="font-medium text-foreground/70">Data Sources</p>
+          <p>Reports draw from NYC Department of Buildings (DOB), Environmental Control Board (ECB), Housing Preservation & Development (HPD), Fire Department (FDNY), Sanitation (DSNY), Department of Transportation (DOT), Landmarks Preservation Commission (LPC), Department of Finance (DOF), and Department of Environmental Protection (DEP) — sourced from NYC Open Data and official agency portals.</p>
+          <div className="border-t border-border/30 pt-3 space-y-1">
+            <p className="leading-relaxed">
+              <span className="font-semibold text-foreground/80">Disclaimer:</span> BinCheckNYC reports are compiled from publicly available government records for informational purposes only. This service does not constitute legal advice, title insurance, or a guarantee of the completeness or accuracy of public agency records. Records may be delayed, incomplete, or not yet reflected in public databases. Users should independently verify findings with qualified legal counsel and relevant city agencies before relying on any report in a transaction. BinCheckNYC assumes no liability for decisions made based on report contents.
+            </p>
+            <p>© {new Date().getFullYear()} BinCheckNYC. All rights reserved.</p>
+          </div>
         </div>
       </footer>
     </div>

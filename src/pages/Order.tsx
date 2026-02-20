@@ -8,12 +8,21 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
 
 interface GeoSuggestion { label: string; }
 
 const TOMORROW = new Date();
 TOMORROW.setDate(TOMORROW.getDate() + 1);
 const MIN_DATE = TOMORROW.toISOString().split("T")[0];
+
+// Format phone number as (XXX) XXX-XXXX
+const formatPhone = (value: string) => {
+  const digits = value.replace(/\D/g, "").slice(0, 10);
+  if (digits.length <= 3) return digits;
+  if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
+  return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+};
 
 const Order = () => {
   const navigate = useNavigate();
@@ -23,6 +32,7 @@ const Order = () => {
   const [step, setStep] = useState(1);
   const [isProcessing, setIsProcessing] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [leadSaved, setLeadSaved] = useState(false);
 
   // Step 1 — Property
   const [address, setAddress] = useState("");
@@ -39,7 +49,7 @@ const Order = () => {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
-  const [firm, setFirm] = useState("");
+  const [company, setCompany] = useState("");
   const [phone, setPhone] = useState("");
 
   // Step 3 — Plan
@@ -86,14 +96,42 @@ const Order = () => {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
+  // Save lead when user fills contact step and moves to step 3
+  const saveLead = useCallback(async (stepReached: number, converted = false) => {
+    if (!email.trim().includes("@") || leadSaved) return;
+    try {
+      await supabase.from("order_leads" as any).insert({
+        email: email.trim(),
+        first_name: firstName.trim() || null,
+        last_name: lastName.trim() || null,
+        company: company.trim() || null,
+        phone: phone.trim() || null,
+        address: address.trim() || null,
+        concern: concern.trim() || null,
+        rush_requested: rush,
+        requested_delivery_date: deliveryDate || null,
+        step_reached: stepReached,
+        converted,
+      });
+      setLeadSaved(true);
+    } catch { /* silently fail — lead capture is best-effort */ }
+  }, [email, firstName, lastName, company, phone, address, concern, rush, deliveryDate, leadSaved]);
+
   const step1Valid = address.trim().length > 5;
-  const step2Valid = firstName.trim() && lastName.trim() && email.trim().includes("@") && firm.trim();
+  const step2Valid = firstName.trim() && lastName.trim() && email.trim().includes("@") && company.trim();
 
   const totalPrice = plan === "professional" ? 599 : rush ? 274 : 199;
   const priceLabel = plan === "professional" ? "$599/mo" : rush ? "$274" : "$199";
 
+  const handleContinueToPayment = () => {
+    saveLead(3);
+    setStep(3);
+  };
+
   const handlePayAndOrder = async () => {
     setIsProcessing(true);
+    // Mark lead as converted
+    saveLead(3, true);
     // Mock payment processing — Stripe not wired yet
     await new Promise(r => setTimeout(r, 2000));
     setIsProcessing(false);
@@ -123,12 +161,18 @@ const Order = () => {
                 You'll receive an email at <span className="font-semibold text-foreground">{email}</span> when it's ready.
               </p>
             </div>
-            {deliveryDate && (
+            {(deliveryDate || rush) && (
               <div className="flex items-center justify-center gap-2 text-sm">
                 <Clock className="h-4 w-4 text-muted-foreground" />
-                <span className="text-muted-foreground">Expected by</span>
-                <span className="font-semibold">{deliveryDate}</span>
+                <span className="text-muted-foreground">{rush ? "Rush — expected within" : "Expected by"}</span>
+                <span className="font-semibold">{rush ? "4 business hours" : deliveryDate}</span>
                 {rush && <Badge className="bg-destructive text-destructive-foreground text-xs">RUSH</Badge>}
+              </div>
+            )}
+            {!rush && !deliveryDate && (
+              <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                <Clock className="h-4 w-4" />
+                <span>Typical turnaround: 24–48 business hours</span>
               </div>
             )}
             <div className="flex flex-col gap-2 pt-2">
@@ -226,12 +270,13 @@ const Order = () => {
                 rows={3}
                 className="resize-none"
               />
-              <p className="text-xs text-muted-foreground">This helps our AI tailor notes to your specific transaction</p>
+              <p className="text-xs text-muted-foreground">This helps our analysts tailor notes to your specific transaction</p>
             </div>
 
             <div className="space-y-2">
               <Label>Preferred Delivery Date <span className="text-muted-foreground">(Optional)</span></Label>
               <Input type="date" min={MIN_DATE} value={deliveryDate} onChange={(e) => setDeliveryDate(e.target.value)} />
+              <p className="text-xs text-muted-foreground">Typical turnaround is 24–48 business hours without rush</p>
             </div>
 
             {/* Rush toggle */}
@@ -244,7 +289,7 @@ const Order = () => {
                   </div>
                   <div>
                     <p className="font-semibold text-sm">Rush Delivery</p>
-                    <p className="text-xs text-muted-foreground">Guaranteed within 4 business hours</p>
+                    <p className="text-xs text-muted-foreground">Guaranteed within 4 business hours of order confirmation</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -286,19 +331,26 @@ const Order = () => {
               <Input type="email" placeholder="jane@smithlaw.com" value={email} onChange={(e) => setEmail(e.target.value)} />
             </div>
             <div className="space-y-2">
-              <Label>Law Firm / Company *</Label>
-              <Input placeholder="Smith & Associates LLP" value={firm} onChange={(e) => setFirm(e.target.value)} />
+              <Label>Company / Firm *</Label>
+              <Input placeholder="Smith & Associates, LLC" value={company} onChange={(e) => setCompany(e.target.value)} />
+              <p className="text-xs text-muted-foreground">Law firm, title company, investment firm, or individual</p>
             </div>
             <div className="space-y-2">
               <Label>Phone <span className="text-muted-foreground">(Optional)</span></Label>
-              <Input type="tel" placeholder="(212) 555-0100" value={phone} onChange={(e) => setPhone(e.target.value)} />
+              <Input
+                type="tel"
+                placeholder="(212) 555-0100"
+                value={phone}
+                onChange={(e) => setPhone(formatPhone(e.target.value))}
+                maxLength={14}
+              />
             </div>
 
             <div className="flex gap-3">
               <Button variant="outline" className="flex-1" onClick={() => setStep(1)}>
                 <ArrowLeft className="h-4 w-4 mr-1" /> Back
               </Button>
-              <Button className="flex-1" onClick={() => setStep(3)} disabled={!step2Valid}>
+              <Button className="flex-1" onClick={handleContinueToPayment} disabled={!step2Valid}>
                 Continue to Payment <ArrowRight className="h-4 w-4 ml-1" />
               </Button>
             </div>
@@ -332,8 +384,14 @@ const Order = () => {
                     </div>
                   </div>
                   <ul className="space-y-1.5 text-sm text-muted-foreground">
-                    {["8-agency violation search", "AI line-item notes", "Attorney-ready PDF", `${rush ? "4-hour" : "24hr"} delivery`].map(f => (
-                      <li key={f} className="flex items-center gap-2"><CheckCircle className="h-3.5 w-3.5 text-primary shrink-0" /> {f}</li>
+                    {[
+                      "8-agency violation search (DOB, ECB, HPD, FDNY, DSNY, DOT, LPC, DOF)",
+                      "AI analyst notes on every line item",
+                      "Attorney-ready PDF report",
+                      `${rush ? "4-hour rush" : "24–48 hr"} delivery`,
+                      "One-time purchase, no subscription"
+                    ].map(f => (
+                      <li key={f} className="flex items-start gap-2"><CheckCircle className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" /> {f}</li>
                     ))}
                   </ul>
                 </CardContent>
@@ -360,8 +418,14 @@ const Order = () => {
                     </div>
                   </div>
                   <ul className="space-y-1.5 text-sm text-muted-foreground">
-                    {["Everything in One-Time", "Priority processing queue", "Rush at no extra charge", "White-label PDF option"].map(f => (
-                      <li key={f} className="flex items-center gap-2"><CheckCircle className="h-3.5 w-3.5 text-primary shrink-0" /> {f}</li>
+                    {[
+                      "Everything in One-Time (all 8 agencies, AI notes, PDF)",
+                      "Priority processing queue — moves to front",
+                      "Rush delivery at no extra charge",
+                      "White-label PDF option",
+                      "Rollover unused reports"
+                    ].map(f => (
+                      <li key={f} className="flex items-start gap-2"><CheckCircle className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" /> {f}</li>
                     ))}
                   </ul>
                 </CardContent>
@@ -375,9 +439,15 @@ const Order = () => {
                 <div className="text-sm text-muted-foreground space-y-1">
                   <div className="flex justify-between"><span>{address}</span></div>
                   {concern && <div className="text-xs italic">"{concern.slice(0, 80)}{concern.length > 80 ? '...' : ''}"</div>}
-                  <div className="flex justify-between"><span>Prepared for:</span><span className="font-medium text-foreground">{firstName} {lastName} · {firm}</span></div>
-                  {deliveryDate && <div className="flex justify-between"><span>Requested by:</span><span>{deliveryDate}</span></div>}
-                  {rush && <div className="flex justify-between text-primary font-medium"><span>Rush delivery</span><span>+$75</span></div>}
+                  <div className="flex justify-between"><span>Prepared for:</span><span className="font-medium text-foreground">{firstName} {lastName} · {company}</span></div>
+                  {deliveryDate && !rush && <div className="flex justify-between"><span>Requested by:</span><span>{deliveryDate}</span></div>}
+                  {rush && <div className="flex justify-between text-primary font-medium"><span>Rush delivery (4 hrs)</span><span>+$75</span></div>}
+                  {!rush && (
+                    <div className="flex items-center gap-1 text-xs">
+                      <Clock className="h-3 w-3" />
+                      <span>Typical turnaround: 24–48 business hours</span>
+                    </div>
+                  )}
                 </div>
                 <div className="border-t border-border pt-2 flex justify-between font-semibold">
                   <span>Total</span>
@@ -405,6 +475,14 @@ const Order = () => {
           </div>
         )}
       </main>
+
+      {/* Footer disclaimer */}
+      <footer className="border-t border-border/40 py-6 mt-8">
+        <div className="container max-w-2xl text-center text-xs text-muted-foreground space-y-1">
+          <p>Reports draw from NYC DOB, ECB, HPD, FDNY, DSNY, DOT, LPC, DOF, and DEP public records.</p>
+          <p>For informational purposes only. Not legal advice. Results depend on the completeness of public agency records at time of search.</p>
+        </div>
+      </footer>
     </div>
   );
 };
