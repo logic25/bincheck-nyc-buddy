@@ -15,6 +15,7 @@ const NYC_ENDPOINTS = {
   HPD_VIOLATIONS: "https://data.cityofnewyork.us/resource/wvxf-dwi5.json",
   DOB_NOW: "https://data.cityofnewyork.us/resource/rbx6-tga4.json",
   GEOSEARCH: "https://geosearch.planninglabs.nyc/v2/search",
+  OATH_HEARINGS: "https://data.cityofnewyork.us/resource/jz4z-kudi.json",
 };
 
 const BOROUGH_CODES: Record<string, string> = {
@@ -116,6 +117,78 @@ async function fetchPLUTOData(bbl: string): Promise<any> {
   };
 }
 
+// Maps borough code (1-5) to full borough name used by OATH dataset
+const OATH_BOROUGH_NAMES: Record<string, string> = {
+  "1": "MANHATTAN",
+  "2": "BRONX",
+  "3": "BROOKLYN",
+  "4": "QUEENS",
+  "5": "STATEN ISLAND",
+};
+
+// Maps agency code to OATH issuing_agency name
+const OATH_AGENCIES: Array<{ code: string; oathName: string }> = [
+  { code: "FDNY", oathName: "FIRE DEPARTMENT OF NYC" },
+  { code: "DEP",  oathName: "DEPT OF ENVIRONMENT PROT" },
+  { code: "DOT",  oathName: "DEPT OF TRANSPORTATION" },
+  { code: "DSNY", oathName: "DEPT OF SANITATION" },
+  { code: "LPC",  oathName: "LANDMARKS PRESERV COMM" },
+  { code: "DOF",  oathName: "DEPT OF FINANCE" },
+];
+
+const OATH_RESOLVED_TERMS = ["paid", "written off", "dismissed", "defaulted", "satisfied", "complied", "waived"];
+
+async function fetchOATHViolations(bbl: string, agencyCode: string, oathAgencyName: string): Promise<any[]> {
+  if (!bbl || bbl.length < 10) return [];
+  const boroughCode = bbl.slice(0, 1);
+  const block = bbl.slice(1, 6); // keep leading zeros for OATH
+  const lot = bbl.slice(6, 10);  // keep leading zeros for OATH
+  const boroughName = OATH_BOROUGH_NAMES[boroughCode];
+  if (!boroughName) return [];
+
+  const params: Record<string, string> = {
+    "issuing_agency": oathAgencyName,
+    "violation_location_borough": boroughName,
+    "violation_location_block_no": block,
+    "violation_location_lot_no": lot,
+    "$limit": "100",
+    "$order": "violation_date DESC",
+  };
+
+  const records = await fetchNYCData(NYC_ENDPOINTS.OATH_HEARINGS, params);
+  return records.map((r: any) => {
+    const hearingStatus = (r.hearing_status || '').toLowerCase();
+    const hearingResult = (r.hearing_result || '').toLowerCase();
+    const complianceStatus = (r.compliance_status || '').toLowerCase();
+    const combined = `${hearingStatus} ${hearingResult} ${complianceStatus}`;
+    const isResolved = OATH_RESOLVED_TERMS.some(term => combined.includes(term));
+
+    const desc1 = r.charge_1_code_description || '';
+    const desc2 = r.charge_2_code_description || '';
+    const descRaw = [desc1, desc2].filter(Boolean).join('; ') || r.violation_description || null;
+
+    const penalty = r.penalty_imposed ? parseFloat(r.penalty_imposed) : (r.total_violation_amount ? parseFloat(r.total_violation_amount) : null);
+
+    return {
+      id: r.ticket_number || r.respondent_ticket_number || `${agencyCode}-${Math.random()}`,
+      agency: agencyCode,
+      violation_number: r.ticket_number || null,
+      violation_type: r.charge_1_code_description || null,
+      violation_class: null,
+      description_raw: descRaw,
+      issued_date: r.violation_date || null,
+      severity: null,
+      status: isResolved ? "closed" : "open",
+      penalty_amount: isNaN(penalty!) ? null : penalty,
+      hearing_date: r.hearing_date || null,
+      respondent_name: [r.respondent_first_name, r.respondent_last_name].filter(Boolean).join(' ') || null,
+      is_stop_work_order: false,
+      is_partial_stop_work: false,
+      is_vacate_order: false,
+    };
+  });
+}
+
 async function fetchViolations(bin: string, bbl: string): Promise<any[]> {
   const violations: any[] = [];
   if (bin) {
@@ -170,6 +243,14 @@ async function fetchViolations(bin: string, bbl: string): Promise<any[]> {
         is_vacate_order: desc.includes('vacate'), is_stop_work_order: false, is_partial_stop_work: false,
       };
     }));
+
+    // Fetch OATH violations for all 6 agencies in parallel
+    const oathResults = await Promise.all(
+      OATH_AGENCIES.map(({ code, oathName }) => fetchOATHViolations(bbl, code, oathName))
+    );
+    for (const agencyViolations of oathResults) {
+      violations.push(...agencyViolations);
+    }
   }
   return violations;
 }
@@ -236,7 +317,7 @@ async function fetchApplications(bin: string): Promise<any[]> {
       estimated_cost: j.initial_cost ? parseFloat(j.initial_cost) : null,
       floor, apartment,
       owner_name: j.owner_s_first_name && j.owner_s_last_name ? `${j.owner_s_first_name} ${j.owner_s_last_name}` : j.owner_s_business_name || null,
-      applicant_name: j.applicant_s_first_name && j.applicant_s_last_name ? `${j.applicant_s_first_name} ${j.applicant_s_last_name}` : null,
+      filing_professional_name: j.applicant_s_first_name && j.applicant_s_last_name ? `${j.applicant_s_first_name} ${j.applicant_s_last_name}` : null,
     };
   }).filter((app: any) => !shouldExcludeApplication(app.status, app.status_code));
   applications.push(...bisApps);

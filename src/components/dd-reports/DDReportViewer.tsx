@@ -202,6 +202,9 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
   const ecbViolations = violations.filter((v: any) => v.agency === 'ECB');
   const hpdViolations = violations.filter((v: any) => v.agency === 'HPD');
 
+  // Dynamic agency list derived from actual violation data
+  const violationAgencies = ['all', ...Array.from(new Set<string>(violations.map((v: any) => v.agency))).sort()];
+
   const hasStopWorkOrder = (orders.stop_work?.length || 0) > 0;
   const hasPartialStopWork = (orders.partial_stop_work?.length || 0) > 0;
   const hasVacateOrder = (orders.vacate?.length || 0) > 0;
@@ -350,10 +353,12 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
             <div className="p-3 rounded-lg bg-muted/40 border border-border">
               <p className="text-2xl font-bold tracking-tight">{violations.length}</p>
               <p className="text-xs text-muted-foreground font-medium">Open Violations</p>
-              <div className="flex gap-1.5 mt-2">
-                <Badge variant="outline" className="text-[10px] px-1.5 py-0">DOB {dobViolations.length}</Badge>
-                <Badge variant="outline" className="text-[10px] px-1.5 py-0">ECB {ecbViolations.length}</Badge>
-                <Badge variant="outline" className="text-[10px] px-1.5 py-0">HPD {hpdViolations.length}</Badge>
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                {violationAgencies.filter(a => a !== 'all').map(agency => (
+                  <Badge key={agency} variant="outline" className="text-[10px] px-1.5 py-0">
+                    {agency} {violations.filter((v: any) => v.agency === agency).length}
+                  </Badge>
+                ))}
               </div>
             </div>
             <div className="p-3 rounded-lg bg-muted/40 border border-border">
@@ -464,11 +469,13 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
             <div className="flex items-center justify-between mb-3">
               <div>
                 <h3 className="text-base font-semibold">Open Violations</h3>
-                <p className="text-xs text-muted-foreground mt-0.5">{dobViolations.length} DOB · {ecbViolations.length} ECB · {hpdViolations.length} HPD</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {violationAgencies.filter(a => a !== 'all').map(a => `${violations.filter((v: any) => v.agency === a).length} ${a}`).join(' · ')}
+                </p>
               </div>
             </div>
-            <div className="flex gap-1.5">
-              {['all', 'DOB', 'ECB', 'HPD'].map(f => (
+            <div className="flex flex-wrap gap-1.5">
+              {violationAgencies.map(f => (
                 <Button key={f} variant={violationFilter === f ? 'default' : 'outline'} size="sm" className="h-7 text-xs" onClick={() => setViolationFilter(f)}>
                   {f === 'all' ? `All (${violations.length})` : `${f} (${violations.filter((v: any) => v.agency === f).length})`}
                 </Button>

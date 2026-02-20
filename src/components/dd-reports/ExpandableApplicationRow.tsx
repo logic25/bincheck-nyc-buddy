@@ -178,7 +178,7 @@ const ExpandableApplicationRow = ({ application, index, note, onNoteChange, read
               )}
 
               <div className="text-sm border-t border-border pt-4">
-                <p className="text-sm font-medium text-muted-foreground mb-2">Applicant Information</p>
+                <p className="text-sm font-medium text-muted-foreground mb-2">Filing Professional (Architect/PE)</p>
                 {application.source === 'DOB_NOW' ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                     {(application.applicant_first_name || application.applicant_last_name) && (
@@ -194,7 +194,7 @@ const ExpandableApplicationRow = ({ application, index, note, onNoteChange, read
                     )}
                   </div>
                 ) : (
-                  <p className="font-medium">{application.applicant_name || '—'}</p>
+                  <p className="font-medium">{application.filing_professional_name || application.applicant_name || '—'}</p>
                 )}
               </div>
 
@@ -219,11 +219,15 @@ const ExpandableApplicationRow = ({ application, index, note, onNoteChange, read
                   size="sm"
                   onClick={(e) => {
                     e.stopPropagation();
-                    window.open(getBISJobUrl(application.application_number || application.job_number), '_blank');
+                    const jobNumber = application.application_number || application.job_number;
+                    const url = application.source === 'DOB_NOW'
+                      ? 'https://a810-bisweb.nyc.gov/bisweb/bispi00.jsp'
+                      : `https://a810-bisweb.nyc.gov/bisweb/JobsQueryByNumberServlet?passjobnumber=${jobNumber}`;
+                    window.open(url, '_blank');
                   }}
                 >
                   <ExternalLink className="w-4 h-4 mr-2" />
-                  View on DOB BIS
+                  {application.source === 'DOB_NOW' ? 'Search on DOB NOW Build' : 'View on DOB BIS'}
                 </Button>
               </div>
             </div>
