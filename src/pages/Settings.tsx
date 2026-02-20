@@ -22,7 +22,6 @@ const Settings = () => {
     display_name: '',
     company_name: '',
     phone: '',
-    license_id: '',
   });
 
   const [newPassword, setNewPassword] = useState('');
@@ -38,7 +37,7 @@ const Settings = () => {
 
       const { data } = await supabase
         .from('profiles')
-        .select('display_name, company_name, phone, license_id')
+        .select('display_name, company_name, phone')
         .eq('user_id', session.user.id)
         .single();
 
@@ -47,7 +46,6 @@ const Settings = () => {
           display_name: data.display_name || '',
           company_name: (data as any).company_name || '',
           phone: (data as any).phone || '',
-          license_id: (data as any).license_id || '',
         });
       }
       setLoading(false);
@@ -64,7 +62,6 @@ const Settings = () => {
         display_name: profile.display_name || null,
         company_name: profile.company_name || null,
         phone: profile.phone || null,
-        license_id: profile.license_id || null,
       } as any)
       .eq('user_id', userId);
     if (error) toast.error('Failed to save profile');
@@ -152,10 +149,6 @@ const Settings = () => {
                 <div className="space-y-2">
                   <Label>Phone</Label>
                   <Input value={profile.phone} onChange={(e) => setProfile({ ...profile, phone: e.target.value })} placeholder="(555) 555-5555" />
-                </div>
-                <div className="space-y-2">
-                  <Label>License ID</Label>
-                  <Input value={profile.license_id} onChange={(e) => setProfile({ ...profile, license_id: e.target.value })} placeholder="Professional license number" />
                 </div>
                 <Button onClick={handleSaveProfile} disabled={saving}>
                   {saving ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Save className="h-4 w-4 mr-1" />} Save Changes

@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import {
   Shield, LogOut, Loader2, Trash2, FileText, Settings,
-  ArrowRight, Download, ClipboardList, Clock, CheckCircle2, Search, MapPin,
+  ArrowRight, Download, ClipboardList, Clock, CheckCircle2, Search, MapPin, Package,
 } from "lucide-react";
 import { getScoreColor } from "@/lib/scoring";
 import { toast } from "sonner";
@@ -196,6 +196,22 @@ const Dashboard = () => {
     enabled: !!userId,
   });
 
+  // Pending orders from order_leads (email match, not yet converted to a dd_report)
+  const { data: pendingOrders } = useQuery({
+    queryKey: ['dashboard-pending-orders', userEmail],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('order_leads')
+        .select('id, address, first_name, last_name, created_at, rush_requested, requested_delivery_date, converted')
+        .eq('email', userEmail!)
+        .eq('converted', false)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!userEmail,
+  });
+
   const handleDeleteSaved = async (id: string) => {
     const { error } = await supabase.from("saved_reports").delete().eq("id", id);
     if (error) {
@@ -341,6 +357,39 @@ const Dashboard = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Pending Orders */}
+        {pendingOrders && pendingOrders.length > 0 && (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Package className="h-4 w-4 text-amber-500" />
+              <h2 className="font-semibold text-sm">Pending Orders</h2>
+              <Badge variant="outline" className="text-xs">{pendingOrders.length}</Badge>
+            </div>
+            {pendingOrders.map((order) => (
+              <Card key={order.id} className="border-amber-500/30 bg-amber-500/5">
+                <CardContent className="p-4 flex items-center justify-between gap-4">
+                  <div className="space-y-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="font-semibold text-sm truncate">{order.address || 'Address pending'}</p>
+                      {order.rush_requested && (
+                        <Badge className="bg-destructive text-destructive-foreground text-xs">RUSH</Badge>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Submitted {format(new Date(order.created_at), 'MMM d, yyyy')}
+                      {order.requested_delivery_date && ` · Expected by ${format(new Date(order.requested_delivery_date), 'MMM d')}`}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Clock className="h-4 w-4 text-amber-500" />
+                    <span className="text-xs text-amber-600 font-medium">Being prepared</span>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
 
         {/* Tabs */}
         <Tabs defaultValue="reports">
