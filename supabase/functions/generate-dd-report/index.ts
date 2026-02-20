@@ -382,30 +382,65 @@ If the item clearly cannot affect the client's concern (e.g., it is on a differe
 If it IS relevant or potentially relevant, explain the specific risk or implication in plain professional language.`
     : `No specific concern was provided. Write a general professional impact note for each item, focusing on open issues, outstanding balances, and unresolved compliance status.`;
 
-  const prompt = `You are a licensed NYC real estate compliance analyst writing transaction notes for a due diligence report.
+  const prompt = `PROPERTY: ${address}
+BIN: ${allItems[0]?.bin || 'see data'} | Reviewing ${allItems.length} items
 
-Property: ${address}
 ${concernInstruction}
 
-For EACH item below, write one professional note of 1-2 sentences (maximum 25 words) that:
-1. Identifies what the item is (agency, type, location — floor/apt — if present in the data)
-2. States whether it is resolved, open, or pending based on the status field
-3. Assesses relevance and impact relative to the client's concern (or general risk if no concern)
+━━━ YOUR TASK ━━━
+For EACH item in the JSON below, write ONE professional note of 1-2 sentences (20-30 words) suitable for a transactional due diligence report read by real estate attorneys.
 
-SEVERITY GUIDANCE — apply these rules when framing notes:
-- ECB violation with penalty_amount > 0 and status open: flag as financial exposure, note the balance amount
-- HPD Class C violation (immediately hazardous): always flag as high priority regardless of client concern
-- HPD Class B violation (hazardous): flag if open or unresolved
-- Stop-work order or vacate order: always flag as critical, regardless of concern
-- FDNY or DSNY violation with open hearing_status: flag as requiring follow-up
-- Permit application with status "PARTIAL": note that work was only partially permitted — this may indicate incomplete work, a stalled project, or scope change; assess if relevant to client concern
-- Permit application with status "APPROVED" or "COMPLETED": generally resolved; note briefly
-- Dismissed, Resolved, Paid, Written Off, Closed: note as resolved, no further action required
-- DOT, LPC, DOF violations: treat like ECB — flag if open, note any outstanding balance
+━━━ FORMAT RULES ━━━
+Start every note with exactly one of these prefixes:
+  [ACTION REQUIRED] — open issue needing attorney attention before closing
+  [MONITOR] — not immediately blocking but should be tracked
+  [RESOLVED] — confirmed closed/paid/dismissed, no action needed
+  [INFO] — informational only, no compliance concern
 
-Use [ACTION REQUIRED] at the start of any note where there is an outstanding balance, open enforcement hearing, or unresolved compliance issue that requires attorney attention.
+After the prefix: one clause identifying what the item is, one clause on status/impact.
+If floor/apt data is present in the item, include it in the identification clause.
+Be declarative: "This violation is open with a $2,400 balance due." — not "may have" or "could indicate."
 
-Items to review:
+━━━ SEVERITY LOGIC — APPLY STRICTLY ━━━
+
+ECB Violations:
+- status=open AND penalty_amount > 0 → [ACTION REQUIRED]. State the exact dollar amount.
+- status=open AND penalty_amount null/0 → [MONITOR] open enforcement hearing.
+- hearing_result contains "DEFAULT" → [ACTION REQUIRED] — respondent did not appear; default judgment likely entered. Requires attorney follow-up before closing.
+- status=closed/dismissed/paid → [RESOLVED]
+
+DOB Violations:
+- is_stop_work_order=true → [ACTION REQUIRED]. Stop Work Order on record. Cannot close title with active SWO on most transactions.
+- is_partial_stop_work=true → [ACTION REQUIRED]. Partial Stop Work Order; scope may be limited but requires cure.
+- is_vacate_order=true → [ACTION REQUIRED]. Vacate Order on record. Blocks occupancy; must be lifted before any transaction.
+- description contains "unsafe", "hazardous", "emergency" → [ACTION REQUIRED]
+- All other open DOB violations → [MONITOR]
+- Closed/disposition present → [RESOLVED]
+
+HPD Violations:
+- class=C (Immediately Hazardous) → [ACTION REQUIRED] regardless of concern. Class C must be corrected within 24 hours of issuance.
+- class=B (Hazardous, open) → [ACTION REQUIRED] if open.
+- class=A (Non-hazardous) → [INFO] if old; [MONITOR] if recent.
+- status contains "Close" or "Certify" → [RESOLVED]
+
+FDNY / DSNY / DOT / LPC / DOF / DEP (OATH violations):
+- status=open AND penalty_amount > 0 → [ACTION REQUIRED]. State amount and agency.
+- status=open, no penalty → [MONITOR]
+- status=closed → [RESOLVED]
+
+Permit Applications (BIS/DOB NOW):
+- status=PARTIAL → [MONITOR]. Work was only partially permitted — indicates incomplete scope, phased work, or a stalled project. Assess relevance to concern.
+- status=IN PROGRESS or PENDING → [MONITOR]. Active filing; work may be ongoing.
+- job_description mentions FAÇADE, ELEVATOR, GAS, BOILER, SPRINKLER, PLUMBING, ELECTRICAL → these are building-wide systems; flag if open.
+- Resolved/signed-off → These should not appear; if present, use [INFO].
+
+━━━ CONCERN-SPECIFIC GUIDANCE ━━━
+If concern mentions a specific unit (e.g., "Unit 4B"): compare item floor/apt against concern. If item is on a clearly different floor and is NOT a building-wide system (elevator, facade, gas, boiler), note: "Located on [floor], not directly related to [unit in concern]." Use [INFO].
+If concern mentions "combination" or "merging": flag any active alteration jobs on relevant floors.
+If concern mentions "purchase" or "acquisition": flag all [ACTION REQUIRED] items as requiring resolution or escrow holdback at closing.
+If no concern: treat all open items as potentially relevant; provide balanced general assessment.
+
+━━━ ITEMS TO REVIEW ━━━
 ${JSON.stringify(allItems, null, 2)}`;
 
   try {
@@ -415,7 +450,7 @@ ${JSON.stringify(allItems, null, 2)}`;
       body: JSON.stringify({
         model: "google/gemini-3-flash-preview",
         messages: [
-          { role: "system", content: "You generate brief per-item notes for NYC property due diligence reports. Return structured JSON via the tool call." },
+          { role: "system", content: "You are a licensed NYC real estate compliance analyst and paralegal specialist with 15 years of experience reviewing DOB, ECB, HPD, FDNY, DSNY, DOT, LPC, and DOF records for transactional due diligence. Your notes are read by real estate attorneys, title companies, and sophisticated investors. Be precise, professional, and attorney-ready. Return structured JSON via the tool call." },
           { role: "user", content: prompt },
         ],
         tools: [{

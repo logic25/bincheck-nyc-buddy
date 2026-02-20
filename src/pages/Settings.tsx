@@ -6,7 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Shield, ArrowLeft, Loader2, Save, LogOut, KeyRound, User } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Shield, ArrowLeft, Loader2, Save, LogOut, KeyRound, User, CreditCard, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { useUserRole } from '@/hooks/useUserRole';
 
@@ -16,6 +17,7 @@ const Settings = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
   const [profile, setProfile] = useState({
     display_name: '',
     company_name: '',
@@ -23,7 +25,6 @@ const Settings = () => {
     license_id: '',
   });
 
-  // Password change
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [changingPassword, setChangingPassword] = useState(false);
@@ -33,6 +34,7 @@ const Settings = () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) { navigate('/auth'); return; }
       setUserId(session.user.id);
+      setUserEmail(session.user.email || null);
 
       const { data } = await supabase
         .from('profiles')
@@ -65,7 +67,6 @@ const Settings = () => {
         license_id: profile.license_id || null,
       } as any)
       .eq('user_id', userId);
-
     if (error) toast.error('Failed to save profile');
     else toast.success('Profile saved');
     setSaving(false);
@@ -121,6 +122,7 @@ const Settings = () => {
         <Tabs defaultValue="profile">
           <TabsList>
             <TabsTrigger value="profile"><User className="h-4 w-4 mr-1" /> Profile</TabsTrigger>
+            <TabsTrigger value="plan"><CreditCard className="h-4 w-4 mr-1" /> My Plan</TabsTrigger>
             <TabsTrigger value="security"><KeyRound className="h-4 w-4 mr-1" /> Security</TabsTrigger>
             <TabsTrigger value="account"><LogOut className="h-4 w-4 mr-1" /> Account</TabsTrigger>
           </TabsList>
@@ -132,6 +134,13 @@ const Settings = () => {
                 <CardDescription>Your personal and business information</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
+                {userEmail && (
+                  <div className="space-y-2">
+                    <Label>Email Address</Label>
+                    <Input value={userEmail} disabled className="opacity-60" />
+                    <p className="text-xs text-muted-foreground">Email cannot be changed here</p>
+                  </div>
+                )}
                 <div className="space-y-2">
                   <Label>Display Name</Label>
                   <Input value={profile.display_name} onChange={(e) => setProfile({ ...profile, display_name: e.target.value })} placeholder="Your name" />
@@ -151,6 +160,54 @@ const Settings = () => {
                 <Button onClick={handleSaveProfile} disabled={saving}>
                   {saving ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Save className="h-4 w-4 mr-1" />} Save Changes
                 </Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="plan">
+            <Card>
+              <CardHeader>
+                <CardTitle>My Plan</CardTitle>
+                <CardDescription>Your current subscription and usage</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="flex items-center justify-between p-4 rounded-lg border border-border bg-muted/30">
+                  <div>
+                    <p className="font-semibold">Current Plan</p>
+                    <p className="text-sm text-muted-foreground mt-0.5">No active subscription</p>
+                  </div>
+                  <Badge variant="outline">No Plan</Badge>
+                </div>
+
+                <div className="space-y-3">
+                  {[
+                    { plan: "One-Time Report", price: "$199/report", desc: "Single report with 24hr delivery" },
+                    { plan: "Professional", price: "$599/mo", desc: "5 reports · priority queue · rush included" },
+                  ].map((p) => (
+                    <div key={p.plan} className="flex items-center justify-between p-4 rounded-lg border border-border">
+                      <div>
+                        <p className="font-medium text-sm">{p.plan}</p>
+                        <p className="text-xs text-muted-foreground">{p.desc}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-sm">{p.price}</span>
+                        <Button size="sm" variant="outline" onClick={() => navigate('/order')}>Select</Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="border-t border-border pt-4">
+                  <Button variant="outline" className="w-full" onClick={() => toast.info("Stripe billing portal coming soon")}>
+                    <CreditCard className="h-4 w-4 mr-2" /> Manage Billing
+                  </Button>
+                  <p className="text-xs text-muted-foreground text-center mt-2">Powered by Stripe · SSL secured</p>
+                </div>
+
+                <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/30 rounded-lg p-3">
+                  <CheckCircle className="h-4 w-4 text-primary shrink-0" />
+                  <span>Enterprise plans for law firms and title companies — <span className="text-primary cursor-pointer hover:underline" onClick={() => window.location.href = "mailto:hello@bincheckyc.com"}>contact us</span></span>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>

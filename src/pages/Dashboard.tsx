@@ -275,6 +275,9 @@ const Dashboard = () => {
             <span className="font-display text-xl tracking-tight">BinCheck<span className="text-primary">NYC</span></span>
           </div>
           <div className="flex items-center gap-2">
+            <Button size="sm" onClick={() => navigate("/order")}>
+              Order a Report <ArrowRight className="h-3.5 w-3.5 ml-1" />
+            </Button>
             <Button variant="ghost" size="sm" onClick={() => navigate("/settings")}>
               <Settings className="h-4 w-4 mr-1" /> Settings
             </Button>
@@ -360,12 +363,17 @@ const Dashboard = () => {
               </div>
             ) : !ddReports?.length ? (
               <Card>
-                <CardContent className="py-16 text-center">
-                  <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">No reports yet</h3>
-                  <p className="text-muted-foreground text-sm max-w-sm mx-auto">
-                    Your reports will appear here once you've placed an order. Contact GLE to get started.
-                  </p>
+                <CardContent className="py-16 text-center space-y-4">
+                  <FileText className="h-12 w-12 mx-auto text-muted-foreground" />
+                  <div>
+                    <h3 className="text-lg font-semibold mb-1">No reports yet</h3>
+                    <p className="text-muted-foreground text-sm max-w-sm mx-auto">
+                      Your due diligence reports will appear here once you've placed an order.
+                    </p>
+                  </div>
+                  <Button onClick={() => navigate("/order")}>
+                    Order a Report <ArrowRight className="h-4 w-4 ml-1" />
+                  </Button>
                 </CardContent>
               </Card>
             ) : (

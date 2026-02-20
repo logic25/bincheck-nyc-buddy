@@ -32,7 +32,15 @@ const Report = () => {
     enabled: !!(bin || address),
   });
 
-  const score = data ? calculateComplianceScore(data) : null;
+  let score = null;
+  try {
+    score = data ? calculateComplianceScore(data) : null;
+  } catch (e) {
+    console.error("Score calculation failed:", e);
+  }
+
+  // Surface data.error even when React Query doesn't throw
+  const dataError = (data as any)?.error;
 
   if (!bin && !address) {
     navigate("/");
@@ -62,14 +70,16 @@ const Report = () => {
           </div>
         )}
 
-        {error && (
+        {(error || dataError) && (
           <div className="text-center py-24 space-y-4">
-            <p className="text-destructive font-semibold text-lg">{(error as Error).message}</p>
+            <p className="text-destructive font-semibold text-lg">
+              {dataError || (error as Error)?.message || "Failed to load property data."}
+            </p>
             <Button onClick={() => navigate("/")} variant="outline">Try another search</Button>
           </div>
         )}
 
-        {data && score && (
+        {data && !dataError && score && (
           <>
             <PropertyHeader data={data} />
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -84,6 +94,13 @@ const Report = () => {
             <PermitsSection permits={data.permits} />
             <ReportSummary data={data} score={score} />
           </>
+        )}
+
+        {data && !dataError && !score && !isLoading && (
+          <div className="text-center py-24 space-y-4">
+            <p className="text-muted-foreground font-semibold">Property data found but compliance score could not be calculated.</p>
+            <Button onClick={() => navigate("/")} variant="outline">Try another search</Button>
+          </div>
         )}
       </main>
     </div>
