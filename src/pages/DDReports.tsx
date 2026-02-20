@@ -49,7 +49,7 @@ const DDReports = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [userId, setUserId] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
-  const { isAdmin } = useUserRole();
+  const { isAdmin, isLoading: roleLoading } = useUserRole();
 
   useEffect(() => {
     const check = async () => {
@@ -63,6 +63,13 @@ const DDReports = () => {
     };
     check();
   }, []);
+
+  // Non-admins are redirected to the client dashboard
+  useEffect(() => {
+    if (!roleLoading && !isAdmin) {
+      navigate('/dashboard');
+    }
+  }, [isAdmin, roleLoading, navigate]);
 
   const { data: userProfile } = useQuery({
     queryKey: ['user-profile', userId],

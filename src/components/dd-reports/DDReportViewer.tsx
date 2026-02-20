@@ -89,12 +89,16 @@ interface DDReportViewerProps {
   onRegenerate?: (reportId: string, address: string) => void;
   isRegenerating?: boolean;
   userProfile?: UserProfile;
+  /** When true, hides all admin/edit controls — pure read-only client view */
+  clientReadOnly?: boolean;
 }
 
-const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating = false, userProfile }: DDReportViewerProps) => {
+const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating = false, userProfile, clientReadOnly = false }: DDReportViewerProps) => {
   const queryClient = useQueryClient();
   const { isAdmin } = useUserRole();
   const printRef = useRef<HTMLDivElement>(null);
+  // True when content cannot be edited: approved status OR non-admin client viewing
+  const isReadOnly = report.status === 'approved' || clientReadOnly;
   const [isExporting, setIsExporting] = useState(false);
   const [generalNotes, setGeneralNotes] = useState(report.general_notes || '');
   const [aiAnalysis, setAiAnalysis] = useState(report.ai_analysis || '');
@@ -186,7 +190,7 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
     },
   });
 
-  const isReadOnly = report.status === 'approved';
+  // isReadOnly is defined above in the component initializer
   const violations = report.violations_data || [];
   const applications = report.applications_data || [];
   const orders = report.orders_data || { stop_work: [], partial_stop_work: [], vacate: [] };
@@ -224,40 +228,50 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
           <ArrowLeft className="w-4 h-4 mr-1" /> Back
         </Button>
         <div className="flex items-center gap-2">
-          {isAdmin && report.status === 'pending_review' && (
-            <Button size="sm" onClick={() => approveReport.mutate()} disabled={approveReport.isPending} className="bg-emerald-600 hover:bg-emerald-700 text-white">
-              {approveReport.isPending ? <Loader2 className="w-3 h-3 mr-1.5 animate-spin" /> : <CheckCircle2 className="w-3 h-3 mr-1.5" />}
-              Approve
+          {/* Client read-only: show only PDF download */}
+          {clientReadOnly ? (
+            <Button onClick={handleExportPDF} disabled={isExporting} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+              {isExporting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
+              Download PDF
             </Button>
-          )}
-          <Button variant="outline" size="sm" onClick={() => saveNotes.mutate()} disabled={saveNotes.isPending || isReadOnly}>
-            <Save className="w-3 h-3 mr-1.5" /> Save
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => onRegenerate?.(report.id, report.address)} disabled={isRegenerating || !onRegenerate}>
-            {isRegenerating ? <Loader2 className="w-3 h-3 mr-1.5 animate-spin" /> : <RefreshCw className="w-3 h-3 mr-1.5" />}
-            Regen
-          </Button>
-          <Button variant="outline" size="sm" onClick={handleExportPDF} disabled={isExporting}>
-            {isExporting ? <Loader2 className="w-3 h-3 mr-1.5 animate-spin" /> : <Download className="w-3 h-3 mr-1.5" />}
-            PDF
-          </Button>
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
-                <Trash2 className="w-4 h-4" />
+          ) : (
+            <>
+              {isAdmin && report.status === 'pending_review' && (
+                <Button size="sm" onClick={() => approveReport.mutate()} disabled={approveReport.isPending} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+                  {approveReport.isPending ? <Loader2 className="w-3 h-3 mr-1.5 animate-spin" /> : <CheckCircle2 className="w-3 h-3 mr-1.5" />}
+                  Approve
+                </Button>
+              )}
+              <Button variant="outline" size="sm" onClick={() => saveNotes.mutate()} disabled={saveNotes.isPending || isReadOnly}>
+                <Save className="w-3 h-3 mr-1.5" /> Save
               </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Delete Report</AlertDialogTitle>
-                <AlertDialogDescription>Delete the DD report for "{report.address}"? This cannot be undone.</AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={onDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+              <Button variant="outline" size="sm" onClick={() => onRegenerate?.(report.id, report.address)} disabled={isRegenerating || !onRegenerate}>
+                {isRegenerating ? <Loader2 className="w-3 h-3 mr-1.5 animate-spin" /> : <RefreshCw className="w-3 h-3 mr-1.5" />}
+                Regen
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleExportPDF} disabled={isExporting}>
+                {isExporting ? <Loader2 className="w-3 h-3 mr-1.5 animate-spin" /> : <Download className="w-3 h-3 mr-1.5" />}
+                PDF
+              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete Report</AlertDialogTitle>
+                    <AlertDialogDescription>Delete the DD report for "{report.address}"? This cannot be undone.</AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={onDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </>
+          )}
         </div>
       </div>
 
