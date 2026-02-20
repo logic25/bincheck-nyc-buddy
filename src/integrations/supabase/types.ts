@@ -14,6 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_usage_logs: {
+        Row: {
+          completion_tokens: number | null
+          created_at: string | null
+          estimated_cost_usd: number | null
+          feature: string
+          id: string
+          metadata: Json | null
+          model: string
+          prompt_tokens: number | null
+          total_tokens: number | null
+          user_id: string | null
+        }
+        Insert: {
+          completion_tokens?: number | null
+          created_at?: string | null
+          estimated_cost_usd?: number | null
+          feature: string
+          id?: string
+          metadata?: Json | null
+          model: string
+          prompt_tokens?: number | null
+          total_tokens?: number | null
+          user_id?: string | null
+        }
+        Update: {
+          completion_tokens?: number | null
+          created_at?: string | null
+          estimated_cost_usd?: number | null
+          feature?: string
+          id?: string
+          metadata?: Json | null
+          model?: string
+          prompt_tokens?: number | null
+          total_tokens?: number | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       dd_reports: {
         Row: {
           address: string
@@ -30,6 +69,7 @@ export type Database = {
           general_notes: string | null
           id: string
           line_item_notes: Json | null
+          order_lead_id: string | null
           orders_data: Json | null
           payment_amount: number | null
           payment_status: string | null
@@ -59,6 +99,7 @@ export type Database = {
           general_notes?: string | null
           id?: string
           line_item_notes?: Json | null
+          order_lead_id?: string | null
           orders_data?: Json | null
           payment_amount?: number | null
           payment_status?: string | null
@@ -88,6 +129,7 @@ export type Database = {
           general_notes?: string | null
           id?: string
           line_item_notes?: Json | null
+          order_lead_id?: string | null
           orders_data?: Json | null
           payment_amount?: number | null
           payment_status?: string | null
@@ -185,6 +227,51 @@ export type Database = {
           phone?: string | null
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      roadmap_items: {
+        Row: {
+          ai_challenges: Json | null
+          ai_duplicate_warning: string | null
+          ai_evidence: string | null
+          ai_tested: boolean | null
+          category: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          priority: string | null
+          status: string | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          ai_challenges?: Json | null
+          ai_duplicate_warning?: string | null
+          ai_evidence?: string | null
+          ai_tested?: boolean | null
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          priority?: string | null
+          status?: string | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          ai_challenges?: Json | null
+          ai_duplicate_warning?: string | null
+          ai_evidence?: string | null
+          ai_tested?: boolean | null
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          priority?: string | null
+          status?: string | null
+          title?: string
+          updated_at?: string | null
         }
         Relationships: []
       }

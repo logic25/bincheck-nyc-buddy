@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import {
   Shield, LogOut, Loader2, Trash2, FileText, Settings,
-  ArrowRight, Download, ClipboardList, Clock, CheckCircle2, Search, MapPin, Package,
+  ArrowRight, Download, ClipboardList, Clock, CheckCircle2, Search, MapPin, Package, BookOpen,
 } from "lucide-react";
 import { getScoreColor } from "@/lib/scoring";
 import { toast } from "sonner";
@@ -39,7 +39,7 @@ interface DDReportRow {
 
 const CLIENT_STATUS_LABELS: Record<string, { label: string; variant: 'default' | 'secondary' | 'outline' | 'destructive'; className?: string }> = {
   generating: { label: 'Being Prepared', variant: 'secondary' },
-  pending_review: { label: 'Under Review by GLE Team', variant: 'outline' },
+  pending_review: { label: 'Under Review', variant: 'outline' },
   approved: { label: 'Ready to Download', variant: 'default', className: 'bg-emerald-600 text-white border-transparent' },
   draft: { label: 'Draft', variant: 'outline' },
 };
@@ -305,6 +305,9 @@ const Dashboard = () => {
                 <Button variant="ghost" size="sm" onClick={() => navigate("/admin")}>
                   <Shield className="h-4 w-4 mr-1" /> Admin
                 </Button>
+                <Button variant="ghost" size="sm" onClick={() => navigate("/help")}>
+                  <BookOpen className="h-4 w-4 mr-1" /> Help Center
+                </Button>
               </>
             )}
             <Button variant="ghost" size="sm" onClick={handleLogout}>
@@ -358,7 +361,7 @@ const Dashboard = () => {
           </Card>
         </div>
 
-        {/* Pending Orders */}
+        {/* Pending Orders — with 4-stage progress bar */}
         {pendingOrders && pendingOrders.length > 0 && (
           <div className="space-y-3">
             <div className="flex items-center gap-2">
@@ -368,23 +371,23 @@ const Dashboard = () => {
             </div>
             {pendingOrders.map((order) => (
               <Card key={order.id} className="border-amber-500/30 bg-amber-500/5">
-                <CardContent className="p-4 flex items-center justify-between gap-4">
-                  <div className="space-y-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <p className="font-semibold text-sm truncate">{order.address || 'Address pending'}</p>
-                      {order.rush_requested && (
-                        <Badge className="bg-destructive text-destructive-foreground text-xs">RUSH</Badge>
-                      )}
+                <CardContent className="p-4">
+                  <div className="flex items-start justify-between gap-4 mb-3">
+                    <div className="space-y-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="font-semibold text-sm truncate">{order.address || 'Address pending'}</p>
+                        {order.rush_requested && (
+                          <Badge className="bg-destructive text-destructive-foreground text-xs">RUSH</Badge>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Submitted {format(new Date(order.created_at), 'MMM d, yyyy')}
+                        {order.requested_delivery_date && ` · Expected by ${format(new Date(order.requested_delivery_date), 'MMM d')}`}
+                      </p>
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      Submitted {format(new Date(order.created_at), 'MMM d, yyyy')}
-                      {order.requested_delivery_date && ` · Expected by ${format(new Date(order.requested_delivery_date), 'MMM d')}`}
-                    </p>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <Clock className="h-4 w-4 text-amber-500" />
-                    <span className="text-xs text-amber-600 font-medium">Being prepared</span>
-                  </div>
+                  {/* 4-stage progress tracker — "generating" while order is not yet converted */}
+                  <ReportStatusTimeline status="generating" className="pt-1" />
                 </CardContent>
               </Card>
             ))}

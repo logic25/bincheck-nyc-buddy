@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.generate-dd-report]
 verify_jwt = false
+
+[functions.analyze-telemetry]
+verify_jwt = false
