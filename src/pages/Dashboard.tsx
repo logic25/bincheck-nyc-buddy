@@ -164,14 +164,30 @@ const Dashboard = () => {
   };
 
   const { data: ddReports, isLoading: loadingDD, refetch: refetchDD } = useQuery({
-    queryKey: ['dashboard-dd-reports', userId],
+    queryKey: ['dashboard-dd-reports', userId, userEmail],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // Query reports owned by user OR where client_email matches (admin-created reports for this client)
+      const { data: ownedReports, error: e1 } = await supabase
         .from('dd_reports')
         .select('id, address, status, customer_concern, created_at, report_date, prepared_for')
         .order('created_at', { ascending: false });
-      if (error) throw error;
-      return (data || []) as DDReportRow[];
+      if (e1) throw e1;
+
+      let clientReports: DDReportRow[] = [];
+      if (userEmail) {
+        const { data: emailReports, error: e2 } = await supabase
+          .from('dd_reports')
+          .select('id, address, status, customer_concern, created_at, report_date, prepared_for')
+          .eq('client_email', userEmail)
+          .order('created_at', { ascending: false });
+        if (!e2 && emailReports) {
+          // Deduplicate — only add reports not already in owned set
+          const ownedIds = new Set((ownedReports || []).map(r => r.id));
+          clientReports = (emailReports as DDReportRow[]).filter(r => !ownedIds.has(r.id));
+        }
+      }
+
+      return [...(ownedReports || []), ...clientReports] as DDReportRow[];
     },
     enabled: !!userId,
   });
