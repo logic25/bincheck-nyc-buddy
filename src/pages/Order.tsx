@@ -32,7 +32,7 @@ const Order = () => {
   const [step, setStep] = useState(1);
   const [isProcessing, setIsProcessing] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  const [leadSaved, setLeadSaved] = useState(false);
+  const [leadId, setLeadId] = useState<string | null>(null);
 
   // Step 1 — Property
   const [address, setAddress] = useState("");
@@ -51,6 +51,17 @@ const Order = () => {
   const [email, setEmail] = useState("");
   const [company, setCompany] = useState("");
   const [phone, setPhone] = useState("");
+
+  // Pre-fill email from auth session if logged in
+  useEffect(() => {
+    const prefill = async () => {
+      const { data } = await supabase.auth.getSession();
+      if (data.session?.user?.email) {
+        setEmail(data.session.user.email);
+      }
+    };
+    prefill();
+  }, []);
 
   // Step 3 — Plan
   const [plan, setPlan] = useState<"one-time" | "professional">(initialPlan as any);
@@ -97,10 +108,12 @@ const Order = () => {
   }, []);
 
   // Save lead when user fills contact step and moves to step 3
-  const saveLead = useCallback(async (stepReached: number, converted = false) => {
-    if (!email.trim().includes("@") || leadSaved) return;
+  const saveLead = useCallback(async (stepReached: number) => {
+    if (!email.trim().includes("@")) return;
+    // If lead already saved, skip insert
+    if (leadId) return;
     try {
-      await supabase.from("order_leads" as any).insert({
+      const { data } = await supabase.from("order_leads").insert({
         email: email.trim(),
         first_name: firstName.trim() || null,
         last_name: lastName.trim() || null,
@@ -111,11 +124,11 @@ const Order = () => {
         rush_requested: rush,
         requested_delivery_date: deliveryDate || null,
         step_reached: stepReached,
-        converted,
-      });
-      setLeadSaved(true);
+        converted: false,
+      }).select('id').single();
+      if (data) setLeadId(data.id);
     } catch { /* silently fail — lead capture is best-effort */ }
-  }, [email, firstName, lastName, company, phone, address, concern, rush, deliveryDate, leadSaved]);
+  }, [email, firstName, lastName, company, phone, address, concern, rush, deliveryDate, leadId]);
 
   const step1Valid = address.trim().length > 5;
   const step2Valid = firstName.trim() && lastName.trim() && email.trim().includes("@") && company.trim();
@@ -130,8 +143,6 @@ const Order = () => {
 
   const handlePayAndOrder = async () => {
     setIsProcessing(true);
-    // Mark lead as converted
-    saveLead(3, true);
     // Mock payment processing — Stripe not wired yet
     await new Promise(r => setTimeout(r, 2000));
     setIsProcessing(false);
