@@ -67,6 +67,7 @@ export type Database = {
           created_at: string
           customer_concern: string | null
           general_notes: string | null
+          generation_started_at: string | null
           id: string
           line_item_notes: Json | null
           order_lead_id: string | null
@@ -97,6 +98,7 @@ export type Database = {
           created_at?: string
           customer_concern?: string | null
           general_notes?: string | null
+          generation_started_at?: string | null
           id?: string
           line_item_notes?: Json | null
           order_lead_id?: string | null
@@ -127,6 +129,7 @@ export type Database = {
           created_at?: string
           customer_concern?: string | null
           general_notes?: string | null
+          generation_started_at?: string | null
           id?: string
           line_item_notes?: Json | null
           order_lead_id?: string | null
