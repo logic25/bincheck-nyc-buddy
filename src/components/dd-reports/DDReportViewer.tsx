@@ -17,12 +17,14 @@ import {
 } from '@/components/ui/alert-dialog';
 import {
   ArrowLeft, Building2, AlertTriangle, FileStack, FileWarning, Download, Trash2,
-  Save, StickyNote, Calendar, User, Loader2, RefreshCw, CheckCircle2, Shield, MapPin, Hash, Pencil, Eye, MessageSquareWarning
+  Save, StickyNote, Calendar, User, Loader2, RefreshCw, CheckCircle2, Shield, MapPin, Hash, Pencil, Eye, MessageSquareWarning, ListChecks
 } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 import { format } from 'date-fns';
 import DDReportPrintView from './DDReportPrintView';
 import ExpandableViolationRow from './ExpandableViolationRow';
 import ExpandableApplicationRow from './ExpandableApplicationRow';
+import BatchEditPanel, { type SelectedItem } from './BatchEditPanel';
 import html2pdf from 'html2pdf.js';
 import { getAgencyColor } from '@/lib/violation-utils';
 import ReactMarkdown from 'react-markdown';
@@ -152,6 +154,69 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
       [`${itemType}-${itemId}`]: { status: 'pending', id: editId },
     }));
   }, []);
+
+  // Bulk edit mode
+  const [bulkMode, setBulkMode] = useState(false);
+  const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
+
+  const toggleBulkMode = useCallback(() => {
+    setBulkMode(prev => {
+      if (prev) setSelectedItems(new Set());
+      return !prev;
+    });
+  }, []);
+
+  const toggleItemSelection = useCallback((key: string) => {
+    setSelectedItems(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }, []);
+
+  const selectAllVisible = useCallback((items: string[]) => {
+    setSelectedItems(prev => {
+      const allSelected = items.every(k => prev.has(k));
+      const next = new Set(prev);
+      if (allSelected) {
+        items.forEach(k => next.delete(k));
+      } else {
+        items.forEach(k => next.add(k));
+      }
+      return next;
+    });
+  }, []);
+
+  // Build SelectedItem data for batch panel
+  const getSelectedItemData = useCallback((): SelectedItem[] => {
+    return Array.from(selectedItems).map(key => {
+      const [itemType, ...rest] = key.split(':');
+      const itemIdentifier = rest[0] || '';
+      const agency = rest[1] || 'DOB';
+      return {
+        itemType: itemType as SelectedItem['itemType'],
+        itemIdentifier,
+        agency,
+        currentNote: lineItemNotes[`${itemType}-${itemIdentifier}`] || '',
+      };
+    });
+  }, [selectedItems, lineItemNotes]);
+
+  const handleBatchSaved = useCallback((editIds: string[]) => {
+    // Mark all selected items as pending
+    const newStatuses = { ...editStatuses };
+    let i = 0;
+    for (const key of selectedItems) {
+      const [itemType, ...rest] = key.split(':');
+      const itemIdentifier = rest[0] || '';
+      newStatuses[`${itemType}-${itemIdentifier}`] = { status: 'pending', id: editIds[i] || '' };
+      i++;
+    }
+    setEditStatuses(newStatuses);
+    setSelectedItems(new Set());
+    setBulkMode(false);
+  }, [editStatuses, selectedItems]);
 
   const handleExportPDF = async () => {
     if (!printRef.current) return;
@@ -550,6 +615,12 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
                   {violationAgencies.filter(a => a !== 'all').map(a => `${violations.filter((v: any) => v.agency === a).length} ${a}`).join(' · ')}
                 </p>
               </div>
+              {!isReadOnly && violations.length > 0 && (
+                <Button variant={bulkMode && activeSection === 'violations' ? 'default' : 'outline'} size="sm" className="h-7 text-xs gap-1.5" onClick={toggleBulkMode}>
+                  <ListChecks className="w-3.5 h-3.5" />
+                  {bulkMode && activeSection === 'violations' ? 'Exit Bulk' : 'Bulk Edit'}
+                </Button>
+              )}
             </div>
             <div className="flex flex-wrap gap-1.5">
               {violationAgencies.map(f => (
@@ -566,7 +637,21 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
               <Table className="text-sm">
                 <TableHeader>
                   <TableRow className="bg-muted/30 hover:bg-muted/30">
-                    <TableHead className="w-8"></TableHead>
+                    <TableHead className="w-8">
+                      {bulkMode && (() => {
+                        const visibleKeys = violations
+                          .filter((v: any) => violationFilter === 'all' || v.agency === violationFilter)
+                          .map((v: any, idx: number) => `violation:${v.violation_number || v.id || idx}:${v.agency || 'DOB'}`);
+                        const allSelected = visibleKeys.length > 0 && visibleKeys.every((k: string) => selectedItems.has(k));
+                        return (
+                          <Checkbox
+                            checked={allSelected}
+                            onCheckedChange={() => selectAllVisible(visibleKeys)}
+                            className="ml-1"
+                          />
+                        );
+                      })()}
+                    </TableHead>
                     <TableHead className="text-xs font-semibold uppercase tracking-wider">Violation #</TableHead>
                     <TableHead className="text-xs font-semibold uppercase tracking-wider">Agency</TableHead>
                     <TableHead className="text-xs font-semibold uppercase tracking-wider">Type</TableHead>
@@ -591,6 +676,9 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
                         reportId={report.id}
                         editStatus={editStatuses[`violation-${v.violation_number || v.id || idx}`] || null}
                         onEditSaved={(editId) => handleEditSaved('violation', v.violation_number || v.id || String(idx), editId)}
+                        bulkMode={bulkMode}
+                        isSelected={selectedItems.has(`violation:${v.violation_number || v.id || idx}:${v.agency || 'DOB'}`)}
+                        onToggleSelect={() => toggleItemSelection(`violation:${v.violation_number || v.id || idx}:${v.agency || 'DOB'}`)}
                       />
                     ))}
                 </TableBody>
@@ -609,6 +697,12 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
                 <h3 className="text-base font-semibold">Permit Applications</h3>
                 <p className="text-xs text-muted-foreground mt-0.5">{bisApplications.length} BIS · {dobNowApplications.length} DOB NOW Build</p>
               </div>
+              {!isReadOnly && applications.length > 0 && (
+                <Button variant={bulkMode && activeSection === 'applications' ? 'default' : 'outline'} size="sm" className="h-7 text-xs gap-1.5" onClick={toggleBulkMode}>
+                  <ListChecks className="w-3.5 h-3.5" />
+                  {bulkMode && activeSection === 'applications' ? 'Exit Bulk' : 'Bulk Edit'}
+                </Button>
+              )}
             </div>
             <div className="flex gap-1.5">
               <Button variant={applicationFilter === 'all' ? 'default' : 'outline'} size="sm" className="h-7 text-xs" onClick={() => setApplicationFilter('all')}>
@@ -629,7 +723,30 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/30 hover:bg-muted/30">
-                    <TableHead className="w-8"></TableHead>
+                    <TableHead className="w-8">
+                      {bulkMode && (() => {
+                        const visibleKeys = applications
+                          .filter((app: any) => {
+                            if (applicationFilter === 'all') return true;
+                            const s = (app.status || '').toUpperCase();
+                            if (applicationFilter === 'R') return s === 'R' || s.includes('PERMIT ENTIRE');
+                            if (applicationFilter === 'in_process') return ['A','B','C','D','E','F','G','H','K','L','M'].includes(s) || s.includes('FILED') || s.includes('PLAN EXAM');
+                            return true;
+                          })
+                          .map((app: any, idx: number) => {
+                            const appKey = `${app.source || 'BIS'}-${app.id || app.application_number || idx}`;
+                            return `application:${appKey}:DOB`;
+                          });
+                        const allSelected = visibleKeys.length > 0 && visibleKeys.every((k: string) => selectedItems.has(k));
+                        return (
+                          <Checkbox
+                            checked={allSelected}
+                            onCheckedChange={() => selectAllVisible(visibleKeys)}
+                            className="ml-1"
+                          />
+                        );
+                      })()}
+                    </TableHead>
                     <TableHead className="text-xs font-semibold uppercase tracking-wider">Job #</TableHead>
                     <TableHead className="text-xs font-semibold uppercase tracking-wider">Job Type</TableHead>
                     <TableHead className="text-xs font-semibold uppercase tracking-wider">Status</TableHead>
@@ -661,6 +778,9 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
                           reportId={report.id}
                           editStatus={editStatuses[`application-${appKey}`] || null}
                           onEditSaved={(editId) => handleEditSaved('application', appKey, editId)}
+                          bulkMode={bulkMode}
+                          isSelected={selectedItems.has(`application:${appKey}:DOB`)}
+                          onToggleSelect={() => toggleItemSelection(`application:${appKey}:DOB`)}
                         />
                       );
                     })}
@@ -792,6 +912,16 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
           }} userProfile={userProfile} />
         </div>
       </div>
+
+      {/* Batch Edit Panel */}
+      {bulkMode && selectedItems.size > 0 && (
+        <BatchEditPanel
+          selectedItems={getSelectedItemData()}
+          reportId={report.id}
+          onClose={() => { setBulkMode(false); setSelectedItems(new Set()); }}
+          onBatchSaved={handleBatchSaved}
+        />
+      )}
     </div>
   );
 };

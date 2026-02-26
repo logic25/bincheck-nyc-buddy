@@ -2,6 +2,7 @@ import { useState, Fragment } from 'react';
 import { TableRow, TableCell } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { ChevronDown, ChevronRight, ExternalLink } from 'lucide-react';
 import InlineNoteEditor from './InlineNoteEditor';
 
@@ -19,6 +20,9 @@ interface ExpandableApplicationRowProps {
   reportId: string;
   editStatus?: EditStatus | null;
   onEditSaved?: (editId: string) => void;
+  bulkMode?: boolean;
+  isSelected?: boolean;
+  onToggleSelect?: () => void;
 }
 
 const formatDate = (dateStr: string | null | undefined): string => {
@@ -38,7 +42,7 @@ const formatDate = (dateStr: string | null | undefined): string => {
   }
 };
 
-const ExpandableApplicationRow = ({ application, index, note, onNoteChange, readOnly = false, reportId, editStatus, onEditSaved }: ExpandableApplicationRowProps) => {
+const ExpandableApplicationRow = ({ application, index, note, onNoteChange, readOnly = false, reportId, editStatus, onEditSaved, bulkMode = false, isSelected = false, onToggleSelect }: ExpandableApplicationRowProps) => {
   const [isOpen, setIsOpen] = useState(false);
 
   const getStatusColor = (status: string) => {
@@ -74,9 +78,18 @@ const ExpandableApplicationRow = ({ application, index, note, onNoteChange, read
         onClick={() => setIsOpen(!isOpen)}
       >
         <TableCell className="w-8">
-          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); setIsOpen(!isOpen); }}>
-            {isOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-          </Button>
+          {bulkMode ? (
+            <Checkbox
+              checked={isSelected}
+              onCheckedChange={() => onToggleSelect?.()}
+              onClick={(e) => e.stopPropagation()}
+              className="ml-1"
+            />
+          ) : (
+            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); setIsOpen(!isOpen); }}>
+              {isOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+            </Button>
+          )}
         </TableCell>
         <TableCell className="font-mono text-sm">{application.application_number || application.job_number}</TableCell>
         <TableCell>
