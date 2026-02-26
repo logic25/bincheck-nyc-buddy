@@ -352,8 +352,28 @@ async function fetchBISJobsFromWebsite(bin: string): Promise<any[]> {
       });
     }
 
-    console.log(`BIS web scrape: found ${jobs.length} jobs`);
-    return jobs;
+    console.log(`BIS web scrape: found ${jobs.length} raw records`);
+
+    // Group by job number and keep only the primary document (prefer "01" over PAA/other doc types)
+    const jobMap = new Map<string, any>();
+    for (const job of jobs) {
+      const jobNum = job.application_number;
+      if (!jobNum) continue;
+      const existing = jobMap.get(jobNum);
+      if (!existing) {
+        jobMap.set(jobNum, job);
+      } else {
+        // Prefer doc_type "01" (the actual filing) over PAA or other types
+        const existingDoc = (existing.doc_type || '').toUpperCase();
+        const newDoc = (job.doc_type || '').toUpperCase();
+        if (newDoc === '01' && existingDoc !== '01') {
+          jobMap.set(jobNum, job);
+        }
+      }
+    }
+    const deduped = Array.from(jobMap.values());
+    console.log(`BIS web scrape: ${deduped.length} unique jobs after dedup`);
+    return deduped;
   } catch (error) {
     console.error("BIS web scrape error:", error);
     return [];
