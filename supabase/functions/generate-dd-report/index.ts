@@ -258,15 +258,13 @@ async function fetchViolations(bin: string, bbl: string): Promise<any[]> {
   return violations;
 }
 
-const EXCLUDED_STATUS_CODES = ['X', 'U', 'I'];
-const EXCLUDED_STATUS_NAMES = ['signed-off', 'completed', 'signoff', 'sign-off'];
+const EXCLUDED_STATUS_CODES = ['X']; // X = Withdrawn — keep U (Updated) and I (In Process)
+const EXCLUDED_STATUS_NAMES = ['signed off', 'signed-off', 'signoff', 'sign-off', 'completed', 'permit entire'];
 
 function shouldExcludeApplication(status: string | null, statusCode?: string | null): boolean {
   const statusLower = (status || '').toLowerCase().trim();
   const codeUpper = (statusCode || '').toUpperCase().trim();
-  const statusUpper = (status || '').toUpperCase().trim();
-  if (EXCLUDED_STATUS_CODES.includes(codeUpper)) return true;
-  if (EXCLUDED_STATUS_CODES.includes(statusUpper)) return true;
+  if (codeUpper && EXCLUDED_STATUS_CODES.includes(codeUpper)) return true;
   return EXCLUDED_STATUS_NAMES.some((excluded) => statusLower.includes(excluded));
 }
 
