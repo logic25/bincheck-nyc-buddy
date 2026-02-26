@@ -26,9 +26,12 @@ const BOROUGH_CODES: Record<string, string> = {
   "STATEN ISLAND": "5", "SI": "5", "RICHMOND": "5",
 };
 
+const NYC_APP_TOKEN = Deno.env.get("NYC_APP_TOKEN") || "";
+
 async function fetchNYCData(endpoint: string, params: Record<string, string>): Promise<any[]> {
   const url = new URL(endpoint);
   Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
+  if (NYC_APP_TOKEN) url.searchParams.set("$$app_token", NYC_APP_TOKEN);
   try {
     console.log(`Fetching: ${url.toString()}`);
     const response = await fetch(url.toString(), { headers: { "Accept": "application/json" } });
@@ -586,9 +589,14 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     console.log(`=== Generating DD report for: ${address} ===`);
 
-    // Save customer concern if provided
-    if (customerConcern) {
-      await supabase.from('dd_reports').update({ customer_concern: customerConcern }).eq('id', reportId);
+    // Set generation_started_at and save customer concern
+    await supabase.from('dd_reports').update({
+      generation_started_at: new Date().toISOString(),
+      ...(customerConcern ? { customer_concern: customerConcern } : {}),
+    }).eq('id', reportId);
+
+    if (false) {
+      // placeholder to keep structure — customerConcern already saved above
     }
 
     let bin = '', bbl = '', resolvedAddress = address;
