@@ -17,7 +17,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import {
   ArrowLeft, Building2, AlertTriangle, FileStack, FileWarning, Download, Trash2,
-  Save, StickyNote, Calendar, User, Loader2, RefreshCw, CheckCircle2, Shield, MapPin, Hash, Pencil, Eye
+  Save, StickyNote, Calendar, User, Loader2, RefreshCw, CheckCircle2, Shield, MapPin, Hash, Pencil, Eye, MessageSquareWarning
 } from 'lucide-react';
 import { format } from 'date-fns';
 import DDReportPrintView from './DDReportPrintView';
@@ -26,6 +26,7 @@ import ExpandableApplicationRow from './ExpandableApplicationRow';
 import html2pdf from 'html2pdf.js';
 import { getAgencyColor } from '@/lib/violation-utils';
 import ReactMarkdown from 'react-markdown';
+import { decodeComplaintCategory } from '@/lib/complaint-category-decoder';
 
 const formatBBL = (bbl: string | null | undefined): string => {
   if (!bbl) return '—';
@@ -78,6 +79,7 @@ interface DDReportViewerProps {
     violations_data: any;
     applications_data: any;
     orders_data: any;
+    complaints_data?: any;
     line_item_notes: any[];
     general_notes: string | null;
     ai_analysis: string | null;
@@ -111,7 +113,7 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
   );
   const [applicationFilter, setApplicationFilter] = useState<string>('all');
   const [violationFilter, setViolationFilter] = useState<string>('all');
-  const [activeSection, setActiveSection] = useState<'violations' | 'applications' | 'analysis' | 'notes'>('violations');
+  const [activeSection, setActiveSection] = useState<'violations' | 'applications' | 'complaints' | 'analysis' | 'notes'>('violations');
 
   const handleExportPDF = async () => {
     if (!printRef.current) return;
@@ -194,6 +196,7 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
   const violations = report.violations_data || [];
   const applications = report.applications_data || [];
   const orders = report.orders_data || { stop_work: [], partial_stop_work: [], vacate: [] };
+  const complaints = report.complaints_data || [];
   const building = report.building_data || {};
 
   const bisApplications = applications.filter((a: any) => a.source === 'BIS');
@@ -225,6 +228,7 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
   const sectionNav = [
     { key: 'violations' as const, label: 'Violations', count: violations.length, icon: AlertTriangle },
     { key: 'applications' as const, label: 'Applications', count: applications.length, icon: FileStack },
+    ...(complaints.length > 0 ? [{ key: 'complaints' as const, label: 'Complaints', count: complaints.length, icon: MessageSquareWarning }] : []),
     { key: 'analysis' as const, label: 'AI Analysis', icon: Shield },
     { key: 'notes' as const, label: 'Notes', icon: StickyNote },
   ];
@@ -587,6 +591,56 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
                         />
                       );
                     })}
+                </TableBody>
+              </Table>
+            </ScrollArea>
+          )}
+        </div>
+      )}
+
+      {/* DOB Complaints Section */}
+      {activeSection === 'complaints' && (
+        <div className="border border-border rounded-xl bg-card">
+          <div className="p-4 border-b border-border">
+            <h3 className="text-base font-semibold">DOB Complaints</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">{complaints.length} complaints on record</p>
+          </div>
+          {complaints.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground text-sm">No DOB complaints found.</div>
+          ) : (
+            <ScrollArea className="h-[520px]">
+              <Table className="text-sm">
+                <TableHeader>
+                  <TableRow className="bg-muted/30 hover:bg-muted/30">
+                    <TableHead className="text-xs font-semibold uppercase tracking-wider">Complaint #</TableHead>
+                    <TableHead className="text-xs font-semibold uppercase tracking-wider">Date</TableHead>
+                    <TableHead className="text-xs font-semibold uppercase tracking-wider">Category</TableHead>
+                    <TableHead className="text-xs font-semibold uppercase tracking-wider">Unit</TableHead>
+                    <TableHead className="text-xs font-semibold uppercase tracking-wider">Status</TableHead>
+                    <TableHead className="text-xs font-semibold uppercase tracking-wider">Disposition</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {complaints.map((c: any, idx: number) => {
+                    const statusLower = (c.status || '').toLowerCase();
+                    const isClosed = statusLower === 'closed' || statusLower === 'close';
+                    return (
+                      <TableRow key={c.complaint_number || idx} className={isClosed ? 'opacity-60' : ''}>
+                        <TableCell className="font-mono text-xs">{c.complaint_number || '—'}</TableCell>
+                        <TableCell className="text-xs whitespace-nowrap">{safeFormatDate(c.date_entered)}</TableCell>
+                        <TableCell className="text-xs max-w-[250px]">
+                          <span className="font-medium">{decodeComplaintCategory(c.complaint_category)}</span>
+                        </TableCell>
+                        <TableCell className="text-xs">{c.unit || '—'}</TableCell>
+                        <TableCell>
+                          <Badge variant={isClosed ? 'secondary' : 'destructive'} className="text-[10px]">
+                            {c.status || 'Unknown'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-xs">{safeFormatDate(c.disposition_date)}</TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </ScrollArea>
