@@ -7,8 +7,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Shield, ArrowLeft, Loader2, Users, FileText, BarChart3, Search, Settings, Eye, Mail, Building2, BookOpen } from 'lucide-react';
+import { Shield, ArrowLeft, Loader2, Users, FileText, BarChart3, Search, Settings, Eye, Mail, Building2, BookOpen, Pencil, Brain } from 'lucide-react';
 import { format } from 'date-fns';
+import EditReviewTab from '@/components/admin/EditReviewTab';
+import AILearningTab from '@/components/admin/AILearningTab';
 
 interface UserWithEmail {
   user_id: string;
@@ -191,8 +193,10 @@ const Admin = () => {
           <TabsList>
             <TabsTrigger value="stats"><BarChart3 className="h-4 w-4 mr-1" /> Stats</TabsTrigger>
             <TabsTrigger value="users"><Users className="h-4 w-4 mr-1" /> Users</TabsTrigger>
-            <TabsTrigger value="reports"><FileText className="h-4 w-4 mr-1" /> All Reports</TabsTrigger>
+             <TabsTrigger value="reports"><FileText className="h-4 w-4 mr-1" /> All Reports</TabsTrigger>
             <TabsTrigger value="leads"><Mail className="h-4 w-4 mr-1" /> Leads</TabsTrigger>
+            <TabsTrigger value="edit-review"><Pencil className="h-4 w-4 mr-1" /> Edit Review</TabsTrigger>
+            <TabsTrigger value="ai-learning"><Brain className="h-4 w-4 mr-1" /> AI Learning</TabsTrigger>
           </TabsList>
 
           {/* Stats */}
@@ -392,6 +396,16 @@ const Admin = () => {
                 )}
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* Edit Review */}
+          <TabsContent value="edit-review">
+            <EditReviewTab />
+          </TabsContent>
+
+          {/* AI Learning */}
+          <TabsContent value="ai-learning">
+            <AILearningTab />
           </TabsContent>
         </Tabs>
       </main>
