@@ -1,14 +1,14 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import {
-  Shield, LogOut, Loader2, Trash2, FileText, Settings,
+  Shield, LogOut, Loader2, Trash2, FileText, Settings, RefreshCw,
   ArrowRight, Download, ClipboardList, Clock, CheckCircle2, Search, MapPin, Package, BookOpen,
 } from "lucide-react";
 import { getScoreColor } from "@/lib/scoring";
@@ -49,6 +49,7 @@ interface GeoSuggestion {
 }
 
 const Dashboard = () => {
+  const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { isAdmin, isLoading: roleLoading } = useUserRole();
   const [savedReports, setSavedReports] = useState<ReportRow[]>([]);
@@ -237,6 +238,21 @@ const Dashboard = () => {
     enabled: !!userEmail,
   });
 
+  const regenerateReport = useMutation({
+    mutationFn: async ({ reportId, address }: { reportId: string; address: string }) => {
+      const { error } = await supabase.functions.invoke('generate-dd-report', {
+        body: { reportId, address },
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['dashboard-dd-reports'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-dd-report-full', selectedReportId] });
+      toast.success('Report regenerated');
+    },
+    onError: () => toast.error('Failed to regenerate report'),
+  });
+
   const handleDeleteSaved = async (id: string) => {
     const { error } = await supabase.from("saved_reports").delete().eq("id", id);
     if (error) {
@@ -299,6 +315,8 @@ const Dashboard = () => {
               report={selectedReport}
               onBack={() => setSelectedReportId(null)}
               onDelete={() => setSelectedReportId(null)}
+              onRegenerate={(reportId, address) => regenerateReport.mutate({ reportId, address })}
+              isRegenerating={regenerateReport.isPending}
               clientReadOnly={!isAdmin}
               userProfile={{
                 email: userEmail,
