@@ -1,5 +1,5 @@
-import { useState, useRef } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useUserRole } from '@/hooks/useUserRole';
@@ -115,6 +115,43 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
   const [applicationFilter, setApplicationFilter] = useState<string>('all');
   const [violationFilter, setViolationFilter] = useState<string>('all');
   const [activeSection, setActiveSection] = useState<'violations' | 'applications' | 'complaints' | 'analysis' | 'notes'>('violations');
+
+  // Track edit statuses for line items
+  const [editStatuses, setEditStatuses] = useState<Record<string, { status: 'pending' | 'approved' | 'rejected'; id: string }>>({});
+
+  // Load existing edit statuses for this report
+  const { data: existingEdits } = useQuery({
+    queryKey: ['report-edits', report.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('report_edits')
+        .select('id, item_type, item_identifier, status')
+        .eq('report_id', report.id)
+        .order('created_at', { ascending: false });
+      return data || [];
+    },
+  });
+
+  // Sync existing edits into editStatuses state
+  useEffect(() => {
+    if (!existingEdits) return;
+    const map: typeof editStatuses = {};
+    for (const edit of existingEdits) {
+      const key = `${edit.item_type}-${edit.item_identifier}`;
+      // Only keep the most recent edit per item (already ordered desc)
+      if (!map[key]) {
+        map[key] = { status: edit.status as any, id: edit.id };
+      }
+    }
+    setEditStatuses(map);
+  }, [existingEdits]);
+
+  const handleEditSaved = useCallback((itemType: string, itemId: string, editId: string) => {
+    setEditStatuses(prev => ({
+      ...prev,
+      [`${itemType}-${itemId}`]: { status: 'pending', id: editId },
+    }));
+  }, []);
 
   const handleExportPDF = async () => {
     if (!printRef.current) return;
@@ -551,6 +588,9 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
                         onNoteChange={(note) => updateLineItemNote('violation', v.id || String(idx), note)}
                         bbl={report.bbl || building.bbl}
                         readOnly={isReadOnly}
+                        reportId={report.id}
+                        editStatus={editStatuses[`violation-${v.violation_number || v.id || idx}`] || null}
+                        onEditSaved={(editId) => handleEditSaved('violation', v.violation_number || v.id || String(idx), editId)}
                       />
                     ))}
                 </TableBody>
@@ -618,6 +658,9 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
                           note={lineItemNotes[`application-${appKey}`] || ''}
                           onNoteChange={(note) => updateLineItemNote('application', appKey, note)}
                           readOnly={isReadOnly}
+                          reportId={report.id}
+                          editStatus={editStatuses[`application-${appKey}`] || null}
+                          onEditSaved={(editId) => handleEditSaved('application', appKey, editId)}
                         />
                       );
                     })}
