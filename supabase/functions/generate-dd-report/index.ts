@@ -292,15 +292,84 @@ function extractFloorAptFromDescription(description: string | null): { floor: st
   return { floor, apartment };
 }
 
+// Scrape BIS website for job filings (fallback for older records not in Open Data)
+async function fetchBISJobsFromWebsite(bin: string): Promise<any[]> {
+  try {
+    const url = `https://a810-bisweb.nyc.gov/bisweb/JobsQueryByLocationServlet?allbin=${bin}&allpermession=T`;
+    console.log(`BIS web scrape: ${url}`);
+    const response = await fetch(url);
+    if (!response.ok) { console.error(`BIS web scrape failed: ${response.status}`); return []; }
+    const html = await response.text();
+
+    // Parse job data from HTML comments which contain structured arrays
+    const jobs: any[] = [];
+    // Match the Lines array entries in HTML comments
+    const linesMatch = html.match(/Lines\s*::\s*ARRAY\[22\s*\*\s*\d+\]\s*([\s\S]*?)-->/);
+    if (!linesMatch) { console.log("BIS web scrape: no Lines array found"); return []; }
+
+    const linesBlock = linesMatch[1];
+    // Split into individual record blocks [N]
+    const recordBlocks = linesBlock.split(/\[\d+\]/).filter(b => b.trim());
+
+    for (const block of recordBlocks) {
+      const fields: Record<string, string> = {};
+      const fieldMatches = block.matchAll(/\[\d+:(\w+)\]\{([^}]*)\}/g);
+      for (const m of fieldMatches) {
+        fields[m[1]] = m[2].trim();
+      }
+      if (!fields.Job) continue; // skip empty records
+
+      // Parse date from MMDDYYYY format
+      const fd = fields.Fd || '';
+      const filingDate = fd.length === 8 ? `${fd.slice(0,2)}/${fd.slice(2,4)}/${fd.slice(4,8)}` : null;
+      const dt = fields.Dt || '';
+      const statusDate = dt.length === 8 ? `${dt.slice(0,2)}/${dt.slice(2,4)}/${dt.slice(4,8)}` : null;
+
+      // Map single-char status code to description
+      const statusCode = fields.Js || '';
+      const statusDesc = fields.Jobstatus || statusCode;
+
+      jobs.push({
+        id: fields.Job,
+        source: "BIS",
+        application_number: fields.Job,
+        application_type: fields.JobType || null,
+        work_type: null,
+        job_description: fields.Jobdes || null,
+        status: statusDesc,
+        status_code: statusCode,
+        status_description: statusDesc,
+        filing_date: filingDate,
+        latest_action_date: statusDate,
+        estimated_cost: null,
+        floor: fields.FlrInjq || null,
+        apartment: null,
+        owner_name: null,
+        filing_professional_name: fields.Applicant || null,
+        doc_type: fields.DocType || null,
+        doc_number: fields.Ap || null,
+        bis_scraped: true,
+      });
+    }
+
+    console.log(`BIS web scrape: found ${jobs.length} jobs`);
+    return jobs;
+  } catch (error) {
+    console.error("BIS web scrape error:", error);
+    return [];
+  }
+}
+
 async function fetchApplications(bin: string): Promise<any[]> {
   const applications: any[] = [];
   if (!bin) return applications;
 
+  // Fetch from Open Data API first
   const dobJobs = await fetchNYCData(NYC_ENDPOINTS.DOB_JOBS, {
     "bin__": bin, "$limit": "200", "$order": "latest_action_date DESC",
   });
 
-  const bisApps = dobJobs.map((j: any) => {
+  let bisApps = dobJobs.map((j: any) => {
     let floor = j.work_on_floors__ || j.bldg_floor || null;
     let apartment = j.apt_condonos || null;
     if (!floor && j.job_description) {
@@ -321,6 +390,24 @@ async function fetchApplications(bin: string): Promise<any[]> {
       filing_professional_name: j.applicant_s_first_name && j.applicant_s_last_name ? `${j.applicant_s_first_name} ${j.applicant_s_last_name}` : null,
     };
   }).filter((app: any) => !shouldExcludeApplication(app.status, app.status_code));
+
+  // If Open Data returned no BIS jobs, fall back to BIS website scraping
+  if (bisApps.length === 0) {
+    console.log("Open Data returned 0 BIS jobs, falling back to BIS website scrape...");
+    const scrapedJobs = await fetchBISJobsFromWebsite(bin);
+    bisApps = scrapedJobs.filter((app: any) => !shouldExcludeApplication(app.status, app.status_code));
+  } else {
+    // Even if Open Data has some results, scrape BIS to find older jobs not in Open Data
+    const scrapedJobs = await fetchBISJobsFromWebsite(bin);
+    const existingJobNums = new Set(bisApps.map((a: any) => a.application_number));
+    const additionalJobs = scrapedJobs
+      .filter((j: any) => !existingJobNums.has(j.application_number))
+      .filter((app: any) => !shouldExcludeApplication(app.status, app.status_code));
+    if (additionalJobs.length > 0) {
+      console.log(`Found ${additionalJobs.length} additional BIS jobs from web scrape`);
+      bisApps.push(...additionalJobs);
+    }
+  }
   applications.push(...bisApps);
 
   const dobNowApps = await fetchNYCData(NYC_ENDPOINTS.DOB_NOW, { "bin": bin, "$limit": "200" });
