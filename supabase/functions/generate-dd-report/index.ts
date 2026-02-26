@@ -368,15 +368,7 @@ async function fetchViolations(bin: string, bbl: string): Promise<any[]> {
   return deduplicateByKey(violations, (v) => `${v.agency}-${v.violation_number || v.id}`);
 }
 
-const EXCLUDED_STATUS_CODES = ['X'];
-const EXCLUDED_STATUS_NAMES = ['signed off', 'signed-off', 'signoff', 'sign-off', 'completed', 'permit entire'];
-
-function shouldExcludeApplication(status: string | null, statusCode?: string | null): boolean {
-  const statusLower = (status || '').toLowerCase().trim();
-  const codeUpper = (statusCode || '').toUpperCase().trim();
-  if (codeUpper && EXCLUDED_STATUS_CODES.includes(codeUpper)) return true;
-  return EXCLUDED_STATUS_NAMES.some((excluded) => statusLower.includes(excluded));
-}
+// shouldExcludeApplication removed — classifyApplication handles exclusion via EXCLUDE tag
 
 function extractFloorAptFromDescription(description: string | null): { floor: string | null; apartment: string | null } {
   if (!description) return { floor: null, apartment: null };
@@ -440,7 +432,7 @@ async function fetchApplications(bin: string): Promise<any[]> {
       owner_name: j.owner_s_first_name && j.owner_s_last_name ? `${j.owner_s_first_name} ${j.owner_s_last_name}` : j.owner_s_business_name || null,
       filing_professional_name: j.applicant_s_first_name && j.applicant_s_last_name ? `${j.applicant_s_first_name} ${j.applicant_s_last_name}` : null,
     };
-  }).filter((app: any) => !shouldExcludeApplication(app.status, app.status_code));
+  });
 
   applications.push(...bisApps);
 
@@ -456,7 +448,7 @@ async function fetchApplications(bin: string): Promise<any[]> {
     applicant_business_name: a.applicant_business_name || null,
     approved_date: a.approved_date || null, issued_date: a.issued_date || null,
     permit_status: a.permit_status || null, filing_reason: a.filing_reason || null,
-  })).filter((app: any) => !shouldExcludeApplication(app.status, null));
+  }));
   applications.push(...nowApps);
 
   return applications;
@@ -494,140 +486,219 @@ function parseConcern(customerConcern: string | null): {
   return { targetUnit, targetFloor, isPurchase, isRefinance, keywords };
 }
 
-function classifyViolation(v: any, customerConcern: string | null): string {
+function classifyViolation(v: any): { tag: string; reason: string } {
   const agency = (v.agency || '').toUpperCase();
   const status = (v.status || '').toLowerCase();
   const desc = (v.description_raw || v.violation_type || '').toLowerCase();
   const vClass = (v.violation_class || v.class || '').toUpperCase();
   const penalty = parseFloat(v.penalty_amount || v.penalty_imposed || '0') || 0;
   const hearingResult = (v.hearing_result || '').toLowerCase();
-  const concern = parseConcern(customerConcern);
 
-  // Already resolved
-  if (status === 'closed' || status === 'resolved' || status === 'dismissed' || status === 'paid') return '[RESOLVED]';
-  if (status.includes('close') || status.includes('certif')) return '[RESOLVED]';
-
-  // Customer Concern Elevation
-  if (concern.keywords.length > 0) {
-    const matchesConcern = concern.keywords.some(kw => desc.includes(kw));
-    if (matchesConcern) return '[ACTION REQUIRED]';
+  // EXCLUDE: Closed/Resolved — these don't belong in the report
+  if (status === 'closed' || status === 'resolved' || status === 'dismissed' || status === 'paid') {
+    return { tag: 'EXCLUDE', reason: 'closed' };
   }
-  const violationFloor = (v.story || v.floor || '').toString();
-  const violationUnit = (v.apartment || v.unit || '').toString().toUpperCase();
-  const isTargetLocation = (concern.targetFloor && violationFloor === concern.targetFloor) ||
-                           (concern.targetUnit && violationUnit === concern.targetUnit);
-  const isPurchaseElevation = (concern.isPurchase || concern.isRefinance) && isTargetLocation;
+  if (status.includes('close') || status.includes('certif') || status.includes('complied')) {
+    return { tag: 'EXCLUDE', reason: 'certified_closed' };
+  }
 
   // DOB Violations
   if (agency === 'DOB') {
-    if (v.is_stop_work_order) return '[ACTION REQUIRED]';
-    if (v.is_partial_stop_work) return '[ACTION REQUIRED]';
-    if (v.is_vacate_order) return '[ACTION REQUIRED]';
-    if (desc.includes('unsafe') || desc.includes('hazardous') || desc.includes('emergency') || desc.includes('illegal conversion')) return '[ACTION REQUIRED]';
-    if (desc.includes('facade') || desc.includes('fisp')) return '[ACTION REQUIRED]';
-    if (isPurchaseElevation) return '[ACTION REQUIRED]';
-    if (v.disposition) return '[RESOLVED]';
-    if (isTargetLocation) return '[MONITOR]';
-    return '[MONITOR]';
+    if (v.is_stop_work_order) return { tag: '[ACTION REQUIRED]', reason: 'stop_work_order' };
+    if (v.is_partial_stop_work) return { tag: '[ACTION REQUIRED]', reason: 'partial_stop_work' };
+    if (v.is_vacate_order) return { tag: '[ACTION REQUIRED]', reason: 'vacate_order' };
+    if (desc.includes('unsafe') || desc.includes('hazardous') || desc.includes('emergency'))
+      return { tag: '[ACTION REQUIRED]', reason: 'unsafe_hazardous' };
+    if (desc.includes('illegal conversion') || desc.includes('illegal use'))
+      return { tag: '[ACTION REQUIRED]', reason: 'illegal_conversion' };
+    if (desc.includes('facade') || desc.includes('fisp'))
+      return { tag: '[ACTION REQUIRED]', reason: 'facade_fisp' };
+    if (v.disposition) return { tag: 'EXCLUDE', reason: 'has_disposition' };
+    return { tag: '[MONITOR]', reason: 'open_dob_violation' };
   }
 
   // ECB Violations
   if (agency === 'ECB') {
-    if (hearingResult.includes('default')) return '[ACTION REQUIRED]';
-    if (penalty > 0) return '[ACTION REQUIRED]';
-    if (isPurchaseElevation) return '[ACTION REQUIRED]';
-    return '[MONITOR]';
+    if (hearingResult.includes('default'))
+      return { tag: '[ACTION REQUIRED]', reason: 'ecb_default_judgment' };
+    if (penalty > 0)
+      return { tag: '[ACTION REQUIRED]', reason: 'ecb_open_penalty' };
+    return { tag: '[MONITOR]', reason: 'ecb_open_no_penalty' };
   }
 
   // HPD Violations
   if (agency === 'HPD') {
-    if (vClass === 'C') return '[ACTION REQUIRED]';
-    if (vClass === 'B') return '[ACTION REQUIRED]';
-    if (isPurchaseElevation && vClass === 'A') return '[MONITOR]';
+    if (vClass === 'C') return { tag: '[ACTION REQUIRED]', reason: 'hpd_class_c_immediately_hazardous' };
+    if (vClass === 'B') return { tag: '[ACTION REQUIRED]', reason: 'hpd_class_b_hazardous' };
     if (vClass === 'A') {
       const issuedDate = new Date(v.issued_date || '');
       const daysSince = (Date.now() - issuedDate.getTime()) / (1000 * 60 * 60 * 24);
-      if (!isNaN(daysSince) && daysSince < 90) return '[MONITOR]';
-      if (isTargetLocation) return '[MONITOR]';
-      return '[INFO]';
+      if (!isNaN(daysSince) && daysSince > 90)
+        return { tag: '[MONITOR]', reason: 'hpd_class_a_overdue' };
+      return { tag: '[MONITOR]', reason: 'hpd_class_a_recent' };
     }
-    return '[MONITOR]';
+    return { tag: '[MONITOR]', reason: 'hpd_open' };
   }
 
   // FDNY Violations
   if (agency === 'FDNY') {
-    if (desc.includes('sprinkler') || desc.includes('standpipe') || desc.includes('fire pump')) return '[ACTION REQUIRED]';
-    if (desc.includes('means of egress') || desc.includes('exit')) return '[ACTION REQUIRED]';
-    if (desc.includes('fire alarm')) return '[ACTION REQUIRED]';
-    if (penalty > 0) return '[ACTION REQUIRED]';
-    return '[MONITOR]';
+    if (desc.includes('sprinkler') || desc.includes('standpipe') || desc.includes('fire pump'))
+      return { tag: '[ACTION REQUIRED]', reason: 'fdny_fire_suppression' };
+    if (desc.includes('means of egress') || desc.includes('exit'))
+      return { tag: '[ACTION REQUIRED]', reason: 'fdny_egress' };
+    if (desc.includes('fire alarm'))
+      return { tag: '[ACTION REQUIRED]', reason: 'fdny_fire_alarm' };
+    if (penalty > 0)
+      return { tag: '[ACTION REQUIRED]', reason: 'fdny_open_penalty' };
+    return { tag: '[MONITOR]', reason: 'fdny_open' };
   }
 
   // LPC (Landmarks)
   if (agency === 'LPC') {
-    if (penalty > 0) return '[ACTION REQUIRED]';
-    return '[MONITOR]';
+    if (penalty > 0) return { tag: '[ACTION REQUIRED]', reason: 'lpc_open_penalty' };
+    return { tag: '[MONITOR]', reason: 'lpc_open' };
   }
 
   // DOF (Finance — liens attach to property)
   if (agency === 'DOF') {
-    if (penalty > 0) return '[ACTION REQUIRED]';
-    return '[MONITOR]';
+    if (penalty > 0) return { tag: '[ACTION REQUIRED]', reason: 'dof_open_penalty_lien_risk' };
+    return { tag: '[MONITOR]', reason: 'dof_open' };
   }
 
-  // DEP, DSNY, DOT
+  // DEP, DSNY, DOT — quality of life agencies
   if (['DEP', 'DSNY', 'DOT'].includes(agency)) {
-    if (isPurchaseElevation) return '[MONITOR]';
-    if (penalty > 0) return '[MONITOR]';
-    return '[INFO]';
+    if (penalty > 0) return { tag: '[MONITOR]', reason: 'quality_of_life_open_penalty' };
+    return { tag: '[MONITOR]', reason: 'quality_of_life_open' };
   }
 
-  return '[MONITOR]';
+  return { tag: '[MONITOR]', reason: 'unclassified_open' };
 }
 
-function classifyApplication(app: any, customerConcern: string | null): string {
-  const status = (app.status || '').toLowerCase();
+function classifyApplication(app: any): { tag: string; reason: string } {
+  const bisStatus = (app.job_status || app.status || '').toUpperCase().trim();
+  const nowStatus = (app.filing_status || app.status || '').toLowerCase();
+  const jobType = (app.job_type || app.application_type || '').toUpperCase().trim();
   const desc = (app.job_description || '').toLowerCase();
-  const concern = parseConcern(customerConcern);
 
   const latestActionDate = new Date(app.latest_action_date || app.approved_date || '');
   const preFilingDate = new Date(app.pre__filing_date || app.filing_date || '');
+  const permitIssuedDate = new Date(app.fully_permitted || app.permit_issued_date || app.issued_date || '');
   const now = Date.now();
+  const MS_PER_DAY = 1000 * 60 * 60 * 24;
+
   const daysSinceLastAction = !isNaN(latestActionDate.getTime())
-    ? (now - latestActionDate.getTime()) / (1000 * 60 * 60 * 24)
-    : null;
+    ? (now - latestActionDate.getTime()) / MS_PER_DAY : null;
   const daysSinceFiling = !isNaN(preFilingDate.getTime())
-    ? (now - preFilingDate.getTime()) / (1000 * 60 * 60 * 24)
-    : null;
+    ? (now - preFilingDate.getTime()) / MS_PER_DAY : null;
+  const daysSincePermit = !isNaN(permitIssuedDate.getTime())
+    ? (now - permitIssuedDate.getTime()) / MS_PER_DAY : null;
 
-  if (status.includes('sign') || status.includes('complete')) return '[INFO]';
+  const buildingWide = ['facade', 'elevator', 'gas', 'boiler', 'sprinkler', 'plumbing',
+    'electrical', 'standpipe', 'fire alarm', 'fire escape', 'structural', 'foundation',
+    'roof', 'parapet', 'water tank', 'sewer', 'oil burner'];
+  const isBuildingWideWork = buildingWide.some(sys => desc.includes(sys));
 
-  if (status.includes('approved') || status.includes('permit issued')) {
-    if (daysSinceLastAction && daysSinceLastAction > 730) return '[ACTION REQUIRED]';
-    if (daysSinceLastAction && daysSinceLastAction > 365) return '[MONITOR]';
-    return '[INFO]';
+  // 1. EXCLUDE: Terminal states
+  if (bisStatus === 'X' || bisStatus === 'U') {
+    return { tag: 'EXCLUDE', reason: 'sign_off_complete' };
+  }
+  if (nowStatus.includes('signed off') || nowStatus.includes('sign-off') ||
+      nowStatus.includes('completed') || nowStatus.includes('complete')) {
+    return { tag: 'EXCLUDE', reason: 'sign_off_complete' };
+  }
+  if (nowStatus.includes('withdrawn') || nowStatus.includes('withdraw')) {
+    if (daysSinceLastAction && daysSinceLastAction > 730) {
+      return { tag: 'EXCLUDE', reason: 'withdrawn_old' };
+    }
+    return { tag: '[MONITOR]', reason: 'recently_withdrawn' };
+  }
+  if (bisStatus === 'I' || nowStatus.includes('sign-off in review')) {
+    return { tag: 'EXCLUDE', reason: 'signoff_in_review' };
   }
 
-  if (status.includes('pre-fil') || status.includes('initial')) {
-    if (daysSinceFiling && daysSinceFiling > 540) return '[MONITOR]';
-    return '[MONITOR]';
+  // 2. STOP WORK / SUSPENDED / REVOKED
+  if (bisStatus === '3') {
+    return { tag: '[ACTION REQUIRED]', reason: 'suspended' };
+  }
+  if (nowStatus.includes('stop work') || nowStatus.includes('suspended') ||
+      nowStatus.includes('revoked')) {
+    return { tag: '[ACTION REQUIRED]', reason: 'stop_work_or_revoked' };
   }
 
-  if (status.includes('partial')) return '[ACTION REQUIRED]';
-  if (status.includes('in progress') || status.includes('pending')) return '[MONITOR]';
-
-  if (concern.keywords.length > 0) {
-    const matchesConcern = concern.keywords.some(kw => desc.includes(kw));
-    if (matchesConcern) return '[ACTION REQUIRED]';
+  // 3. DISAPPROVED
+  if (bisStatus === 'J') {
+    if (daysSinceLastAction && daysSinceLastAction > 365) {
+      return { tag: '[ACTION REQUIRED]', reason: 'disapproved_abandoned' };
+    }
+    return { tag: '[MONITOR]', reason: 'disapproved_active' };
   }
 
-  const buildingWide = ['facade', 'elevator', 'gas', 'boiler', 'sprinkler', 'plumbing', 'electrical', 'standpipe'];
-  if (buildingWide.some(sys => desc.includes(sys))) {
-    if (concern.isPurchase || concern.isRefinance) return '[ACTION REQUIRED]';
-    return '[MONITOR]';
+  // 4. PERMIT ISSUED — Check expiration
+  if (bisStatus === 'Q' || bisStatus === 'R' ||
+      nowStatus.includes('permit issued') || nowStatus.includes('permit entire') ||
+      nowStatus.includes('permit partial')) {
+    if (daysSincePermit && daysSincePermit > 730) {
+      return { tag: '[ACTION REQUIRED]', reason: 'permit_expired_2yr_refile_likely' };
+    }
+    if (daysSincePermit && daysSincePermit > 365) {
+      return { tag: '[ACTION REQUIRED]', reason: 'permit_expired_reinstatement' };
+    }
+    if (daysSinceLastAction && daysSinceLastAction > 365) {
+      return { tag: '[MONITOR]', reason: 'permit_active_stale' };
+    }
+    if (jobType === 'DM') return { tag: '[MONITOR]', reason: 'demolition_permit_active' };
+    if (jobType === 'NB') return { tag: '[MONITOR]', reason: 'new_building_permit_active' };
+    if (jobType === 'A1') return { tag: '[MONITOR]', reason: 'structural_alt_permit_active' };
+    if (isBuildingWideWork) return { tag: '[MONITOR]', reason: 'building_wide_work_active' };
+    return { tag: '[MONITOR]', reason: 'permit_active' };
   }
 
-  return '[MONITOR]';
+  // 5. APPROVED (no permit yet)
+  if (bisStatus === 'P' || nowStatus.includes('approved')) {
+    if (daysSinceLastAction && daysSinceLastAction > 730) {
+      return { tag: '[ACTION REQUIRED]', reason: 'approved_no_permit_2yr_abandoned' };
+    }
+    if (daysSinceLastAction && daysSinceLastAction > 365) {
+      return { tag: '[MONITOR]', reason: 'approved_stale_service_notice' };
+    }
+    return { tag: '[MONITOR]', reason: 'approved_active' };
+  }
+
+  // 6. PLAN EXAM / PARTIAL APPROVAL
+  if (bisStatus === 'H' || bisStatus === 'F' || bisStatus === 'K' ||
+      nowStatus.includes('plan exam') || nowStatus.includes('review') ||
+      nowStatus.includes('in process') || nowStatus.includes('partial approv')) {
+    if (bisStatus === 'K' && (jobType === 'NB' || jobType === 'A1')) {
+      return { tag: '[MONITOR]', reason: 'partial_approval_structural' };
+    }
+    if (daysSinceLastAction && daysSinceLastAction > 365) {
+      return { tag: '[MONITOR]', reason: 'plan_exam_stale_possibly_abandoned' };
+    }
+    if (jobType === 'DM') return { tag: '[MONITOR]', reason: 'demolition_in_review' };
+    return { tag: '[MONITOR]', reason: 'plan_exam_active' };
+  }
+
+  // 7. PAA (Post Approval Amendment)
+  if (bisStatus === 'G' || bisStatus === 'L' || bisStatus === 'M') {
+    if (bisStatus === 'G') return { tag: '[MONITOR]', reason: 'paa_fee_due' };
+    return { tag: '[MONITOR]', reason: 'paa_in_progress' };
+  }
+
+  // 8. EARLY STAGES
+  if (['A', 'B', 'C', 'D', 'E'].includes(bisStatus) ||
+      nowStatus.includes('pre-fil') || nowStatus.includes('initial') ||
+      nowStatus.includes('pending')) {
+    if (daysSinceFiling && daysSinceFiling > 365) {
+      return { tag: '[MONITOR]', reason: 'prefiled_abandoned_12mo' };
+    }
+    if (jobType === 'DM') return { tag: '[MONITOR]', reason: 'demolition_prefiled' };
+    if (jobType === 'NB') return { tag: '[MONITOR]', reason: 'new_building_prefiled' };
+    if (jobType === 'A1' || isBuildingWideWork) return { tag: '[MONITOR]', reason: 'structural_or_building_wide_early' };
+    return { tag: '[MONITOR]', reason: 'early_stage' };
+  }
+
+  // 9. DEFAULT
+  return { tag: '[MONITOR]', reason: 'unclassified' };
 }
 
 async function generateLineItemNotes(
@@ -637,37 +708,77 @@ async function generateLineItemNotes(
   customerConcern: string | null,
   LOVABLE_API_KEY: string
 ): Promise<any[]> {
-  const violationItems = violations.slice(0, 60).map((v: any) => {
-    const tag = classifyViolation(v, customerConcern);
-    return {
-      type: "violation",
-      id: v.violation_number || v.id,
-      agency: v.agency,
-      desc: (v.violation_type || v.description_raw || 'Unknown').slice(0, 120),
-      floor: v.story || null,
-      apt: v.apartment || null,
-      status: v.violation_status || v.status || null,
-      penalty_amount: v.penalty_amount || v.penalty_imposed || null,
-      hearing_status: v.hearing_status || null,
-      hearing_result: v.hearing_result || null,
-      class: v.nov_class || v.class_value || v.violation_class || null,
-      pre_assigned_tag: tag,
-    };
-  });
+  // Parse the customer concern ONCE — used as AI context, NOT for tag elevation
+  const concern = parseConcern(customerConcern);
 
-  const applicationItems = applications.slice(0, 40).map((a: any) => {
-    const tag = classifyApplication(a, customerConcern);
-    return {
-      type: "application",
-      id: `${a.source || 'BIS'}-${a.application_number || a.id}`,
-      source: a.source,
-      desc: (a.job_description || a.application_type || 'Unknown').slice(0, 120),
-      floor: a.floor || null,
-      apt: a.apartment || null,
-      status: a.permit_status || a.application_status || a.status || null,
-      pre_assigned_tag: tag,
-    };
-  });
+  // Helper: check keyword overlap between item description and concern
+  function getConcernOverlaps(desc: string): string[] {
+    if (!concern.keywords.length) return [];
+    return concern.keywords.filter(kw => desc.includes(kw));
+  }
+
+  // Helper: check if item is on the customer's target unit/floor
+  function isOnTargetLocation(itemFloor: string | null, itemUnit: string | null): boolean {
+    const floor = (itemFloor || '').toString();
+    const unit = (itemUnit || '').toString().toUpperCase();
+    return (!!concern.targetFloor && floor === concern.targetFloor) ||
+           (!!concern.targetUnit && unit === concern.targetUnit);
+  }
+
+  // Classify and FILTER violations — EXCLUDE items are dropped from the report
+  const violationItems = violations
+    .map((v: any) => {
+      const { tag, reason } = classifyViolation(v);
+      if (tag === 'EXCLUDE') return null;
+
+      const vDesc = (v.violation_type || v.description_raw || '').toLowerCase();
+      return {
+        type: "violation",
+        id: v.violation_number || v.id,
+        agency: v.agency,
+        desc: (v.violation_type || v.description_raw || 'Unknown').slice(0, 120),
+        floor: v.story || v.floor || null,
+        apt: v.apartment || v.unit || null,
+        status: v.violation_status || v.status || null,
+        penalty_amount: v.penalty_amount || v.penalty_imposed || null,
+        hearing_status: v.hearing_status || null,
+        class: v.nov_class || v.class_value || v.violation_class || null,
+        pre_assigned_tag: tag,
+        classification_reason: reason,
+        concern_keyword_match: getConcernOverlaps(vDesc),
+        is_target_location: isOnTargetLocation(v.story || v.floor, v.apartment || v.unit),
+      };
+    })
+    .filter(Boolean)
+    .slice(0, 60);
+
+  // Classify and FILTER applications — EXCLUDE items are dropped
+  const applicationItems = applications
+    .map((a: any) => {
+      const { tag, reason } = classifyApplication(a);
+      if (tag === 'EXCLUDE') return null;
+
+      const aDesc = (a.job_description || '').toLowerCase();
+      return {
+        type: "application",
+        id: `${a.source || 'BIS'}-${a.application_number || a.job__ || a.id}`,
+        source: a.source || 'BIS',
+        job_type: a.job_type || a.application_type || null,
+        bis_status: a.job_status || null,
+        desc: (a.job_description || a.application_type || 'Unknown').slice(0, 120),
+        floor: a.floor || null,
+        apt: a.apartment || null,
+        status: a.permit_status || a.application_status || a.filing_status || a.status || null,
+        latest_action_date: a.latest_action_date || null,
+        fully_permitted: a.fully_permitted || null,
+        pre_assigned_tag: tag,
+        classification_reason: reason,
+        concern_keyword_match: getConcernOverlaps(aDesc),
+        is_target_location: false,
+      };
+    })
+    .filter(Boolean)
+    .slice(0, 40);
 
   const allItems = [...violationItems, ...applicationItems];
   if (allItems.length === 0) return [];
@@ -694,25 +805,33 @@ Your job is ONLY to write the professional note sentence that follows the tag.
 Format: {pre_assigned_tag} One to two sentences explaining what this item is and its impact.
 
 ━━━ CUSTOMER CONCERN ━━━
-The client's attorney submitted this report with a specific concern or context (provided above).
-You MUST evaluate EVERY item against the customer concern and mention relevance when applicable:
-- If the concern mentions a specific unit or floor, state whether this item is on the same floor, above/below, or in a common area.
-- If the concern mentions a purchase or closing, note whether this item could delay or block closing (open penalties, stop work orders, C of O issues).
-- If the concern mentions a specific system (elevator, facade, gas, fire safety), call out items involving that system even if they're classified as [MONITOR] or [INFO].
-- If there is NO customer concern provided, write notes in a general due diligence context.
+The client's attorney submitted this report with a specific concern (provided above).
+Each item has two context flags:
+- "concern_keyword_match": array of matched keywords (e.g. ["facade"]) — this is a surface-level text match only. YOU must decide if the match actually matters for the concern.
+- "is_target_location": boolean — true if the item is on the same floor/unit the customer specified.
+
+YOUR JOB is to reason about whether the item actually matters for the concern:
+- If concern_keyword_match is non-empty, ALWAYS address in the note whether it's relevant and why.
+- If is_target_location is true, mention the location overlap.
+- If customer_concern mentions purchase/closing/refinance, note whether open penalties or enforcement could delay the transaction.
+- If there is NO customer concern, write notes in a general due diligence context.
 
 ━━━ DOB APPLICATION LIFECYCLE ━━━
-For applications classified as [ACTION REQUIRED] or [MONITOR] due to age/inactivity:
-- If an approved application has had no activity for 12+ months, note that DOB likely issued or will issue a first service notice requiring proof of progress.
-- If an approved application has had no activity for 24+ months, note that DOB may have withdrawn or is about to withdraw the application. Recommend verifying current status on BIS NOW.
-- If a pre-filed application is 18+ months old with no progress, note it may be abandoned and could require a new filing.
+Each application item includes a "classification_reason" field. Use it to write precise notes:
+- "permit_expired_2yr_refile_likely" → Permit expired 2+ years ago. May need full refile if code/zoning changed. Verify on BIS NOW.
+- "permit_expired_reinstatement" → Permit expired >12 months. Reinstatement requires full filing fee per DOB Jan 2024 service notice.
+- "permit_active_stale" → No recorded activity in 12+ months. DOB may have issued a service notice.
+- "disapproved_abandoned" → Disapproved with no action for 12+ months. Deemed abandoned per §28-105.2.
+- "prefiled_abandoned_12mo" → Pre-filed with no progress for 12+ months. DOB considers this abandoned.
+- "approved_no_permit_2yr_abandoned" → Approved but no permit pulled for 2+ years. Must refile.
+- "approved_stale_service_notice" → Approved 12+ months ago, no permit. DOB likely sent first service notice.
+- "suspended" / "stop_work_or_revoked" → Active enforcement. No new permits until resolved.
+- "recently_withdrawn" → Withdrawn within last 2 years. Attorney should know what was planned.
 
 Examples:
 - [ACTION REQUIRED] Open ECB violation with $3,125 penalty balance due. Outstanding ECB penalties become liens on the property and must be resolved before closing.
 - [ACTION REQUIRED] BIS alteration permit approved 09/2023 with no recorded activity for 26 months. DOB likely withdrew this application; verify status on BIS NOW before closing.
 - [MONITOR] BIS alteration application for plumbing work on floors 1-3. Filing is in progress; verify completion status with DOB. Client's unit is on floor 2 — this work directly affects the subject unit.
-- [RESOLVED] HPD Class A violation for minor paint condition, certified corrected on 01/15/24. No further action needed.
-- [INFO] Non-hazardous maintenance item on 6th floor, not related to client's unit (unit 3A). No compliance concern.
 
 If the item has floor/apt data, include it in the identification clause.
 Be declarative and precise. State exact dollar amounts for penalties. Reference specific NYC code sections where relevant.
