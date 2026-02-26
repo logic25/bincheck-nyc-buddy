@@ -24,6 +24,7 @@ import { format } from 'date-fns';
 import DDReportPrintView from './DDReportPrintView';
 import ExpandableViolationRow from './ExpandableViolationRow';
 import ExpandableApplicationRow from './ExpandableApplicationRow';
+import ExpandableComplaintRow from './ExpandableComplaintRow';
 import BatchEditPanel, { type SelectedItem } from './BatchEditPanel';
 import html2pdf from 'html2pdf.js';
 import { getAgencyColor } from '@/lib/violation-utils';
@@ -795,8 +796,18 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
       {activeSection === 'complaints' && (
         <div className="border border-border rounded-xl bg-card">
           <div className="p-4 border-b border-border">
-            <h3 className="text-base font-semibold">DOB Complaints</h3>
-            <p className="text-xs text-muted-foreground mt-0.5">{complaints.length} complaints on record</p>
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <h3 className="text-base font-semibold">DOB Complaints</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">{complaints.length} complaints on record</p>
+              </div>
+              {!isReadOnly && complaints.length > 0 && (
+                <Button variant={bulkMode && activeSection === 'complaints' ? 'default' : 'outline'} size="sm" className="h-7 text-xs gap-1.5" onClick={toggleBulkMode}>
+                  <ListChecks className="w-3.5 h-3.5" />
+                  {bulkMode && activeSection === 'complaints' ? 'Exit Bulk' : 'Bulk Edit'}
+                </Button>
+              )}
+            </div>
           </div>
           {complaints.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground text-sm">No DOB complaints found.</div>
@@ -805,33 +816,46 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
               <Table className="text-sm">
                 <TableHeader>
                   <TableRow className="bg-muted/30 hover:bg-muted/30">
+                    <TableHead className="w-8">
+                      {bulkMode && (() => {
+                        const visibleKeys = complaints.map((c: any, idx: number) => `complaint:${c.complaint_number || idx}:DOB`);
+                        const allSelected = visibleKeys.length > 0 && visibleKeys.every((k: string) => selectedItems.has(k));
+                        return (
+                          <Checkbox
+                            checked={allSelected}
+                            onCheckedChange={() => selectAllVisible(visibleKeys)}
+                            className="ml-1"
+                          />
+                        );
+                      })()}
+                    </TableHead>
                     <TableHead className="text-xs font-semibold uppercase tracking-wider">Complaint #</TableHead>
                     <TableHead className="text-xs font-semibold uppercase tracking-wider">Date</TableHead>
                     <TableHead className="text-xs font-semibold uppercase tracking-wider">Category</TableHead>
                     <TableHead className="text-xs font-semibold uppercase tracking-wider">Unit</TableHead>
                     <TableHead className="text-xs font-semibold uppercase tracking-wider">Status</TableHead>
                     <TableHead className="text-xs font-semibold uppercase tracking-wider">Disposition</TableHead>
+                    <TableHead className="text-xs font-semibold uppercase tracking-wider">Notes</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {complaints.map((c: any, idx: number) => {
-                    const statusLower = (c.status || '').toLowerCase();
-                    const isClosed = statusLower === 'closed' || statusLower === 'close';
+                    const complaintId = c.complaint_number || String(idx);
                     return (
-                      <TableRow key={c.complaint_number || idx} className={isClosed ? 'opacity-60' : ''}>
-                        <TableCell className="font-mono text-xs">{c.complaint_number || '—'}</TableCell>
-                        <TableCell className="text-xs whitespace-nowrap">{safeFormatDate(c.date_entered)}</TableCell>
-                        <TableCell className="text-xs max-w-[250px]">
-                          <span className="font-medium">{decodeComplaintCategory(c.complaint_category)}</span>
-                        </TableCell>
-                        <TableCell className="text-xs">{c.unit || '—'}</TableCell>
-                        <TableCell>
-                          <Badge variant={isClosed ? 'secondary' : 'destructive'} className="text-[10px]">
-                            {c.status || 'Unknown'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-xs">{safeFormatDate(c.disposition_date)}</TableCell>
-                      </TableRow>
+                      <ExpandableComplaintRow
+                        key={complaintId}
+                        complaint={c}
+                        index={idx}
+                        note={lineItemNotes[`complaint-${complaintId}`] || ''}
+                        onNoteChange={(n) => updateLineItemNote('complaint', complaintId, n)}
+                        readOnly={isReadOnly}
+                        reportId={report.id}
+                        editStatus={editStatuses[`complaint-${complaintId}`] || null}
+                        onEditSaved={(editId) => handleEditSaved('complaint', complaintId, editId)}
+                        bulkMode={bulkMode}
+                        isSelected={selectedItems.has(`complaint:${complaintId}:DOB`)}
+                        onToggleSelect={() => toggleItemSelection(`complaint:${complaintId}:DOB`)}
+                      />
                     );
                   })}
                 </TableBody>
