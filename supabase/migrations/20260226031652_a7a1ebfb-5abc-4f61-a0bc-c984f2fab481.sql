@@ -1,0 +1,1 @@
+ALTER TABLE dd_reports ADD COLUMN IF NOT EXISTS complaints_data jsonb DEFAULT '[]'::jsonb;

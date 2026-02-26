@@ -23,6 +23,7 @@ interface DDReportPrintViewProps {
     violations_data: any;
     applications_data: any;
     orders_data: any;
+    complaints_data?: any;
     ai_analysis: string | null;
     general_notes: string | null;
     line_item_notes?: any[];
@@ -69,6 +70,7 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
   const applications = report.applications_data || [];
   const orders = report.orders_data || { stop_work: [], vacate: [] };
   const building = report.building_data || {};
+  const complaints = report.complaints_data || [];
   const reportId = generateReportId(report.report_date);
   const lineItemNotes = report.line_item_notes || [];
 
@@ -81,6 +83,10 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
   const dobViolations = violations.filter((v: any) => v.agency === 'DOB');
   const ecbViolations = violations.filter((v: any) => v.agency === 'ECB');
   const hpdViolations = violations.filter((v: any) => v.agency === 'HPD');
+  const fdnyViolations = violations.filter((v: any) => v.agency === 'FDNY');
+  const otherOathViolations = violations.filter((v: any) =>
+    ['DEP', 'DOT', 'DSNY', 'LPC', 'DOF'].includes(v.agency)
+  );
   const bisApplications = applications.filter((a: any) => a.source === 'BIS');
   const dobNowApplications = applications.filter((a: any) => a.source === 'DOB_NOW');
 
@@ -187,6 +193,37 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
     );
   };
 
+  const renderComplaintsTable = () => {
+    if (!complaints || complaints.length === 0) return null;
+    return (
+      <section className="mb-6">
+        <h3 className={sectionHeaderStyle}>DOB Complaints ({complaints.length})</h3>
+        <table className="w-full border-collapse">
+          <thead>
+            <tr>
+              <th className={tableHeaderStyle}>Complaint #</th>
+              <th className={tableHeaderStyle}>Date Filed</th>
+              <th className={tableHeaderStyle}>Status</th>
+              <th className={tableHeaderStyle}>Category</th>
+              <th className={tableHeaderStyle}>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            {complaints.slice(0, 30).map((c: any, idx: number) => (
+              <tr key={idx} className={idx % 2 === 0 ? '' : 'bg-gray-50/50'}>
+                <td className={`${tableCellStyle} font-mono text-[10px]`}>{c.complaint_number || '—'}</td>
+                <td className={`${tableCellStyle} whitespace-nowrap`}>{formatShortDate(c.date_entered)}</td>
+                <td className={tableCellStyle}>{c.status || '—'}</td>
+                <td className={tableCellStyle}>{c.complaint_category || '—'}</td>
+                <td className={`${tableCellStyle} max-w-[200px]`}>{(c.description || c.complaint_category || '—').slice(0, 70)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </section>
+    );
+  };
+
   return (
     <div className="print-container bg-white text-black p-8 max-w-4xl mx-auto" style={{ fontFamily: "'Inter', 'Helvetica Neue', Arial, sans-serif", fontSize: '12px', lineHeight: '1.5' }}>
       {/* Letterhead */}
@@ -263,7 +300,7 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
         <h3 className={sectionHeaderStyle}>Compliance Summary</h3>
         <div className="grid grid-cols-4 gap-3">
           {[
-            { label: 'Open Violations', value: violations.length, sub: `DOB: ${dobViolations.length} | ECB: ${ecbViolations.length} | HPD: ${hpdViolations.length}` },
+            { label: 'Open Violations', value: violations.length, sub: `DOB: ${dobViolations.length} | ECB: ${ecbViolations.length} | HPD: ${hpdViolations.length}${fdnyViolations.length > 0 ? ` | FDNY: ${fdnyViolations.length}` : ''}${otherOathViolations.length > 0 ? ` | Other: ${otherOathViolations.length}` : ''}` },
             { label: 'Applications', value: applications.length, sub: `BIS: ${bisApplications.length} | DOB NOW: ${dobNowApplications.length}` },
             { label: 'Stop Work Orders', value: orders.stop_work?.length || 0, danger: (orders.stop_work?.length || 0) > 0 },
             { label: 'Vacate Orders', value: orders.vacate?.length || 0, danger: (orders.vacate?.length || 0) > 0 },
@@ -306,9 +343,14 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
             {renderViolationGroup(dobViolations, 'DOB')}
             {renderViolationGroup(ecbViolations, 'ECB')}
             {renderViolationGroup(hpdViolations, 'HPD')}
+            {renderViolationGroup(fdnyViolations, 'FDNY')}
+            {renderViolationGroup(otherOathViolations, 'Other Agency (OATH)')}
           </>
         )}
       </section>
+
+      {/* DOB Complaints */}
+      {renderComplaintsTable()}
 
       {/* Applications */}
       <section className="mb-6">

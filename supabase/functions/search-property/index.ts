@@ -9,11 +9,13 @@ const NYC_DATA_BASE = "https://data.cityofnewyork.us/resource";
 
 // Dataset IDs
 const DOB_VIOLATIONS = "3h2n-5cm9";
+const DOB_SAFETY_VIOLATIONS = "855j-jady";
 const DOB_ECB_VIOLATIONS = "6bgk-3dad";
 const HPD_VIOLATIONS = "wvxf-dwi5";
 const DOB_PERMITS = "ic3t-wcy2";
-const DOB_COMPLAINTS = "82gq-khvr";
+const DOB_COMPLAINTS = "eabe-havv";
 const OATH_HEARINGS = "jz4z-kudi";
+const FDNY_VIOLATIONS = "avgm-ztsb";
 const PLUTO = "64uk-42ks";
 
 const NYC_APP_TOKEN = Deno.env.get("NYC_APP_TOKEN") || "";
@@ -95,11 +97,9 @@ const OATH_AGENCY_CODES: Record<string, string> = {
 const OATH_RESOLVED = ["paid", "dismissed", "written off", "defaulted", "satisfied", "complied", "waived"];
 
 async function fetchOATH(bbl: string): Promise<any[]> {
-  const { borough, block, lot } = parseBBL(bbl);
-  const boroughName = OATH_BOROUGH_NAMES[borough];
-  if (!boroughName) return [];
-  // Keep block/lot with leading zeros for OATH
   const cleanBbl = bbl.replace(/\D/g, "");
+  const boroughName = OATH_BOROUGH_NAMES[cleanBbl.charAt(0)];
+  if (!boroughName) return [];
   const blockPadded = cleanBbl.slice(1, 6);
   const lotPadded = cleanBbl.slice(6, 10);
 
@@ -124,6 +124,24 @@ async function fetchOATH(bbl: string): Promise<any[]> {
       status: isResolved ? "closed" : "open",
     };
   });
+}
+
+// Deduplicate records by key, keeping the one with more non-null fields
+function deduplicateByKey(records: any[], keyFn: (r: any) => string): any[] {
+  const seen = new Map<string, any>();
+  for (const r of records) {
+    const key = keyFn(r);
+    if (!key) { seen.set(`_anon_${Math.random()}`, r); continue; }
+    const existing = seen.get(key);
+    if (!existing) {
+      seen.set(key, r);
+    } else {
+      const existingFields = Object.values(existing).filter(val => val != null && val !== '').length;
+      const newFields = Object.values(r).filter(val => val != null && val !== '').length;
+      if (newFields > existingFields) seen.set(key, r);
+    }
+  }
+  return Array.from(seen.values());
 }
 
 serve(async (req) => {
@@ -167,14 +185,31 @@ serve(async (req) => {
 
     const oathQuery = resolvedBbl ? fetchOATH(resolvedBbl) : Promise.resolve([]);
 
-    const [dobViolations, ecbViolations, hpdViolations, permits, dobComplaints, oathViolations] = await Promise.all([
+    const [dobViolations, dobSafetyViolations, ecbViolations, hpdViolations, permits, dobComplaints, oathViolations, fdnyViolations] = await Promise.all([
       fetchJSON(`${NYC_DATA_BASE}/${DOB_VIOLATIONS}.json?bin=${resolvedBin}&$limit=500`),
+      fetchJSON(`${NYC_DATA_BASE}/${DOB_SAFETY_VIOLATIONS}.json?bin=${resolvedBin}&$limit=500`),
       fetchJSON(`${NYC_DATA_BASE}/${DOB_ECB_VIOLATIONS}.json?bin=${resolvedBin}&$limit=500`),
       hpdQuery,
       fetchJSON(`${NYC_DATA_BASE}/${DOB_PERMITS}.json?bin__=${resolvedBin}&$limit=500`),
-      fetchJSON(`${NYC_DATA_BASE}/${DOB_COMPLAINTS}.json?bin=${resolvedBin}&$limit=200`),
+      fetchJSON(`${NYC_DATA_BASE}/${DOB_COMPLAINTS}.json?bin=${resolvedBin}&$limit=200&$order=date_entered DESC`),
       oathQuery,
+      fetchJSON(`${NYC_DATA_BASE}/${FDNY_VIOLATIONS}.json?bin=${resolvedBin}&$limit=200&$order=inspection_date DESC`),
     ]);
+
+    // Merge and deduplicate DOB violations from both datasets
+    const allDobMapped = [
+      ...dobViolations.map((v: any) => ({
+        ...v,
+        _source: 'bis',
+        _dedup_key: v.isn_dob_bis_viol || v.violation_number || '',
+      })),
+      ...dobSafetyViolations.map((v: any) => ({
+        ...v,
+        _source: 'safety',
+        _dedup_key: v.isn_dob_bis_viol || v.violation_number || '',
+      })),
+    ];
+    const dedupedDobViolations = deduplicateByKey(allDobMapped, (r) => r._dedup_key);
 
     // Extract property info
     let propertyAddress = address || "";
@@ -202,7 +237,7 @@ serve(async (req) => {
       borough,
       block,
       lot,
-      dobViolations: dobViolations.map((v: any) => ({
+      dobViolations: dedupedDobViolations.map((v: any) => ({
         isn_dob_bis_viol: v.isn_dob_bis_viol || v.violation_number || '',
         violation_type: v.violation_type || '',
         violation_category: v.violation_category || '',
@@ -259,13 +294,30 @@ serve(async (req) => {
         violationstatus: v.violationstatus || '',
       })),
       oathViolations,
+      fdnyViolations: fdnyViolations.map((r: any) => {
+        const status = (r.status || r.violation_status || '').toLowerCase();
+        const isResolved = status.includes('close') || status.includes('resolved') || status.includes('cured') || status.includes('complied');
+        return {
+          violation_number: r.violation_number || r.issuance_number || '',
+          violation_code: r.violation_code || '',
+          violation_code_description: r.violation_code_description || '',
+          violation_category: r.violation_category || '',
+          inspection_date: r.inspection_date || r.violation_date || '',
+          penalty_amount: r.penalty_amount || '0',
+          status: isResolved ? 'closed' : 'open',
+          comments: r.comments || '',
+        };
+      }),
       dobComplaints: dobComplaints.map((c: any) => ({
-        complaint_number: c.complaint_number || c.complaint_no || '',
-        date_entered: c.date_entered || c.dobrundate || '',
+        complaint_number: c.complaint_number || '',
+        date_entered: c.date_entered || '',
         status: c.status || '',
         complaint_category: c.complaint_category || '',
         unit: c.unit || '',
-        description: c.description || c.complaint_category || '',
+        disposition_date: c.disposition_date || '',
+        disposition_code: c.disposition_code || '',
+        inspection_date: c.inspection_date || '',
+        description: c.complaint_category || '',
       })),
       permits: permits.map((p: any) => ({
         job__: p.job__ || '',
