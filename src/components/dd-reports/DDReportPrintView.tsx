@@ -29,6 +29,7 @@ interface DDReportPrintViewProps {
     general_notes: string | null;
     line_item_notes?: any[];
     customer_concern?: string | null;
+    property_status_summary?: string | null;
   };
   userProfile?: UserProfile;
 }
@@ -273,6 +274,22 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
           </div>
         )}
       </div>
+
+      {/* Property Status Summary */}
+      {report.property_status_summary && (
+        <section className="mb-6 p-5 bg-gray-50 rounded border border-gray-200">
+          <h3 className="text-[13px] font-bold uppercase tracking-[0.08em] text-gray-900 mb-3">Property Status Summary</h3>
+          <div className="flex flex-wrap gap-2 mb-3 pb-3 border-b border-gray-200">
+            <span className="text-[10px] font-medium text-gray-600 bg-gray-100 px-2 py-0.5 rounded">DOB Violations: {dobViolations.length}</span>
+            <span className="text-[10px] font-medium text-gray-600 bg-gray-100 px-2 py-0.5 rounded">ECB Violations: {ecbViolations.length}</span>
+            <span className="text-[10px] font-medium text-gray-600 bg-gray-100 px-2 py-0.5 rounded">HPD Violations: {hpdViolations.length}</span>
+            {fdnyViolations.length > 0 && <span className="text-[10px] font-medium text-gray-600 bg-gray-100 px-2 py-0.5 rounded">FDNY: {fdnyViolations.length}</span>}
+            <span className="text-[10px] font-medium text-gray-600 bg-gray-100 px-2 py-0.5 rounded">Active Permits: {applications.length}</span>
+            <span className="text-[10px] font-medium text-gray-600 bg-gray-100 px-2 py-0.5 rounded">Complaints: {complaints.length}</span>
+          </div>
+          <p className="text-[13px] leading-relaxed text-gray-700 whitespace-pre-line">{report.property_status_summary}</p>
+        </section>
+      )}
 
       {/* Building Information */}
       <section className="mb-6">
