@@ -253,17 +253,46 @@ async function fetchDOBComplaints(bin: string): Promise<any[]> {
   const records = await fetchNYCData(NYC_ENDPOINTS.DOB_COMPLAINTS, {
     "bin": bin, "$limit": "200", "$order": "date_entered DESC",
   });
-  return records.map((c: any) => ({
-    complaint_number: c.complaint_number || '',
-    date_entered: c.date_entered || '',
-    status: c.status || '',
-    complaint_category: c.complaint_category || '',
-    unit: c.unit || '',
-    disposition_date: c.disposition_date || '',
-    disposition_code: c.disposition_code || '',
-    inspection_date: c.inspection_date || '',
-    description: c.complaint_category || '',
-  }));
+  const COMPLAINT_CATEGORIES: Record<string, string> = {
+    "01": "Accident — Construction/Plumbing", "02": "Adjacent Building/Property Condition",
+    "03": "Boiler", "04": "Building Shaking/Vibrating/Structural", "05": "Electrical/Wiring",
+    "06": "Elevator", "07": "Fence/Retaining Wall/Other", "09": "Fire Escape/Egress",
+    "10": "General Construction — Active Work", "12": "Illegal Conversion (Residential)",
+    "13": "Illegal Conversion (Commercial/Industrial)", "14": "Crane/Derrick/Hoist",
+    "15": "Plumbing", "16": "Sidewalk Shed/Supported Scaffold",
+    "18": "Structural — Cracked/Damaged/Leaning", "19": "Stalled Construction Site",
+    "20": "Interior Demo/Renovation", "23": "Failure to Maintain (Building/Façade)",
+    "24": "Failure to Retain Water", "25": "Construction Noise",
+    "27": "Illegal Use/Occupancy/Zoning", "29": "Building Under Demolition",
+    "30": "Unlicensed/Unpermitted Work", "31": "After Hours Work",
+    "45": "Façade (Local Law 11/FISP)", "49": "Retaining Wall/Parapet/Guard Rail",
+    "50": "Excavation/Foundation", "53": "Suspended/Hanging Scaffold",
+    "55": "Sidewalk/Public Right of Way Obstruction", "56": "Compactor/Standpipe/Sprinkler",
+    "58": "Sign/Billboard/Antenna — Unsafe", "59": "Building Condition — General",
+    "63": "Gas Piping/Gas Work", "71": "SRO — Illegal Work/Conversion",
+    "73": "Elevator — Defective/Dangerous", "74": "Illegal Short-Term Rental",
+    "75": "Adult Use Establishment", "76": "Amusement Ride/Device",
+    "78": "Failure to Certify Correction", "80": "Asbestos",
+    "81": "Sustainability/Green Building", "82": "Structural Stability",
+    "83": "Gas Leak/Gas Related", "91": "Site Safety — General",
+  };
+
+  return records.map((c: any) => {
+    const code = (c.complaint_category || '').trim();
+    const decoded = COMPLAINT_CATEGORIES[code] || `Category ${code}`;
+    return {
+      complaint_number: c.complaint_number || '',
+      date_entered: c.date_entered || '',
+      status: c.status || '',
+      complaint_category: c.complaint_category || '',
+      category_description: decoded,
+      unit: c.unit || '',
+      disposition_date: c.disposition_date || '',
+      disposition_code: c.disposition_code || '',
+      inspection_date: c.inspection_date || '',
+      description: decoded,
+    };
+  });
 }
 
 // Deduplicate records by key, keeping the one with more non-null fields
