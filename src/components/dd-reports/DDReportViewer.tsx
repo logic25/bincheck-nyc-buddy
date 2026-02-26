@@ -359,7 +359,7 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
           <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4 flex items-center gap-2">
             <FileStack className="w-3.5 h-3.5" /> Compliance Summary
           </h3>
-          <div className="grid grid-cols-2 gap-3">
+          <div className={`grid ${complaints.length > 0 ? 'grid-cols-3' : 'grid-cols-2'} gap-3`}>
             <div className="p-3 rounded-lg bg-muted/40 border border-border">
               <p className="text-2xl font-bold tracking-tight">{violations.length}</p>
               <p className="text-xs text-muted-foreground font-medium">Open Violations</p>
@@ -379,6 +379,20 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
                 <Badge variant="outline" className="text-[10px] px-1.5 py-0">Build {dobNowApplications.length}</Badge>
               </div>
             </div>
+            {complaints.length > 0 && (
+              <div className="p-3 rounded-lg bg-muted/40 border border-border">
+                <p className="text-2xl font-bold tracking-tight">{complaints.length}</p>
+                <p className="text-xs text-muted-foreground font-medium">DOB Complaints</p>
+                <div className="flex gap-1.5 mt-2">
+                  <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                    Open {complaints.filter((c: any) => (c.status || '').toLowerCase() !== 'closed').length}
+                  </Badge>
+                  <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                    Closed {complaints.filter((c: any) => (c.status || '').toLowerCase() === 'closed').length}
+                  </Badge>
+                </div>
+              </div>
+            )}
             {hasCriticalOrders && (
               <div className="col-span-2 p-3 rounded-lg bg-destructive/10 border border-destructive/30">
                 <div className="flex items-center gap-2 mb-1">
