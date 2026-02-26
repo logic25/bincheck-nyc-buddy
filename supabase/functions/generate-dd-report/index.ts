@@ -363,10 +363,10 @@ async function fetchBISJobsFromWebsite(bin: string): Promise<any[]> {
       if (!existing) {
         jobMap.set(jobNum, job);
       } else {
-        // Prefer doc_type "01" (the actual filing) over PAA or other types
-        const existingDoc = (existing.doc_type || '').toUpperCase();
-        const newDoc = (job.doc_type || '').toUpperCase();
-        if (newDoc === '01' && existingDoc !== '01') {
+        // Prefer doc_number "01" (initial filing) over amendments (PA, etc.)
+        const existingDocNum = (existing.doc_number || '').trim();
+        const newDocNum = (job.doc_number || '').trim();
+        if (newDocNum === '01' && existingDocNum !== '01') {
           jobMap.set(jobNum, job);
         }
       }
