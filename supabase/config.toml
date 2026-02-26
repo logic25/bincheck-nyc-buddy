@@ -8,3 +8,15 @@ verify_jwt = false
 
 [functions.analyze-telemetry]
 verify_jwt = false
+
+[functions.get-learning-examples]
+verify_jwt = false
+
+[functions.detect-knowledge-gaps]
+verify_jwt = false
+
+[functions.generate-knowledge-entry]
+verify_jwt = false
+
+[functions.refresh-accuracy-stats]
+verify_jwt = false

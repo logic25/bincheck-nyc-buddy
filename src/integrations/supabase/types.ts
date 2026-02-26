@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_accuracy_stats: {
+        Row: {
+          agency: string
+          edit_rate: number
+          id: string
+          item_type: string
+          last_updated: string
+          top_error_category: string | null
+          total_edits: number
+          total_notes_generated: number
+          violation_type: string | null
+        }
+        Insert: {
+          agency: string
+          edit_rate?: number
+          id?: string
+          item_type: string
+          last_updated?: string
+          top_error_category?: string | null
+          total_edits?: number
+          total_notes_generated?: number
+          violation_type?: string | null
+        }
+        Update: {
+          agency?: string
+          edit_rate?: number
+          id?: string
+          item_type?: string
+          last_updated?: string
+          top_error_category?: string | null
+          total_edits?: number
+          total_notes_generated?: number
+          violation_type?: string | null
+        }
+        Relationships: []
+      }
       ai_usage_logs: {
         Row: {
           completion_tokens: number | null
@@ -155,6 +191,104 @@ export type Database = {
         }
         Relationships: []
       }
+      knowledge_candidates: {
+        Row: {
+          agency: string
+          created_at: string
+          demand_score: number
+          id: string
+          knowledge_type: Database["public"]["Enums"]["knowledge_type"]
+          priority: string
+          source_edit_ids: Json | null
+          status: string
+          title: string
+          trigger_reason: string | null
+          updated_at: string
+          violation_types: Json | null
+        }
+        Insert: {
+          agency: string
+          created_at?: string
+          demand_score?: number
+          id?: string
+          knowledge_type: Database["public"]["Enums"]["knowledge_type"]
+          priority?: string
+          source_edit_ids?: Json | null
+          status?: string
+          title: string
+          trigger_reason?: string | null
+          updated_at?: string
+          violation_types?: Json | null
+        }
+        Update: {
+          agency?: string
+          created_at?: string
+          demand_score?: number
+          id?: string
+          knowledge_type?: Database["public"]["Enums"]["knowledge_type"]
+          priority?: string
+          source_edit_ids?: Json | null
+          status?: string
+          title?: string
+          trigger_reason?: string | null
+          updated_at?: string
+          violation_types?: Json | null
+        }
+        Relationships: []
+      }
+      knowledge_entries: {
+        Row: {
+          agency: string
+          approved_at: string | null
+          approved_by: string | null
+          candidate_id: string | null
+          content: string
+          generated_at: string
+          id: string
+          status: string
+          title: string
+          usage_count: number
+          violation_types: Json | null
+          word_count: number
+        }
+        Insert: {
+          agency: string
+          approved_at?: string | null
+          approved_by?: string | null
+          candidate_id?: string | null
+          content: string
+          generated_at?: string
+          id?: string
+          status?: string
+          title: string
+          usage_count?: number
+          violation_types?: Json | null
+          word_count?: number
+        }
+        Update: {
+          agency?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          candidate_id?: string | null
+          content?: string
+          generated_at?: string
+          id?: string
+          status?: string
+          title?: string
+          usage_count?: number
+          violation_types?: Json | null
+          word_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "knowledge_entries_candidate_id_fkey"
+            columns: ["candidate_id"]
+            isOneToOne: false
+            referencedRelation: "knowledge_candidates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_leads: {
         Row: {
           address: string | null
@@ -238,6 +372,65 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      report_edits: {
+        Row: {
+          agency: string
+          batch_id: string | null
+          created_at: string
+          edited_note: string
+          editor_id: string
+          error_category: Database["public"]["Enums"]["edit_error_category"]
+          id: string
+          item_identifier: string
+          item_type: string
+          original_note: string | null
+          report_id: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+        }
+        Insert: {
+          agency: string
+          batch_id?: string | null
+          created_at?: string
+          edited_note: string
+          editor_id: string
+          error_category: Database["public"]["Enums"]["edit_error_category"]
+          id?: string
+          item_identifier: string
+          item_type: string
+          original_note?: string | null
+          report_id: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+        }
+        Update: {
+          agency?: string
+          batch_id?: string | null
+          created_at?: string
+          edited_note?: string
+          editor_id?: string
+          error_category?: Database["public"]["Enums"]["edit_error_category"]
+          id?: string
+          item_identifier?: string
+          item_type?: string
+          original_note?: string | null
+          report_id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "report_edits_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "dd_reports"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       roadmap_items: {
         Row: {
@@ -358,6 +551,22 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "user"
+      edit_error_category:
+        | "too_vague"
+        | "wrong_severity"
+        | "missing_context"
+        | "stale_treated_as_active"
+        | "wrong_agency_explanation"
+        | "missing_note"
+        | "factual_error"
+        | "tone_style"
+        | "knowledge_gap"
+        | "other"
+      knowledge_type:
+        | "violation_guide"
+        | "agency_explainer"
+        | "regulation_reference"
+        | "penalty_context"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -486,6 +695,24 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "user"],
+      edit_error_category: [
+        "too_vague",
+        "wrong_severity",
+        "missing_context",
+        "stale_treated_as_active",
+        "wrong_agency_explanation",
+        "missing_note",
+        "factual_error",
+        "tone_style",
+        "knowledge_gap",
+        "other",
+      ],
+      knowledge_type: [
+        "violation_guide",
+        "agency_explainer",
+        "regulation_reference",
+        "penalty_context",
+      ],
     },
   },
 } as const

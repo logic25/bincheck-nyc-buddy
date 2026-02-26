@@ -844,12 +844,37 @@ function classifyApplication(app: any): { tag: string; reason: string } {
   return { tag: '[MONITOR]', reason: 'unclassified' };
 }
 
+interface LearningContext {
+  few_shot_examples: string[];
+  knowledge_context: string[];
+  confidence_flags: Array<{ agency: string; violation_type: string; edit_rate: number; top_error: string; needs_review: boolean }>;
+}
+
+async function fetchLearningExamples(supabaseUrl: string, supabaseServiceKey: string, agencies: string[]): Promise<LearningContext> {
+  try {
+    const resp = await fetch(`${supabaseUrl}/functions/v1/get-learning-examples`, {
+      method: "POST",
+      headers: { "Authorization": `Bearer ${supabaseServiceKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ agencies }),
+    });
+    if (!resp.ok) {
+      console.warn("Failed to fetch learning examples:", resp.status);
+      return { few_shot_examples: [], knowledge_context: [], confidence_flags: [] };
+    }
+    return await resp.json();
+  } catch (e) {
+    console.warn("Learning examples fetch error:", e);
+    return { few_shot_examples: [], knowledge_context: [], confidence_flags: [] };
+  }
+}
+
 async function generateLineItemNotes(
   violations: any[],
   applications: any[],
   address: string,
   customerConcern: string | null,
-  LOVABLE_API_KEY: string
+  LOVABLE_API_KEY: string,
+  learningContext?: LearningContext
 ): Promise<any[]> {
   // Parse the customer concern ONCE — used as AI context, NOT for tag elevation
   const concern = parseConcern(customerConcern);
@@ -934,11 +959,42 @@ If the item clearly cannot affect the client's concern (e.g., it is on a differe
 If it IS relevant or potentially relevant, explain the specific risk or implication in plain professional language.`
     : `No specific concern was provided. Write a general professional impact note for each item, focusing on open issues, outstanding balances, and unresolved compliance status.`;
 
+  // Build learning context sections
+  let knowledgeSection = '';
+  let fewShotSection = '';
+  let confidenceSection = '';
+
+  if (learningContext) {
+    if (learningContext.knowledge_context.length > 0) {
+      knowledgeSection = `\n━━━ KNOWLEDGE CONTEXT ━━━
+Use the following reference material when writing notes for the relevant agencies and violation types:
+
+${learningContext.knowledge_context.join('\n\n')}
+`;
+    }
+
+    if (learningContext.few_shot_examples.length > 0) {
+      fewShotSection = `\n━━━ COMMON MISTAKES TO AVOID ━━━
+Here are common mistakes to AVOID, with examples of how an expert analyst corrected them:
+
+${learningContext.few_shot_examples.join('\n')}
+`;
+    }
+
+    if (learningContext.confidence_flags.length > 0) {
+      confidenceSection = `\n━━━ ACCURACY ALERTS ━━━
+${learningContext.confidence_flags.map(f =>
+  `CAUTION: Notes for ${f.agency} ${f.violation_type} items have a ${f.edit_rate}% correction rate. Most common issue: ${f.top_error.replace(/_/g, ' ')}. Be extra careful with these items.`
+).join('\n')}
+`;
+    }
+  }
+
   const prompt = `PROPERTY: ${address}
 BIN: ${allItems[0]?.bin || 'see data'} | Reviewing ${allItems.length} items
 
 ${concernInstruction}
-
+${knowledgeSection}${fewShotSection}${confidenceSection}
 ━━━ CLASSIFICATION ━━━
 Each item has a "pre_assigned_tag" field that has ALREADY been classified by our rules engine.
 You MUST use this exact tag as the prefix of your note. Do NOT override or change it.
@@ -1286,6 +1342,11 @@ serve(async (req) => {
       vacate: violations.filter(v => v.is_vacate_order),
     };
 
+    // Fetch learning context (few-shot examples + knowledge entries) before generating notes
+    const agencies = [...new Set(violations.map((v: any) => v.agency))];
+    const learningContext = await fetchLearningExamples(supabaseUrl, supabaseServiceKey, agencies);
+    console.log(`Learning context: ${learningContext.few_shot_examples.length} few-shot categories, ${learningContext.knowledge_context.length} knowledge entries, ${learningContext.confidence_flags.length} flags`);
+
     // Generate AI analysis, line-item notes, and property status summary in parallel
     const [aiAnalysis, lineItemNotes, propertyStatusSummary] = await Promise.all([
       generateAIAnalysis(
@@ -1293,7 +1354,7 @@ serve(async (req) => {
         customerConcern || null,
         LOVABLE_API_KEY
       ),
-      generateLineItemNotes(violations, applications, resolvedAddress, customerConcern || null, LOVABLE_API_KEY),
+      generateLineItemNotes(violations, applications, resolvedAddress, customerConcern || null, LOVABLE_API_KEY, learningContext),
       generatePropertyStatusSummary(
         building || { address: resolvedAddress, bin, bbl },
         violations, applications, complaints, orders,
