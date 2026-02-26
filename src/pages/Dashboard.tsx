@@ -164,9 +164,19 @@ const Dashboard = () => {
   };
 
   const { data: ddReports, isLoading: loadingDD, refetch: refetchDD } = useQuery({
-    queryKey: ['dashboard-dd-reports', userId, userEmail],
+    queryKey: ['dashboard-dd-reports', userId, userEmail, isAdmin],
     queryFn: async () => {
-      // Query reports owned by user OR where client_email matches (admin-created reports for this client)
+      if (isAdmin) {
+        // Admins see ALL reports
+        const { data, error } = await supabase
+          .from('dd_reports')
+          .select('id, address, status, customer_concern, created_at, report_date, prepared_for')
+          .order('created_at', { ascending: false });
+        if (error) throw error;
+        return (data || []) as DDReportRow[];
+      }
+
+      // Clients see only their own reports (by user_id via RLS) + reports where client_email matches
       const { data: ownedReports, error: e1 } = await supabase
         .from('dd_reports')
         .select('id, address, status, customer_concern, created_at, report_date, prepared_for')
@@ -181,7 +191,6 @@ const Dashboard = () => {
           .eq('client_email', userEmail)
           .order('created_at', { ascending: false });
         if (!e2 && emailReports) {
-          // Deduplicate — only add reports not already in owned set
           const ownedIds = new Set((ownedReports || []).map(r => r.id));
           clientReports = (emailReports as DDReportRow[]).filter(r => !ownedIds.has(r.id));
         }
@@ -189,7 +198,7 @@ const Dashboard = () => {
 
       return [...(ownedReports || []), ...clientReports] as DDReportRow[];
     },
-    enabled: !!userId,
+    enabled: !!userId && !roleLoading,
   });
 
   const { data: selectedReport, isLoading: loadingSelectedReport } = useQuery({
@@ -245,8 +254,15 @@ const Dashboard = () => {
 
   // Summary stats
   const totalDD = ddReports?.length ?? 0;
-  const pendingDD = ddReports?.filter(r => r.status === 'generating' || r.status === 'pending_review').length ?? 0;
+  const generatingDD = ddReports?.filter(r => r.status === 'generating').length ?? 0;
+  const pendingReviewDD = ddReports?.filter(r => r.status === 'pending_review').length ?? 0;
+  const pendingDD = generatingDD + pendingReviewDD;
   const approvedDD = ddReports?.filter(r => r.status === 'approved').length ?? 0;
+
+  // For clients: reports relevant to them
+  const clientReports = isAdmin ? [] : (ddReports || []);
+  // For admins: reports needing action
+  const adminActionItems = isAdmin ? (ddReports || []).filter(r => r.status === 'pending_review' || r.status === 'generating') : [];
 
   const statusInfo = (status: string) => CLIENT_STATUS_LABELS[status] ?? { label: status, variant: 'outline' as const };
 
@@ -336,12 +352,16 @@ const Dashboard = () => {
       <main className="container py-8 max-w-5xl space-y-8">
         {/* Page title */}
         <div>
-          <h1 className="font-display text-3xl font-bold">My Portal</h1>
-          <p className="text-muted-foreground mt-1">Your due diligence reports and property searches, all in one place.</p>
+          <h1 className="font-display text-3xl font-bold">{isAdmin ? 'Admin Dashboard' : 'My Portal'}</h1>
+          <p className="text-muted-foreground mt-1">
+            {isAdmin
+              ? 'Manage reports, review orders, and run property searches.'
+              : 'Your due diligence reports and property searches, all in one place.'}
+          </p>
         </div>
 
-        {/* Stat Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {/* Stat Cards — role-aware */}
+        <div className={`grid grid-cols-1 gap-4 ${isAdmin ? 'sm:grid-cols-4' : 'sm:grid-cols-3'}`}>
           <Card>
             <CardContent className="pt-6 pb-5 flex items-center gap-4">
               <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -353,14 +373,27 @@ const Dashboard = () => {
               </div>
             </CardContent>
           </Card>
+          {isAdmin && (
+            <Card className="border-amber-500/30">
+              <CardContent className="pt-6 pb-5 flex items-center gap-4">
+                <div className="w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center">
+                  <FileText className="h-5 w-5 text-amber-500" />
+                </div>
+                <div>
+                  <p className="text-2xl font-display font-bold">{loadingDD ? '—' : pendingReviewDD}</p>
+                  <p className="text-xs text-muted-foreground font-medium">Needs Review</p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
           <Card>
             <CardContent className="pt-6 pb-5 flex items-center gap-4">
               <div className="w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center">
                 <Clock className="h-5 w-5 text-amber-500" />
               </div>
               <div>
-                <p className="text-2xl font-display font-bold">{loadingDD ? '—' : pendingDD}</p>
-                <p className="text-xs text-muted-foreground font-medium">In Progress</p>
+                <p className="text-2xl font-display font-bold">{loadingDD ? '—' : isAdmin ? generatingDD : pendingDD}</p>
+                <p className="text-xs text-muted-foreground font-medium">{isAdmin ? 'Generating' : 'In Progress'}</p>
               </div>
             </CardContent>
           </Card>
@@ -371,11 +404,53 @@ const Dashboard = () => {
               </div>
               <div>
                 <p className="text-2xl font-display font-bold">{loadingDD ? '—' : approvedDD}</p>
-                <p className="text-xs text-muted-foreground font-medium">Ready to Download</p>
+                <p className="text-xs text-muted-foreground font-medium">{isAdmin ? 'Approved' : 'Ready to Download'}</p>
               </div>
             </CardContent>
           </Card>
         </div>
+
+        {/* Admin: Work Queue — reports needing action */}
+        {isAdmin && adminActionItems.length > 0 && (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <FileText className="h-4 w-4 text-primary" />
+                <h2 className="font-semibold text-sm">Needs Attention</h2>
+                <Badge variant="destructive" className="text-xs">{adminActionItems.length}</Badge>
+              </div>
+              <Button variant="ghost" size="sm" onClick={() => navigate("/dd-reports")}>
+                View All <ArrowRight className="h-3.5 w-3.5 ml-1" />
+              </Button>
+            </div>
+            {adminActionItems.slice(0, 5).map((r) => {
+              const si = statusInfo(r.status);
+              return (
+                <Card key={r.id} className="border-primary/20 hover:border-primary/40 transition-colors cursor-pointer" onClick={() => setSelectedReportId(r.id)}>
+                  <CardContent className="p-4 flex items-center justify-between">
+                    <div className="space-y-1 min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="font-semibold text-sm">{r.address || 'Unknown Address'}</p>
+                        <Badge variant={si.variant} className={si.className}>{si.label}</Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {r.prepared_for} · {format(new Date(r.created_at), 'MMM d, yyyy')}
+                      </p>
+                    </div>
+                    <Button variant="outline" size="sm">
+                      <ArrowRight className="h-3.5 w-3.5 mr-1" /> Review
+                    </Button>
+                  </CardContent>
+                </Card>
+              );
+            })}
+            {adminActionItems.length > 5 && (
+              <p className="text-xs text-muted-foreground text-center">
+                + {adminActionItems.length - 5} more — <button className="underline" onClick={() => navigate("/dd-reports")}>view all</button>
+              </p>
+            )}
+          </div>
+        )}
 
         {/* Pending Orders — with 4-stage progress bar */}
         {pendingOrders && pendingOrders.length > 0 && (
