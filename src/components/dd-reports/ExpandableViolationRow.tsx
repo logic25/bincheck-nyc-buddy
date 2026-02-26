@@ -2,9 +2,14 @@ import { useState, Fragment } from 'react';
 import { TableRow, TableCell } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
 import { ChevronDown, ChevronRight, ExternalLink } from 'lucide-react';
 import { getAgencyLookupUrl, getAgencyColor } from '@/lib/violation-utils';
+import InlineNoteEditor from './InlineNoteEditor';
+
+interface EditStatus {
+  status: 'pending' | 'approved' | 'rejected';
+  id: string;
+}
 
 interface ExpandableViolationRowProps {
   violation: any;
@@ -13,6 +18,9 @@ interface ExpandableViolationRowProps {
   onNoteChange: (note: string) => void;
   bbl?: string | null;
   readOnly?: boolean;
+  reportId: string;
+  editStatus?: EditStatus | null;
+  onEditSaved?: (editId: string) => void;
 }
 
 const formatDate = (dateStr: string | null | undefined): string => {
@@ -32,7 +40,7 @@ const formatDate = (dateStr: string | null | undefined): string => {
   }
 };
 
-const ExpandableViolationRow = ({ violation, index, note, onNoteChange, bbl, readOnly = false }: ExpandableViolationRowProps) => {
+const ExpandableViolationRow = ({ violation, index, note, onNoteChange, bbl, readOnly = false, reportId, editStatus, onEditSaved }: ExpandableViolationRowProps) => {
   const [isOpen, setIsOpen] = useState(false);
 
   const getSeverityVariant = (severity: string) => {
@@ -50,6 +58,10 @@ const ExpandableViolationRow = ({ violation, index, note, onNoteChange, bbl, rea
         return 'outline';
     }
   };
+
+  // Determine the note column badge for the collapsed row
+  const hasNote = !!note;
+  const hasEdit = !!editStatus;
 
   return (
     <Fragment>
@@ -82,8 +94,19 @@ const ExpandableViolationRow = ({ violation, index, note, onNoteChange, bbl, rea
             {violation.status}
           </Badge>
         </TableCell>
-        <TableCell className="max-w-[200px] text-xs text-muted-foreground truncate" title={note || ''}>
-          {note || <span className="italic opacity-50">—</span>}
+        <TableCell className="max-w-[200px] text-xs text-muted-foreground">
+          <div className="flex items-center gap-1.5">
+            <span className="truncate" title={note || ''}>{note || <span className="italic opacity-50">—</span>}</span>
+            {hasEdit && (
+              <Badge variant="outline" className={
+                editStatus!.status === 'approved' ? 'text-[9px] px-1 py-0 bg-emerald-500/10 text-emerald-600 border-emerald-500/30 shrink-0' :
+                editStatus!.status === 'pending' ? 'text-[9px] px-1 py-0 bg-amber-500/10 text-amber-600 border-amber-500/30 shrink-0' :
+                'text-[9px] px-1 py-0 shrink-0'
+              }>
+                {editStatus!.status === 'approved' ? '✓' : editStatus!.status === 'pending' ? '⏳' : '✗'}
+              </Badge>
+            )}
+          </div>
         </TableCell>
       </TableRow>
       {isOpen && (
@@ -128,20 +151,17 @@ const ExpandableViolationRow = ({ violation, index, note, onNoteChange, bbl, rea
                   </div>
                 )}
               </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground mb-2">Notes</p>
-                <Textarea
-                  placeholder="Add notes about this violation..."
-                  value={note}
-                  onChange={(e) => onNoteChange(e.target.value)}
-                  onClick={(e) => e.stopPropagation()}
-                  onMouseDown={(e) => e.stopPropagation()}
-                  onFocus={(e) => e.stopPropagation()}
-                  rows={2}
-                  className="resize-none"
-                  disabled={readOnly}
-                />
-              </div>
+              <InlineNoteEditor
+                note={note}
+                onNoteChange={onNoteChange}
+                reportId={reportId}
+                itemType="violation"
+                itemIdentifier={violation.violation_number || violation.id || String(index)}
+                agency={violation.agency || 'DOB'}
+                readOnly={readOnly}
+                editStatus={editStatus}
+                onEditSaved={onEditSaved}
+              />
               <div>
                 <Button
                   variant="outline"
