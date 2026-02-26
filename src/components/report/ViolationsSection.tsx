@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
 import { AlertTriangle, Building2, Home, Flame } from "lucide-react";
+import { decodeComplaintCategory } from "@/lib/complaint-category-decoder";
 
 interface ViolationsSectionProps {
   data: PropertyData;
@@ -209,7 +210,7 @@ export function ViolationsSection({ data }: ViolationsSectionProps) {
                     <AccordionTrigger className="text-sm hover:no-underline py-3">
                       <div className="flex items-center gap-3 text-left w-full mr-4">
                         <Building2 className="h-4 w-4 shrink-0 text-muted-foreground" />
-                        <span className="flex-1 truncate">{c.complaint_category || c.description || "Complaint"}</span>
+                        <span className="flex-1 truncate">{decodeComplaintCategory(c.complaint_category) !== `Category ${c.complaint_category}` ? decodeComplaintCategory(c.complaint_category) : (c.description || "Complaint")}</span>
                         <span className="text-xs text-muted-foreground shrink-0">{formatDate(c.date_entered)}</span>
                         {statusBadge(c.status)}
                       </div>

@@ -1,5 +1,6 @@
 import { format } from 'date-fns';
 import { getAgencyDisplayName } from '@/lib/violation-utils';
+import { decodeComplaintCategory } from '@/lib/complaint-category-decoder';
 import ReactMarkdown from 'react-markdown';
 
 interface UserProfile {
@@ -214,8 +215,8 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
                 <td className={`${tableCellStyle} font-mono text-[10px]`}>{c.complaint_number || '—'}</td>
                 <td className={`${tableCellStyle} whitespace-nowrap`}>{formatShortDate(c.date_entered)}</td>
                 <td className={tableCellStyle}>{c.status || '—'}</td>
-                <td className={tableCellStyle}>{c.complaint_category || '—'}</td>
-                <td className={`${tableCellStyle} max-w-[200px]`}>{(c.description || c.complaint_category || '—').slice(0, 70)}</td>
+                <td className={tableCellStyle}>{decodeComplaintCategory(c.complaint_category)}</td>
+                <td className={`${tableCellStyle} max-w-[200px]`}>{(c.category_description || decodeComplaintCategory(c.complaint_category)).slice(0, 70)}</td>
               </tr>
             ))}
           </tbody>
