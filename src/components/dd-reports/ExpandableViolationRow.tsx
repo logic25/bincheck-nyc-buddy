@@ -2,6 +2,7 @@ import { useState, Fragment } from 'react';
 import { TableRow, TableCell } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { ChevronDown, ChevronRight, ExternalLink } from 'lucide-react';
 import { getAgencyLookupUrl, getAgencyColor } from '@/lib/violation-utils';
 import InlineNoteEditor from './InlineNoteEditor';
@@ -21,6 +22,9 @@ interface ExpandableViolationRowProps {
   reportId: string;
   editStatus?: EditStatus | null;
   onEditSaved?: (editId: string) => void;
+  bulkMode?: boolean;
+  isSelected?: boolean;
+  onToggleSelect?: () => void;
 }
 
 const formatDate = (dateStr: string | null | undefined): string => {
@@ -40,7 +44,7 @@ const formatDate = (dateStr: string | null | undefined): string => {
   }
 };
 
-const ExpandableViolationRow = ({ violation, index, note, onNoteChange, bbl, readOnly = false, reportId, editStatus, onEditSaved }: ExpandableViolationRowProps) => {
+const ExpandableViolationRow = ({ violation, index, note, onNoteChange, bbl, readOnly = false, reportId, editStatus, onEditSaved, bulkMode = false, isSelected = false, onToggleSelect }: ExpandableViolationRowProps) => {
   const [isOpen, setIsOpen] = useState(false);
 
   const getSeverityVariant = (severity: string) => {
@@ -70,9 +74,18 @@ const ExpandableViolationRow = ({ violation, index, note, onNoteChange, bbl, rea
         onClick={() => setIsOpen(!isOpen)}
       >
         <TableCell className="w-8">
-          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); setIsOpen(!isOpen); }}>
-            {isOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-          </Button>
+          {bulkMode ? (
+            <Checkbox
+              checked={isSelected}
+              onCheckedChange={() => onToggleSelect?.()}
+              onClick={(e) => e.stopPropagation()}
+              className="ml-1"
+            />
+          ) : (
+            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); setIsOpen(!isOpen); }}>
+              {isOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+            </Button>
+          )}
         </TableCell>
         <TableCell className="font-mono text-sm">{violation.violation_number}</TableCell>
         <TableCell>
