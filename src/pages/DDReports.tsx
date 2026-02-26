@@ -14,7 +14,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import {
-  FileText, Plus, Search, AlertTriangle, Loader2, Eye, Trash2, Clock,
+  FileText, Plus, Search, AlertTriangle, Loader2, Eye, Trash2, Clock, RefreshCw,
   Shield, ArrowLeft, LogOut, Settings, Zap, Inbox, Phone, Mail, Building2, BookOpen,
 } from 'lucide-react';
 import { useUserRole } from '@/hooks/useUserRole';
@@ -531,6 +531,7 @@ const DDReports = () => {
                           const sc = getStatusConfig(report.status);
                           const isRush = report.rush_requested;
                           const isPaid = report.payment_status === 'paid';
+                          const isStale = report.status === 'generating' && (Date.now() - new Date(report.created_at).getTime() > 5 * 60 * 1000);
                           return (
                             <div
                               key={report.id}
@@ -567,6 +568,20 @@ const DDReports = () => {
                                 </div>
                               </div>
                               <div className="flex items-center gap-2 shrink-0">
+                                {isStale && (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="text-xs"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      regenerateReport.mutate({ reportId: report.id, address: report.address });
+                                    }}
+                                    disabled={regenerateReport.isPending}
+                                  >
+                                    <RefreshCw className="w-3 h-3 mr-1" /> Retry
+                                  </Button>
+                                )}
                                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); setSelectedReportId(report.id); }}>
                                   <Eye className="w-4 h-4" />
                                 </Button>

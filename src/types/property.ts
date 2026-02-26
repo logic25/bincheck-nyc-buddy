@@ -40,7 +40,7 @@ export interface HPDViolation {
   boroid: string;
   block: string;
   lot: string;
-  class: string; // A, B, or C
+  class: string;
   inspectiondate: string;
   approveddate?: string;
   originalcertifybydate?: string;
@@ -56,6 +56,26 @@ export interface HPDViolation {
   currentstatus: string;
   currentstatusdate: string;
   violationstatus: string;
+}
+
+export interface OATHViolation {
+  ticket_number: string;
+  issuing_agency: string;
+  violation_date: string;
+  charge_1_code_description: string;
+  penalty_imposed: string;
+  hearing_status: string;
+  hearing_result: string;
+  status: string;
+}
+
+export interface DOBComplaint {
+  complaint_number: string;
+  date_entered: string;
+  status: string;
+  complaint_category: string;
+  unit: string;
+  description: string;
 }
 
 export interface DOBPermit {
@@ -91,6 +111,8 @@ export interface PropertyData {
   dobViolations: DOBViolation[];
   ecbViolations: ECBViolation[];
   hpdViolations: HPDViolation[];
+  oathViolations: OATHViolation[];
+  dobComplaints: DOBComplaint[];
   permits: DOBPermit[];
 }
 

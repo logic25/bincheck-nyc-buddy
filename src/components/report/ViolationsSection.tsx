@@ -3,7 +3,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
-import { AlertTriangle, Building2, Home } from "lucide-react";
+import { AlertTriangle, Building2, Home, Flame } from "lucide-react";
 
 interface ViolationsSectionProps {
   data: PropertyData;
@@ -27,8 +27,13 @@ function statusBadge(status: string) {
 
 export function ViolationsSection({ data }: ViolationsSectionProps) {
   const activeDOB = data.dobViolations.filter(v => v.status?.toLowerCase() !== 'closed');
-  const activeECB = data.ecbViolations.filter(v => v.status?.toLowerCase() !== 'resolve' && v.status?.toLowerCase() !== 'closed');
+  const activeECB = data.ecbViolations.filter(v => v.status?.toLowerCase() !== 'resolved' && v.status?.toLowerCase() !== 'closed');
   const activeHPD = data.hpdViolations.filter(v => v.violationstatus?.toLowerCase() !== 'close');
+  const activeOATH = (data.oathViolations || []).filter(v => v.status?.toLowerCase() !== 'closed');
+  const complaints = data.dobComplaints || [];
+
+  const tabCount = 3 + (data.oathViolations?.length ? 1 : 0) + (complaints.length ? 1 : 0);
+  const gridCols = tabCount <= 3 ? 'grid-cols-3' : tabCount === 4 ? 'grid-cols-4' : 'grid-cols-5';
 
   return (
     <Card className="border-border bg-card">
@@ -40,7 +45,7 @@ export function ViolationsSection({ data }: ViolationsSectionProps) {
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="dob" className="w-full">
-          <TabsList className="w-full grid grid-cols-3">
+          <TabsList className={`w-full grid ${gridCols}`}>
             <TabsTrigger value="dob" className="text-xs sm:text-sm">
               DOB <span className="ml-1 text-xs opacity-70">({activeDOB.length})</span>
             </TabsTrigger>
@@ -50,6 +55,16 @@ export function ViolationsSection({ data }: ViolationsSectionProps) {
             <TabsTrigger value="hpd" className="text-xs sm:text-sm">
               HPD <span className="ml-1 text-xs opacity-70">({activeHPD.length})</span>
             </TabsTrigger>
+            {(data.oathViolations?.length ?? 0) > 0 && (
+              <TabsTrigger value="oath" className="text-xs sm:text-sm">
+                OATH <span className="ml-1 text-xs opacity-70">({activeOATH.length})</span>
+              </TabsTrigger>
+            )}
+            {complaints.length > 0 && (
+              <TabsTrigger value="complaints" className="text-xs sm:text-sm">
+                Complaints <span className="ml-1 text-xs opacity-70">({complaints.length})</span>
+              </TabsTrigger>
+            )}
           </TabsList>
 
           {/* DOB */}
@@ -143,6 +158,67 @@ export function ViolationsSection({ data }: ViolationsSectionProps) {
                         {v.inspectiondate && <div><span className="text-muted-foreground">Inspection:</span> {formatDate(v.inspectiondate)}</div>}
                         {v.certifieddate && <div><span className="text-muted-foreground">Certified:</span> {formatDate(v.certifieddate)}</div>}
                         {v.novdescription && <div className="col-span-2"><span className="text-muted-foreground">Description:</span> {v.novdescription}</div>}
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                ))}
+              </Accordion>
+            )}
+          </TabsContent>
+
+          {/* OATH */}
+          <TabsContent value="oath">
+            {(data.oathViolations || []).length === 0 ? (
+              <p className="text-sm text-muted-foreground py-8 text-center">No OATH agency violations found</p>
+            ) : (
+              <Accordion type="multiple" className="w-full">
+                {(data.oathViolations || []).slice(0, 50).map((v, i) => (
+                  <AccordionItem key={v.ticket_number || i} value={`oath-${i}`}>
+                    <AccordionTrigger className="text-sm hover:no-underline py-3">
+                      <div className="flex items-center gap-3 text-left w-full mr-4">
+                        <Flame className="h-4 w-4 shrink-0 text-muted-foreground" />
+                        <Badge variant="outline" className="text-[10px] shrink-0">{v.issuing_agency}</Badge>
+                        <span className="flex-1 truncate">{v.charge_1_code_description || "Violation"}</span>
+                        <span className="text-xs font-mono text-muted-foreground shrink-0">${parseFloat(v.penalty_imposed || '0').toLocaleString()}</span>
+                        {statusBadge(v.status)}
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent>
+                      <div className="grid grid-cols-2 gap-2 text-sm pl-7">
+                        {v.ticket_number && <div><span className="text-muted-foreground">Ticket #:</span> <span className="font-mono">{v.ticket_number}</span></div>}
+                        {v.violation_date && <div><span className="text-muted-foreground">Date:</span> {formatDate(v.violation_date)}</div>}
+                        {v.hearing_status && <div><span className="text-muted-foreground">Hearing:</span> {v.hearing_status}</div>}
+                        {v.hearing_result && <div><span className="text-muted-foreground">Result:</span> {v.hearing_result}</div>}
+                        {v.charge_1_code_description && <div className="col-span-2"><span className="text-muted-foreground">Description:</span> {v.charge_1_code_description}</div>}
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                ))}
+              </Accordion>
+            )}
+          </TabsContent>
+
+          {/* DOB Complaints */}
+          <TabsContent value="complaints">
+            {complaints.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-8 text-center">No DOB complaints found</p>
+            ) : (
+              <Accordion type="multiple" className="w-full">
+                {complaints.slice(0, 50).map((c, i) => (
+                  <AccordionItem key={c.complaint_number || i} value={`complaint-${i}`}>
+                    <AccordionTrigger className="text-sm hover:no-underline py-3">
+                      <div className="flex items-center gap-3 text-left w-full mr-4">
+                        <Building2 className="h-4 w-4 shrink-0 text-muted-foreground" />
+                        <span className="flex-1 truncate">{c.complaint_category || c.description || "Complaint"}</span>
+                        <span className="text-xs text-muted-foreground shrink-0">{formatDate(c.date_entered)}</span>
+                        {statusBadge(c.status)}
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent>
+                      <div className="grid grid-cols-2 gap-2 text-sm pl-7">
+                        {c.complaint_number && <div><span className="text-muted-foreground">Complaint #:</span> <span className="font-mono">{c.complaint_number}</span></div>}
+                        {c.unit && <div><span className="text-muted-foreground">Unit:</span> {c.unit}</div>}
+                        {c.description && <div className="col-span-2"><span className="text-muted-foreground">Description:</span> {c.description}</div>}
                       </div>
                     </AccordionContent>
                   </AccordionItem>

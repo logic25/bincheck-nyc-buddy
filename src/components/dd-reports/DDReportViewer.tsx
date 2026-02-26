@@ -214,7 +214,13 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
     setLineItemNotes(prev => ({ ...prev, [`${itemType}-${itemId}`]: note }));
   };
 
-  const statusLabel = report.status === 'approved' ? 'Approved' : report.status === 'pending_review' ? 'Pending Review' : report.status === 'generating' ? 'Generating' : report.status;
+  // Check if report is stale (generating for >5 minutes)
+  const isStaleGenerating = report.status === 'generating' && (() => {
+    const updatedAt = new Date(report.created_at).getTime();
+    return Date.now() - updatedAt > 5 * 60 * 1000;
+  })();
+
+  const statusLabel = report.status === 'approved' ? 'Approved' : report.status === 'pending_review' ? 'Pending Review' : report.status === 'generating' ? (isStaleGenerating ? 'Stale — Retry' : 'Generating') : report.status;
 
   const sectionNav = [
     { key: 'violations' as const, label: 'Violations', count: violations.length, icon: AlertTriangle },

@@ -333,7 +333,7 @@ const Index = () => {
                         </li>
                       ))}
                     </ul>
-                    <Button variant="outline" className="w-full" onClick={() => window.location.href = "mailto:hello@bincheckyc.com"}>Contact Us</Button>
+                    <Button variant="outline" className="w-full" onClick={() => window.location.href = "mailto:hello@binchecknyc.com"}>Contact Us</Button>
                   </div>
                 </div>
 
@@ -357,7 +357,7 @@ const Index = () => {
           <div className="border-t border-border/30 pt-3 flex items-center justify-center gap-4">
             <p>© {new Date().getFullYear()} BinCheckNYC. All rights reserved.</p>
             <span>·</span>
-            <a href="mailto:hello@bincheckyc.com" className="hover:text-foreground transition-colors">Contact</a>
+            <a href="mailto:hello@binchecknyc.com" className="hover:text-foreground transition-colors">Contact</a>
           </div>
         </div>
       </footer>
