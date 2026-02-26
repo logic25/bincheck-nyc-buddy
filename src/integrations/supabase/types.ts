@@ -78,6 +78,7 @@ export type Database = {
           pdf_url: string | null
           prepared_by: string | null
           prepared_for: string
+          property_status_summary: string | null
           report_date: string
           requested_delivery_date: string | null
           rush_requested: boolean | null
@@ -110,6 +111,7 @@ export type Database = {
           pdf_url?: string | null
           prepared_by?: string | null
           prepared_for?: string
+          property_status_summary?: string | null
           report_date?: string
           requested_delivery_date?: string | null
           rush_requested?: boolean | null
@@ -142,6 +144,7 @@ export type Database = {
           pdf_url?: string | null
           prepared_by?: string | null
           prepared_for?: string
+          property_status_summary?: string | null
           report_date?: string
           requested_delivery_date?: string | null
           rush_requested?: boolean | null

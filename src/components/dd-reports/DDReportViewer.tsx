@@ -85,6 +85,7 @@ interface DDReportViewerProps {
     ai_analysis: string | null;
     created_at: string;
     customer_concern?: string | null;
+    property_status_summary?: string | null;
   };
   onBack: () => void;
   onDelete: () => void;
@@ -318,6 +319,21 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
           </div>
         )}
       </div>
+
+      {/* Property Status Summary */}
+      {(report as any).property_status_summary && (
+        <div className="border border-border rounded-xl p-5 bg-muted/20 mb-6">
+          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Property Status Summary</h3>
+          <div className="flex flex-wrap gap-2 mb-3 pb-3 border-b border-border">
+            <Badge variant="outline" className="text-[10px] px-2 py-0.5">DOB Violations: {dobViolations.length}</Badge>
+            <Badge variant="outline" className="text-[10px] px-2 py-0.5">ECB: {ecbViolations.length}</Badge>
+            <Badge variant="outline" className="text-[10px] px-2 py-0.5">HPD: {hpdViolations.length}</Badge>
+            <Badge variant="outline" className="text-[10px] px-2 py-0.5">Applications: {applications.length}</Badge>
+            {complaints.length > 0 && <Badge variant="outline" className="text-[10px] px-2 py-0.5">Complaints: {complaints.length}</Badge>}
+          </div>
+          <p className="text-sm leading-relaxed text-foreground/85 whitespace-pre-line">{(report as any).property_status_summary}</p>
+        </div>
+      )}
 
       {/* Building + Compliance Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">

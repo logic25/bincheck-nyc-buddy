@@ -1,0 +1,1 @@
+ALTER TABLE public.dd_reports ADD COLUMN property_status_summary text;

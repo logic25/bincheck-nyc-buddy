@@ -1041,6 +1041,114 @@ ${JSON.stringify(allItems, null, 2)}`;
   }
 }
 
+async function generatePropertyStatusSummary(
+  building: any,
+  violations: any[],
+  applications: any[],
+  complaints: any[],
+  orders: any,
+  customerConcern: string | null,
+  LOVABLE_API_KEY: string
+): Promise<string> {
+  const openViolations = violations.filter((v: any) => v.status === 'open' || !v.status?.toLowerCase().includes('close'));
+  const dobV = openViolations.filter((v: any) => v.agency === 'DOB');
+  const ecbV = openViolations.filter((v: any) => v.agency === 'ECB');
+  const hpdV = openViolations.filter((v: any) => v.agency === 'HPD');
+  const fdnyV = openViolations.filter((v: any) => v.agency === 'FDNY');
+  const otherV = openViolations.filter((v: any) => !['DOB', 'ECB', 'HPD', 'FDNY'].includes(v.agency));
+
+  const ecbTotalPenalty = ecbV.reduce((sum: number, v: any) => sum + (parseFloat(v.penalty_amount) || 0), 0);
+  const openComplaints = complaints.filter((c: any) => (c.status || '').toLowerCase() !== 'closed');
+
+  // Build top items list for AI
+  const topItems = openViolations.slice(0, 5).map((v: any) =>
+    `${v.agency} Violation ${v.violation_number || 'N/A'}: ${v.violation_type || v.description_raw || 'No description'}. Issued: ${v.issued_date || 'Unknown'}. Status: ${v.status || 'open'}.${v.penalty_amount ? ` Penalty: $${parseFloat(v.penalty_amount).toLocaleString()}.` : ''}`
+  ).join('\n');
+
+  const topApps = applications.slice(0, 3).map((a: any) =>
+    `${a.source} Application ${a.application_number || 'N/A'}: ${a.job_description || a.application_type || 'No description'}. Filed: ${a.filing_date || 'Unknown'}. Status: ${a.status || 'Unknown'}.`
+  ).join('\n');
+
+  const concernLine = customerConcern
+    ? `\nSTATED AREA OF INTEREST: "${customerConcern}"\nIdentify which open items from the lists above relate to this topic. List them by number. Do NOT advise whether to proceed or not.`
+    : '';
+
+  const prompt = `PROPERTY DATA:
+Address: ${building?.address || 'Unknown'}
+BIN: ${building?.bin || 'Unknown'}
+BBL: ${building?.bbl || 'Unknown'}
+Building Class: ${building?.building_class || 'Unknown'}
+Year Built: ${building?.year_built || 'Unknown'}
+Stories: ${building?.stories || 'Unknown'}
+Dwelling Units: ${building?.dwelling_units || 'Unknown'}
+Zoning: ${building?.zoning_district || 'Unknown'}
+Landmark: ${building?.is_landmark ? 'Yes' : 'No'}
+Owner: ${building?.owner_name || 'Unknown'}
+
+OPEN ITEMS BY AGENCY:
+DOB: ${dobV.length} open violations
+ECB: ${ecbV.length} open violations${ecbTotalPenalty > 0 ? ` (total outstanding penalties: $${ecbTotalPenalty.toLocaleString()})` : ''}
+HPD: ${hpdV.length} open violations
+FDNY: ${fdnyV.length} open violations
+Other Agencies: ${otherV.length} open violations
+Active Permits/Applications: ${applications.length}
+DOB Complaints on Record: ${complaints.length} (${openComplaints.length} open)
+Stop Work Orders: ${orders.stop_work?.length || 0}
+Partial Stop Work Orders: ${orders.partial_stop_work?.length || 0}
+Vacate Orders: ${orders.vacate?.length || 0}
+
+TOP OPEN VIOLATIONS:
+${topItems || 'None'}
+
+RECENT APPLICATIONS:
+${topApps || 'None'}
+${concernLine}
+
+Write a 3-4 paragraph factual property status summary. Use plain paragraphs only — no markdown, no headers, no bullet points, no bold text.`;
+
+  try {
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: { "Authorization": `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "google/gemini-3-flash-preview",
+        messages: [
+          {
+            role: "system",
+            content: `You are a compliance data analyst preparing a factual property status summary for real estate professionals. Your role is to PRESENT INFORMATION, not give advice.
+
+RULES:
+- State facts only. Never recommend, suggest, advise, or characterize risk.
+- Use neutral language: 'This property has 3 open DOB violations' NOT 'This property has a concerning number of violations'
+- Reference specific violation numbers, dates, and amounts.
+- If there are penalty amounts, state the total: 'Total outstanding ECB penalties: $45,000' — do NOT say whether this is high or low.
+- Translate codes and abbreviations into plain English so non-experts understand what each item IS.
+- Never use words like: risk, caution, concern, alarming, significant, recommend, suggest, advise, action required, should, must, urgent.
+- End with: 'This summary is for informational purposes only. Consult qualified professionals for advice regarding these findings.'
+
+GOOD EXAMPLE: 'Violation 123456 is an active ECB violation for failure to maintain the building facade under Local Law 11. A hearing is scheduled for March 15, 2026. The listed penalty is $10,000.'
+
+BAD EXAMPLE: 'Violation 123456 is a concerning facade violation that poses significant risk. We recommend resolving this before closing.'
+
+Write in plain paragraphs. No markdown formatting, no headers, no bullet points, no bold text.`
+          },
+          { role: "user", content: prompt },
+        ],
+      }),
+    });
+
+    if (!response.ok) {
+      console.error("AI property status summary error:", response.status);
+      return "";
+    }
+    const data = await response.json();
+    return data.choices?.[0]?.message?.content || "";
+  } catch (error) {
+    console.error("Property status summary generation error:", error);
+    return "";
+  }
+}
+
 async function generateAIAnalysis(reportData: any, customerConcern: string | null, LOVABLE_API_KEY: string): Promise<string> {
   const { building, violations, applications, orders } = reportData;
   const openViolations = violations.filter((v: any) => v.status === 'open');
@@ -1178,14 +1286,20 @@ serve(async (req) => {
       vacate: violations.filter(v => v.is_vacate_order),
     };
 
-    // Generate AI analysis and line-item notes in parallel
-    const [aiAnalysis, lineItemNotes] = await Promise.all([
+    // Generate AI analysis, line-item notes, and property status summary in parallel
+    const [aiAnalysis, lineItemNotes, propertyStatusSummary] = await Promise.all([
       generateAIAnalysis(
         { building: building || { address: resolvedAddress, bin, bbl }, violations, applications, orders },
         customerConcern || null,
         LOVABLE_API_KEY
       ),
       generateLineItemNotes(violations, applications, resolvedAddress, customerConcern || null, LOVABLE_API_KEY),
+      generatePropertyStatusSummary(
+        building || { address: resolvedAddress, bin, bbl },
+        violations, applications, complaints, orders,
+        customerConcern || null,
+        LOVABLE_API_KEY
+      ),
     ]);
 
     const { error: updateError } = await supabase.from('dd_reports').update({
@@ -1195,6 +1309,7 @@ serve(async (req) => {
       complaints_data: complaints,
       ai_analysis: aiAnalysis,
       line_item_notes: lineItemNotes,
+      property_status_summary: propertyStatusSummary || null,
       status: 'pending_review',
     }).eq('id', reportId);
 
