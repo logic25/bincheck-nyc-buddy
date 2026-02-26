@@ -11,11 +11,14 @@ const NYC_ENDPOINTS = {
   PLUTO: "https://data.cityofnewyork.us/resource/64uk-42ks.json",
   DOB_JOBS: "https://data.cityofnewyork.us/resource/ic3t-wcy2.json",
   DOB_VIOLATIONS: "https://data.cityofnewyork.us/resource/3h2n-5cm9.json",
+  DOB_SAFETY_VIOLATIONS: "https://data.cityofnewyork.us/resource/855j-jady.json",
   ECB_VIOLATIONS: "https://data.cityofnewyork.us/resource/6bgk-3dad.json",
   HPD_VIOLATIONS: "https://data.cityofnewyork.us/resource/wvxf-dwi5.json",
   DOB_NOW: "https://data.cityofnewyork.us/resource/rbx6-tga4.json",
   GEOSEARCH: "https://geosearch.planninglabs.nyc/v2/search",
   OATH_HEARINGS: "https://data.cityofnewyork.us/resource/jz4z-kudi.json",
+  FDNY_VIOLATIONS: "https://data.cityofnewyork.us/resource/avgm-ztsb.json",
+  DOB_COMPLAINTS: "https://data.cityofnewyork.us/resource/eabe-havv.json",
 };
 
 const BOROUGH_CODES: Record<string, string> = {
@@ -144,8 +147,8 @@ const OATH_RESOLVED_TERMS = ["paid", "written off", "dismissed", "defaulted", "s
 async function fetchOATHViolations(bbl: string, agencyCode: string, oathAgencyName: string): Promise<any[]> {
   if (!bbl || bbl.length < 10) return [];
   const boroughCode = bbl.slice(0, 1);
-  const block = bbl.slice(1, 6); // keep leading zeros for OATH
-  const lot = bbl.slice(6, 10);  // keep leading zeros for OATH
+  const block = bbl.slice(1, 6);
+  const lot = bbl.slice(6, 10);
   const boroughName = OATH_BOROUGH_NAMES[boroughCode];
   if (!boroughName) return [];
 
@@ -184,6 +187,7 @@ async function fetchOATHViolations(bbl: string, agencyCode: string, oathAgencyNa
       status: isResolved ? "closed" : "open",
       penalty_amount: isNaN(penalty!) ? null : penalty,
       hearing_date: r.hearing_date || null,
+      hearing_result: r.hearing_result || null,
       respondent_name: [r.respondent_first_name, r.respondent_last_name].filter(Boolean).join(' ') || null,
       is_stop_work_order: false,
       is_partial_stop_work: false,
@@ -192,13 +196,108 @@ async function fetchOATHViolations(bbl: string, agencyCode: string, oathAgencyNa
   });
 }
 
+async function fetchFDNYViolations(bin: string): Promise<any[]> {
+  if (!bin) return [];
+  const records = await fetchNYCData(NYC_ENDPOINTS.FDNY_VIOLATIONS, {
+    "bin": bin, "$limit": "200", "$order": "inspection_date DESC",
+  });
+  return records.map((r: any) => {
+    const status = (r.status || r.violation_status || '').toLowerCase();
+    const isResolved = status.includes('close') || status.includes('resolved') || status.includes('cured') || status.includes('complied');
+    return {
+      id: r.violation_number || r.issuance_number || `FDNY-${Math.random()}`,
+      agency: "FDNY",
+      violation_number: r.violation_number || r.issuance_number || null,
+      violation_type: r.violation_code_description || r.violation_code || null,
+      violation_class: r.violation_category || null,
+      description_raw: r.violation_code_description || r.comments || null,
+      issued_date: r.inspection_date || r.violation_date || null,
+      severity: r.violation_category || null,
+      status: isResolved ? "closed" : "open",
+      penalty_amount: r.penalty_amount ? parseFloat(r.penalty_amount) : null,
+      is_stop_work_order: false,
+      is_partial_stop_work: false,
+      is_vacate_order: false,
+    };
+  });
+}
+
+async function fetchDOBSafetyViolations(bin: string): Promise<any[]> {
+  if (!bin) return [];
+  const records = await fetchNYCData(NYC_ENDPOINTS.DOB_SAFETY_VIOLATIONS, {
+    "bin": bin, "$limit": "500",
+  });
+  return records.map((v: any) => {
+    const vt = (v.violation_type || '').toLowerCase();
+    const desc = (v.description || v.violation_type_description || '').toLowerCase();
+    return {
+      id: v.isn_dob_bis_viol || v.violation_number || `DOBSAFE-${Math.random()}`,
+      agency: "DOB",
+      violation_number: v.isn_dob_bis_viol || v.violation_number || null,
+      violation_type: v.violation_type || v.violation_type_description || null,
+      violation_class: v.violation_category || null,
+      description_raw: v.description || v.violation_type_description || v.violation_type || null,
+      issued_date: v.issue_date || v.violation_date || null,
+      severity: v.violation_category || null,
+      status: v.disposition_date ? "closed" : "open",
+      is_stop_work_order: vt.includes('stop work') || desc.includes('stop work'),
+      is_partial_stop_work: vt.includes('partial stop work') || desc.includes('partial stop work'),
+      is_vacate_order: vt.includes('vacate') || desc.includes('vacate order'),
+      disposition: v.disposition_comments || null,
+    };
+  });
+}
+
+async function fetchDOBComplaints(bin: string): Promise<any[]> {
+  if (!bin) return [];
+  const records = await fetchNYCData(NYC_ENDPOINTS.DOB_COMPLAINTS, {
+    "bin": bin, "$limit": "200", "$order": "date_entered DESC",
+  });
+  return records.map((c: any) => ({
+    complaint_number: c.complaint_number || '',
+    date_entered: c.date_entered || '',
+    status: c.status || '',
+    complaint_category: c.complaint_category || '',
+    unit: c.unit || '',
+    disposition_date: c.disposition_date || '',
+    disposition_code: c.disposition_code || '',
+    inspection_date: c.inspection_date || '',
+    description: c.complaint_category || '',
+  }));
+}
+
+// Deduplicate records by key, keeping the one with more non-null fields
+function deduplicateByKey(records: any[], keyFn: (r: any) => string): any[] {
+  const seen = new Map<string, any>();
+  for (const r of records) {
+    const key = keyFn(r);
+    if (!key) { seen.set(`_anon_${Math.random()}`, r); continue; }
+    const existing = seen.get(key);
+    if (!existing) {
+      seen.set(key, r);
+    } else {
+      const existingFields = Object.values(existing).filter(val => val != null && val !== '').length;
+      const newFields = Object.values(r).filter(val => val != null && val !== '').length;
+      if (newFields > existingFields) seen.set(key, r);
+    }
+  }
+  return Array.from(seen.values());
+}
+
 async function fetchViolations(bin: string, bbl: string): Promise<any[]> {
   const violations: any[] = [];
+
   if (bin) {
-    const dobViolations = await fetchNYCData(NYC_ENDPOINTS.DOB_VIOLATIONS, {
-      "bin": bin, "$where": "disposition_date IS NULL", "$limit": "200", "$order": "issue_date DESC",
-    });
-    violations.push(...dobViolations.map((v: any) => {
+    // Fetch DOB BIS violations, DOB Safety violations, and FDNY violations in parallel
+    const [dobViolationsRaw, dobSafetyRaw, fdnyDirect] = await Promise.all([
+      fetchNYCData(NYC_ENDPOINTS.DOB_VIOLATIONS, {
+        "bin": bin, "$where": "disposition_date IS NULL", "$limit": "200", "$order": "issue_date DESC",
+      }),
+      fetchDOBSafetyViolations(bin),
+      fetchFDNYViolations(bin),
+    ]);
+
+    const dobMapped = dobViolationsRaw.map((v: any) => {
       const vt = (v.violation_type || '').toLowerCase();
       const desc = (v.description || '').toLowerCase();
       return {
@@ -211,7 +310,15 @@ async function fetchViolations(bin: string, bbl: string): Promise<any[]> {
         is_vacate_order: vt.includes('vacate') || desc.includes('vacate order'),
         disposition: v.disposition_comments || null,
       };
-    }));
+    });
+
+    // Merge and deduplicate DOB violations from both datasets
+    const allDob = [...dobMapped, ...dobSafetyRaw];
+    const dedupedDob = deduplicateByKey(allDob, (r) => `DOB-${r.violation_number || r.id}`);
+    violations.push(...dedupedDob);
+
+    // Add FDNY direct violations (will be deduped against OATH FDNY later)
+    violations.push(...fdnyDirect);
 
     const ecbViolations = await fetchNYCData(NYC_ENDPOINTS.ECB_VIOLATIONS, {
       "bin": bin, "$where": "ecb_violation_status != 'RESOLVE'", "$limit": "200", "$order": "issue_date DESC",
@@ -224,6 +331,7 @@ async function fetchViolations(bin: string, bbl: string): Promise<any[]> {
       status: (v.ecb_violation_status || 'open').toLowerCase(),
       penalty_amount: v.penality_imposed ? parseFloat(v.penality_imposed) : null,
       hearing_date: v.hearing_date || null,
+      hearing_result: v.hearing_result || null,
     })));
   }
 
@@ -233,7 +341,7 @@ async function fetchViolations(bin: string, bbl: string): Promise<any[]> {
     const lot = bbl.slice(6, 10).replace(/^0+/, '') || '0';
     const hpdViolations = await fetchNYCData(NYC_ENDPOINTS.HPD_VIOLATIONS, {
       "boroid": borough, "block": block, "lot": lot,
-      "$where": "violationstatus = 'Open'", "$limit": "200", "$order": "inspectiondate DESC",
+      "$where": "violationstatus = 'Open'", "$limit": "1000", "$order": "inspectiondate DESC",
     });
     violations.push(...hpdViolations.map((v: any) => {
       const desc = (v.novdescription || '').toLowerCase();
@@ -255,10 +363,12 @@ async function fetchViolations(bin: string, bbl: string): Promise<any[]> {
       violations.push(...agencyViolations);
     }
   }
-  return violations;
+
+  // Final deduplication across all sources (e.g., FDNY direct vs OATH FDNY)
+  return deduplicateByKey(violations, (v) => `${v.agency}-${v.violation_number || v.id}`);
 }
 
-const EXCLUDED_STATUS_CODES = ['X']; // X = Withdrawn — keep U (Updated) and I (In Process)
+const EXCLUDED_STATUS_CODES = ['X'];
 const EXCLUDED_STATUS_NAMES = ['signed off', 'signed-off', 'signoff', 'sign-off', 'completed', 'permit entire'];
 
 function shouldExcludeApplication(status: string | null, statusCode?: string | null): boolean {
@@ -292,104 +402,25 @@ function extractFloorAptFromDescription(description: string | null): { floor: st
   return { floor, apartment };
 }
 
-// Scrape BIS website for job filings (fallback for older records not in Open Data)
-async function fetchBISJobsFromWebsite(bin: string): Promise<any[]> {
-  try {
-    const url = `https://a810-bisweb.nyc.gov/bisweb/JobsQueryByLocationServlet?allbin=${bin}&allpermession=T`;
-    console.log(`BIS web scrape: ${url}`);
-    const response = await fetch(url);
-    if (!response.ok) { console.error(`BIS web scrape failed: ${response.status}`); return []; }
-    const html = await response.text();
-
-    // Parse job data from HTML comments which contain structured arrays
-    const jobs: any[] = [];
-    // Match the Lines array entries in HTML comments
-    const linesMatch = html.match(/Lines\s*::\s*ARRAY\[22\s*\*\s*\d+\]\s*([\s\S]*?)-->/);
-    if (!linesMatch) { console.log("BIS web scrape: no Lines array found"); return []; }
-
-    const linesBlock = linesMatch[1];
-    // Split into individual record blocks [N]
-    const recordBlocks = linesBlock.split(/\[\d+\]/).filter(b => b.trim());
-
-    for (const block of recordBlocks) {
-      const fields: Record<string, string> = {};
-      const fieldMatches = block.matchAll(/\[\d+:(\w+)\]\{([^}]*)\}/g);
-      for (const m of fieldMatches) {
-        fields[m[1]] = m[2].trim();
-      }
-      if (!fields.Job) continue; // skip empty records
-
-      // Parse date from MMDDYYYY format
-      const fd = fields.Fd || '';
-      const filingDate = fd.length === 8 ? `${fd.slice(0,2)}/${fd.slice(2,4)}/${fd.slice(4,8)}` : null;
-      const dt = fields.Dt || '';
-      const statusDate = dt.length === 8 ? `${dt.slice(0,2)}/${dt.slice(2,4)}/${dt.slice(4,8)}` : null;
-
-      // Map single-char status code to description
-      const statusCode = fields.Js || '';
-      const statusDesc = fields.Jobstatus || statusCode;
-
-      jobs.push({
-        id: fields.Job,
-        source: "BIS",
-        application_number: fields.Job,
-        application_type: fields.JobType || null,
-        work_type: null,
-        job_description: fields.Jobdes || null,
-        status: statusDesc,
-        status_code: statusCode,
-        status_description: statusDesc,
-        filing_date: filingDate,
-        latest_action_date: statusDate,
-        estimated_cost: null,
-        floor: fields.FlrInjq || null,
-        apartment: null,
-        owner_name: null,
-        filing_professional_name: fields.Applicant || null,
-        doc_type: fields.DocType || null,
-        doc_number: fields.Ap || null,
-        bis_scraped: true,
-      });
-    }
-
-    console.log(`BIS web scrape: found ${jobs.length} raw records`);
-
-    // Group by job number and keep only the primary document (prefer "01" over PAA/other doc types)
-    const jobMap = new Map<string, any>();
-    for (const job of jobs) {
-      const jobNum = job.application_number;
-      if (!jobNum) continue;
-      const existing = jobMap.get(jobNum);
-      if (!existing) {
-        jobMap.set(jobNum, job);
-      } else {
-        // Prefer doc_number "01" (initial filing) over amendments (PA, etc.)
-        const existingDocNum = (existing.doc_number || '').trim();
-        const newDocNum = (job.doc_number || '').trim();
-        if (newDocNum === '01' && existingDocNum !== '01') {
-          jobMap.set(jobNum, job);
-        }
-      }
-    }
-    const deduped = Array.from(jobMap.values());
-    console.log(`BIS web scrape: ${deduped.length} unique jobs after dedup`);
-    return deduped;
-  } catch (error) {
-    console.error("BIS web scrape error:", error);
-    return [];
-  }
-}
-
 async function fetchApplications(bin: string): Promise<any[]> {
   const applications: any[] = [];
   if (!bin) return applications;
 
-  // Fetch from Open Data API first
-  const dobJobs = await fetchNYCData(NYC_ENDPOINTS.DOB_JOBS, {
-    "bin__": bin, "$limit": "200", "$order": "latest_action_date DESC",
-  });
+  // Dual-query DOB Jobs: recent activity + oldest filings
+  const [dobJobsRecent, dobJobsOldest] = await Promise.all([
+    fetchNYCData(NYC_ENDPOINTS.DOB_JOBS, {
+      "bin__": bin, "$limit": "500", "$order": "latest_action_date DESC",
+    }),
+    fetchNYCData(NYC_ENDPOINTS.DOB_JOBS, {
+      "bin__": bin, "$limit": "500", "$order": "pre__filing_date ASC",
+    }),
+  ]);
 
-  let bisApps = dobJobs.map((j: any) => {
+  // Merge and deduplicate by job number
+  const allDobJobs = [...dobJobsRecent, ...dobJobsOldest];
+  const dedupedJobs = deduplicateByKey(allDobJobs, (j) => j.job__ || '');
+
+  let bisApps = dedupedJobs.map((j: any) => {
     let floor = j.work_on_floors__ || j.bldg_floor || null;
     let apartment = j.apt_condonos || null;
     if (!floor && j.job_description) {
@@ -411,23 +442,6 @@ async function fetchApplications(bin: string): Promise<any[]> {
     };
   }).filter((app: any) => !shouldExcludeApplication(app.status, app.status_code));
 
-  // If Open Data returned no BIS jobs, fall back to BIS website scraping
-  if (bisApps.length === 0) {
-    console.log("Open Data returned 0 BIS jobs, falling back to BIS website scrape...");
-    const scrapedJobs = await fetchBISJobsFromWebsite(bin);
-    bisApps = scrapedJobs.filter((app: any) => !shouldExcludeApplication(app.status, app.status_code));
-  } else {
-    // Even if Open Data has some results, scrape BIS to find older jobs not in Open Data
-    const scrapedJobs = await fetchBISJobsFromWebsite(bin);
-    const existingJobNums = new Set(bisApps.map((a: any) => a.application_number));
-    const additionalJobs = scrapedJobs
-      .filter((j: any) => !existingJobNums.has(j.application_number))
-      .filter((app: any) => !shouldExcludeApplication(app.status, app.status_code));
-    if (additionalJobs.length > 0) {
-      console.log(`Found ${additionalJobs.length} additional BIS jobs from web scrape`);
-      bisApps.push(...additionalJobs);
-    }
-  }
   applications.push(...bisApps);
 
   const dobNowApps = await fetchNYCData(NYC_ENDPOINTS.DOB_NOW, { "bin": bin, "$limit": "200" });
@@ -448,6 +462,174 @@ async function fetchApplications(bin: string): Promise<any[]> {
   return applications;
 }
 
+// ━━━ DETERMINISTIC RULES ENGINE ━━━
+
+function parseConcern(customerConcern: string | null): {
+  targetUnit: string | null;
+  targetFloor: string | null;
+  isPurchase: boolean;
+  isRefinance: boolean;
+  keywords: string[];
+} {
+  if (!customerConcern) return { targetUnit: null, targetFloor: null, isPurchase: false, isRefinance: false, keywords: [] };
+  const lower = customerConcern.toLowerCase();
+
+  const unitMatch = lower.match(/(?:unit|apt|apartment|#)\s*(\w+)/);
+  const targetUnit = unitMatch ? unitMatch[1].toUpperCase() : null;
+
+  const floorMatch = lower.match(/(?:(\d+)(?:st|nd|rd|th)?\s*(?:floor|fl))|(?:floor\s*(\d+))/);
+  const targetFloor = floorMatch ? (floorMatch[1] || floorMatch[2]) : null;
+
+  const isPurchase = /purchas|acqui|buy|closing|transaction|contract/.test(lower);
+  const isRefinance = /refin|refi|mortgage|loan/.test(lower);
+
+  const keywords: string[] = [];
+  if (/facade|fisp|ll11/.test(lower)) keywords.push('facade');
+  if (/elevator|lift/.test(lower)) keywords.push('elevator');
+  if (/gas|boiler/.test(lower)) keywords.push('gas');
+  if (/fire|sprinkler|standpipe/.test(lower)) keywords.push('fire');
+  if (/illegal|conversion/.test(lower)) keywords.push('illegal');
+  if (/vacate|unsafe/.test(lower)) keywords.push('safety');
+
+  return { targetUnit, targetFloor, isPurchase, isRefinance, keywords };
+}
+
+function classifyViolation(v: any, customerConcern: string | null): string {
+  const agency = (v.agency || '').toUpperCase();
+  const status = (v.status || '').toLowerCase();
+  const desc = (v.description_raw || v.violation_type || '').toLowerCase();
+  const vClass = (v.violation_class || v.class || '').toUpperCase();
+  const penalty = parseFloat(v.penalty_amount || v.penalty_imposed || '0') || 0;
+  const hearingResult = (v.hearing_result || '').toLowerCase();
+  const concern = parseConcern(customerConcern);
+
+  // Already resolved
+  if (status === 'closed' || status === 'resolved' || status === 'dismissed' || status === 'paid') return '[RESOLVED]';
+  if (status.includes('close') || status.includes('certif')) return '[RESOLVED]';
+
+  // Customer Concern Elevation
+  if (concern.keywords.length > 0) {
+    const matchesConcern = concern.keywords.some(kw => desc.includes(kw));
+    if (matchesConcern) return '[ACTION REQUIRED]';
+  }
+  const violationFloor = (v.story || v.floor || '').toString();
+  const violationUnit = (v.apartment || v.unit || '').toString().toUpperCase();
+  const isTargetLocation = (concern.targetFloor && violationFloor === concern.targetFloor) ||
+                           (concern.targetUnit && violationUnit === concern.targetUnit);
+  const isPurchaseElevation = (concern.isPurchase || concern.isRefinance) && isTargetLocation;
+
+  // DOB Violations
+  if (agency === 'DOB') {
+    if (v.is_stop_work_order) return '[ACTION REQUIRED]';
+    if (v.is_partial_stop_work) return '[ACTION REQUIRED]';
+    if (v.is_vacate_order) return '[ACTION REQUIRED]';
+    if (desc.includes('unsafe') || desc.includes('hazardous') || desc.includes('emergency') || desc.includes('illegal conversion')) return '[ACTION REQUIRED]';
+    if (desc.includes('facade') || desc.includes('fisp')) return '[ACTION REQUIRED]';
+    if (isPurchaseElevation) return '[ACTION REQUIRED]';
+    if (v.disposition) return '[RESOLVED]';
+    if (isTargetLocation) return '[MONITOR]';
+    return '[MONITOR]';
+  }
+
+  // ECB Violations
+  if (agency === 'ECB') {
+    if (hearingResult.includes('default')) return '[ACTION REQUIRED]';
+    if (penalty > 0) return '[ACTION REQUIRED]';
+    if (isPurchaseElevation) return '[ACTION REQUIRED]';
+    return '[MONITOR]';
+  }
+
+  // HPD Violations
+  if (agency === 'HPD') {
+    if (vClass === 'C') return '[ACTION REQUIRED]';
+    if (vClass === 'B') return '[ACTION REQUIRED]';
+    if (isPurchaseElevation && vClass === 'A') return '[MONITOR]';
+    if (vClass === 'A') {
+      const issuedDate = new Date(v.issued_date || '');
+      const daysSince = (Date.now() - issuedDate.getTime()) / (1000 * 60 * 60 * 24);
+      if (!isNaN(daysSince) && daysSince < 90) return '[MONITOR]';
+      if (isTargetLocation) return '[MONITOR]';
+      return '[INFO]';
+    }
+    return '[MONITOR]';
+  }
+
+  // FDNY Violations
+  if (agency === 'FDNY') {
+    if (desc.includes('sprinkler') || desc.includes('standpipe') || desc.includes('fire pump')) return '[ACTION REQUIRED]';
+    if (desc.includes('means of egress') || desc.includes('exit')) return '[ACTION REQUIRED]';
+    if (desc.includes('fire alarm')) return '[ACTION REQUIRED]';
+    if (penalty > 0) return '[ACTION REQUIRED]';
+    return '[MONITOR]';
+  }
+
+  // LPC (Landmarks)
+  if (agency === 'LPC') {
+    if (penalty > 0) return '[ACTION REQUIRED]';
+    return '[MONITOR]';
+  }
+
+  // DOF (Finance — liens attach to property)
+  if (agency === 'DOF') {
+    if (penalty > 0) return '[ACTION REQUIRED]';
+    return '[MONITOR]';
+  }
+
+  // DEP, DSNY, DOT
+  if (['DEP', 'DSNY', 'DOT'].includes(agency)) {
+    if (isPurchaseElevation) return '[MONITOR]';
+    if (penalty > 0) return '[MONITOR]';
+    return '[INFO]';
+  }
+
+  return '[MONITOR]';
+}
+
+function classifyApplication(app: any, customerConcern: string | null): string {
+  const status = (app.status || '').toLowerCase();
+  const desc = (app.job_description || '').toLowerCase();
+  const concern = parseConcern(customerConcern);
+
+  const latestActionDate = new Date(app.latest_action_date || app.approved_date || '');
+  const preFilingDate = new Date(app.pre__filing_date || app.filing_date || '');
+  const now = Date.now();
+  const daysSinceLastAction = !isNaN(latestActionDate.getTime())
+    ? (now - latestActionDate.getTime()) / (1000 * 60 * 60 * 24)
+    : null;
+  const daysSinceFiling = !isNaN(preFilingDate.getTime())
+    ? (now - preFilingDate.getTime()) / (1000 * 60 * 60 * 24)
+    : null;
+
+  if (status.includes('sign') || status.includes('complete')) return '[INFO]';
+
+  if (status.includes('approved') || status.includes('permit issued')) {
+    if (daysSinceLastAction && daysSinceLastAction > 730) return '[ACTION REQUIRED]';
+    if (daysSinceLastAction && daysSinceLastAction > 365) return '[MONITOR]';
+    return '[INFO]';
+  }
+
+  if (status.includes('pre-fil') || status.includes('initial')) {
+    if (daysSinceFiling && daysSinceFiling > 540) return '[MONITOR]';
+    return '[MONITOR]';
+  }
+
+  if (status.includes('partial')) return '[ACTION REQUIRED]';
+  if (status.includes('in progress') || status.includes('pending')) return '[MONITOR]';
+
+  if (concern.keywords.length > 0) {
+    const matchesConcern = concern.keywords.some(kw => desc.includes(kw));
+    if (matchesConcern) return '[ACTION REQUIRED]';
+  }
+
+  const buildingWide = ['facade', 'elevator', 'gas', 'boiler', 'sprinkler', 'plumbing', 'electrical', 'standpipe'];
+  if (buildingWide.some(sys => desc.includes(sys))) {
+    if (concern.isPurchase || concern.isRefinance) return '[ACTION REQUIRED]';
+    return '[MONITOR]';
+  }
+
+  return '[MONITOR]';
+}
+
 async function generateLineItemNotes(
   violations: any[],
   applications: any[],
@@ -455,29 +637,37 @@ async function generateLineItemNotes(
   customerConcern: string | null,
   LOVABLE_API_KEY: string
 ): Promise<any[]> {
-  // Build compact item list for AI — include penalty/status data for severity guidance
-  const violationItems = violations.slice(0, 60).map((v: any) => ({
-    type: "violation",
-    id: v.violation_number || v.id,
-    agency: v.agency,
-    desc: (v.violation_type || v.description_raw || 'Unknown').slice(0, 120),
-    floor: v.story || null,
-    apt: v.apartment || null,
-    status: v.violation_status || v.status || null,
-    penalty_amount: v.penalty_amount || v.penalty_imposed || null,
-    hearing_status: v.hearing_status || null,
-    class: v.nov_class || v.class_value || null,
-  }));
+  const violationItems = violations.slice(0, 60).map((v: any) => {
+    const tag = classifyViolation(v, customerConcern);
+    return {
+      type: "violation",
+      id: v.violation_number || v.id,
+      agency: v.agency,
+      desc: (v.violation_type || v.description_raw || 'Unknown').slice(0, 120),
+      floor: v.story || null,
+      apt: v.apartment || null,
+      status: v.violation_status || v.status || null,
+      penalty_amount: v.penalty_amount || v.penalty_imposed || null,
+      hearing_status: v.hearing_status || null,
+      hearing_result: v.hearing_result || null,
+      class: v.nov_class || v.class_value || v.violation_class || null,
+      pre_assigned_tag: tag,
+    };
+  });
 
-  const applicationItems = applications.slice(0, 40).map((a: any) => ({
-    type: "application",
-    id: `${a.source || 'BIS'}-${a.application_number || a.id}`,
-    source: a.source,
-    desc: (a.job_description || a.application_type || 'Unknown').slice(0, 120),
-    floor: a.floor || null,
-    apt: a.apartment || null,
-    status: a.permit_status || a.application_status || a.status || null,
-  }));
+  const applicationItems = applications.slice(0, 40).map((a: any) => {
+    const tag = classifyApplication(a, customerConcern);
+    return {
+      type: "application",
+      id: `${a.source || 'BIS'}-${a.application_number || a.id}`,
+      source: a.source,
+      desc: (a.job_description || a.application_type || 'Unknown').slice(0, 120),
+      floor: a.floor || null,
+      apt: a.apartment || null,
+      status: a.permit_status || a.application_status || a.status || null,
+      pre_assigned_tag: tag,
+    };
+  });
 
   const allItems = [...violationItems, ...applicationItems];
   if (allItems.length === 0) return [];
@@ -495,58 +685,37 @@ BIN: ${allItems[0]?.bin || 'see data'} | Reviewing ${allItems.length} items
 
 ${concernInstruction}
 
-━━━ YOUR TASK ━━━
-For EACH item in the JSON below, write ONE professional note of 1-2 sentences (20-30 words) suitable for a transactional due diligence report read by real estate attorneys.
+━━━ CLASSIFICATION ━━━
+Each item has a "pre_assigned_tag" field that has ALREADY been classified by our rules engine.
+You MUST use this exact tag as the prefix of your note. Do NOT override or change it.
 
-━━━ FORMAT RULES ━━━
-Start every note with exactly one of these prefixes:
-  [ACTION REQUIRED] — open issue needing attorney attention before closing
-  [MONITOR] — not immediately blocking but should be tracked
-  [RESOLVED] — confirmed closed/paid/dismissed, no action needed
-  [INFO] — informational only, no compliance concern
+Your job is ONLY to write the professional note sentence that follows the tag.
 
-After the prefix: one clause identifying what the item is, one clause on status/impact.
-If floor/apt data is present in the item, include it in the identification clause.
-Be declarative: "This violation is open with a $2,400 balance due." — not "may have" or "could indicate."
+Format: {pre_assigned_tag} One to two sentences explaining what this item is and its impact.
 
-━━━ SEVERITY LOGIC — APPLY STRICTLY ━━━
+━━━ CUSTOMER CONCERN ━━━
+The client's attorney submitted this report with a specific concern or context (provided above).
+You MUST evaluate EVERY item against the customer concern and mention relevance when applicable:
+- If the concern mentions a specific unit or floor, state whether this item is on the same floor, above/below, or in a common area.
+- If the concern mentions a purchase or closing, note whether this item could delay or block closing (open penalties, stop work orders, C of O issues).
+- If the concern mentions a specific system (elevator, facade, gas, fire safety), call out items involving that system even if they're classified as [MONITOR] or [INFO].
+- If there is NO customer concern provided, write notes in a general due diligence context.
 
-ECB Violations:
-- status=open AND penalty_amount > 0 → [ACTION REQUIRED]. State the exact dollar amount.
-- status=open AND penalty_amount null/0 → [MONITOR] open enforcement hearing.
-- hearing_result contains "DEFAULT" → [ACTION REQUIRED] — respondent did not appear; default judgment likely entered. Requires attorney follow-up before closing.
-- status=closed/dismissed/paid → [RESOLVED]
+━━━ DOB APPLICATION LIFECYCLE ━━━
+For applications classified as [ACTION REQUIRED] or [MONITOR] due to age/inactivity:
+- If an approved application has had no activity for 12+ months, note that DOB likely issued or will issue a first service notice requiring proof of progress.
+- If an approved application has had no activity for 24+ months, note that DOB may have withdrawn or is about to withdraw the application. Recommend verifying current status on BIS NOW.
+- If a pre-filed application is 18+ months old with no progress, note it may be abandoned and could require a new filing.
 
-DOB Violations:
-- is_stop_work_order=true → [ACTION REQUIRED]. Stop Work Order on record. Cannot close title with active SWO on most transactions.
-- is_partial_stop_work=true → [ACTION REQUIRED]. Partial Stop Work Order; scope may be limited but requires cure.
-- is_vacate_order=true → [ACTION REQUIRED]. Vacate Order on record. Blocks occupancy; must be lifted before any transaction.
-- description contains "unsafe", "hazardous", "emergency" → [ACTION REQUIRED]
-- All other open DOB violations → [MONITOR]
-- Closed/disposition present → [RESOLVED]
+Examples:
+- [ACTION REQUIRED] Open ECB violation with $3,125 penalty balance due. Outstanding ECB penalties become liens on the property and must be resolved before closing.
+- [ACTION REQUIRED] BIS alteration permit approved 09/2023 with no recorded activity for 26 months. DOB likely withdrew this application; verify status on BIS NOW before closing.
+- [MONITOR] BIS alteration application for plumbing work on floors 1-3. Filing is in progress; verify completion status with DOB. Client's unit is on floor 2 — this work directly affects the subject unit.
+- [RESOLVED] HPD Class A violation for minor paint condition, certified corrected on 01/15/24. No further action needed.
+- [INFO] Non-hazardous maintenance item on 6th floor, not related to client's unit (unit 3A). No compliance concern.
 
-HPD Violations:
-- class=C (Immediately Hazardous) → [ACTION REQUIRED] regardless of concern. Class C must be corrected within 24 hours of issuance.
-- class=B (Hazardous, open) → [ACTION REQUIRED] if open.
-- class=A (Non-hazardous) → [INFO] if old; [MONITOR] if recent.
-- status contains "Close" or "Certify" → [RESOLVED]
-
-FDNY / DSNY / DOT / LPC / DOF / DEP (OATH violations):
-- status=open AND penalty_amount > 0 → [ACTION REQUIRED]. State amount and agency.
-- status=open, no penalty → [MONITOR]
-- status=closed → [RESOLVED]
-
-Permit Applications (BIS/DOB NOW):
-- status=PARTIAL → [MONITOR]. Work was only partially permitted — indicates incomplete scope, phased work, or a stalled project. Assess relevance to concern.
-- status=IN PROGRESS or PENDING → [MONITOR]. Active filing; work may be ongoing.
-- job_description mentions FAÇADE, ELEVATOR, GAS, BOILER, SPRINKLER, PLUMBING, ELECTRICAL → these are building-wide systems; flag if open.
-- Resolved/signed-off → These should not appear; if present, use [INFO].
-
-━━━ CONCERN-SPECIFIC GUIDANCE ━━━
-If concern mentions a specific unit (e.g., "Unit 4B"): compare item floor/apt against concern. If item is on a clearly different floor and is NOT a building-wide system (elevator, facade, gas, boiler), note: "Located on [floor], not directly related to [unit in concern]." Use [INFO].
-If concern mentions "combination" or "merging": flag any active alteration jobs on relevant floors.
-If concern mentions "purchase" or "acquisition": flag all [ACTION REQUIRED] items as requiring resolution or escrow holdback at closing.
-If no concern: treat all open items as potentially relevant; provide balanced general assessment.
+If the item has floor/apt data, include it in the identification clause.
+Be declarative and precise. State exact dollar amounts for penalties. Reference specific NYC code sections where relevant.
 
 ━━━ ITEMS TO REVIEW ━━━
 ${JSON.stringify(allItems, null, 2)}`;
@@ -558,7 +727,7 @@ ${JSON.stringify(allItems, null, 2)}`;
       body: JSON.stringify({
         model: "google/gemini-3-flash-preview",
         messages: [
-          { role: "system", content: "You are a licensed NYC real estate compliance analyst and paralegal specialist with 15 years of experience reviewing DOB, ECB, HPD, FDNY, DSNY, DOT, LPC, and DOF records for transactional due diligence. Your notes are read by real estate attorneys, title companies, and sophisticated investors. Be precise, professional, and attorney-ready. Return structured JSON via the tool call." },
+          { role: "system", content: "You are a licensed NYC real estate compliance analyst and paralegal specialist with 15 years of experience reviewing DOB, ECB, HPD, FDNY, DSNY, DOT, LPC, and DOF records for transactional due diligence. Your notes are read by real estate attorneys, title companies, and sophisticated investors. Be precise, professional, and attorney-ready. Return structured JSON via the tool call. CRITICAL: Use the pre_assigned_tag from each item exactly as-is — do NOT change the classification." },
           { role: "user", content: prompt },
         ],
         tools: [{
@@ -700,10 +869,6 @@ serve(async (req) => {
       ...(customerConcern ? { customer_concern: customerConcern } : {}),
     }).eq('id', reportId);
 
-    if (false) {
-      // placeholder to keep structure — customerConcern already saved above
-    }
-
     let bin = '', bbl = '', resolvedAddress = address;
     const geoResult = await geoSearchAddress(address);
     if (geoResult) {
@@ -730,8 +895,13 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: "Property not found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const violations = await fetchViolations(bin, bbl);
-    const rawApplications = await fetchApplications(bin);
+    // Fetch violations, applications, and complaints in parallel
+    const [violations, rawApplications, complaints] = await Promise.all([
+      fetchViolations(bin, bbl),
+      fetchApplications(bin),
+      fetchDOBComplaints(bin),
+    ]);
+
     const seenApps = new Set<string>();
     const applications = rawApplications.filter((app: any) => {
       const key = `${app.source || 'BIS'}-${app.application_number}`;
@@ -760,6 +930,7 @@ serve(async (req) => {
       bin: bin || null, bbl: bbl || null,
       building_data: building || { address: resolvedAddress, bin, bbl },
       violations_data: violations, applications_data: applications, orders_data: orders,
+      complaints_data: complaints,
       ai_analysis: aiAnalysis,
       line_item_notes: lineItemNotes,
       status: 'pending_review',
@@ -768,9 +939,9 @@ serve(async (req) => {
     if (updateError) throw updateError;
     console.log(`=== Report generated successfully with ${lineItemNotes.length} line-item notes ===`);
 
-    // Log AI usage (best-effort — don't fail report if this fails)
+    // Log AI usage (best-effort)
     try {
-      const totalTokens = 2000; // conservative estimate per report
+      const totalTokens = 2000;
       await supabase.from('ai_usage_logs').insert({
         feature: 'report_generation',
         model: 'google/gemini-3-flash-preview',
@@ -784,7 +955,7 @@ serve(async (req) => {
       console.warn('Failed to log AI usage:', logErr);
     }
 
-    return new Response(JSON.stringify({ success: true, bin, bbl, violationsCount: violations.length, applicationsCount: applications.length, notesCount: lineItemNotes.length }), {
+    return new Response(JSON.stringify({ success: true, bin, bbl, violationsCount: violations.length, applicationsCount: applications.length, complaintsCount: complaints.length, notesCount: lineItemNotes.length }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {

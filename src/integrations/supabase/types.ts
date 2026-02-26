@@ -64,6 +64,7 @@ export type Database = {
           client_email: string | null
           client_firm: string | null
           client_name: string | null
+          complaints_data: Json | null
           created_at: string
           customer_concern: string | null
           general_notes: string | null
@@ -95,6 +96,7 @@ export type Database = {
           client_email?: string | null
           client_firm?: string | null
           client_name?: string | null
+          complaints_data?: Json | null
           created_at?: string
           customer_concern?: string | null
           general_notes?: string | null
@@ -126,6 +128,7 @@ export type Database = {
           client_email?: string | null
           client_firm?: string | null
           client_name?: string | null
+          complaints_data?: Json | null
           created_at?: string
           customer_concern?: string | null
           general_notes?: string | null
