@@ -271,6 +271,34 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
             <p><span className="text-gray-500">BBL:</span> <span className="font-mono font-medium">{formatBBL(report.bbl)}</span></p>
           </div>
         </div>
+        {/* Agency Sources */}
+        {(() => {
+          const aq: any[] = (report as any).agencies_queried || [];
+          if (aq.length === 0) return null;
+          const queried = aq.filter((a: any) => a.queried);
+          const withData = queried.filter((a: any) => a.results > 0);
+          return (
+            <div className="mt-3 pt-3 border-t border-gray-200">
+              <p className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold mb-1">
+                Sources Checked ({withData.length} of {queried.length} returned records)
+              </p>
+              <div className="flex flex-wrap gap-1">
+                {queried.map((a: any) => (
+                  <span
+                    key={a.agency}
+                    className={`inline-flex items-center text-[9px] font-medium px-1.5 py-0.5 rounded ${
+                      a.results > 0
+                        ? 'bg-gray-900 text-white'
+                        : 'bg-gray-100 text-gray-400'
+                    }`}
+                  >
+                    {a.agency}{a.results > 0 ? ` (${a.results})` : ''}
+                  </span>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
         {(report as any).customer_concern && (
           <div className="mt-3 pt-3 border-t border-gray-200">
             <p className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold mb-0.5">Scope of Review</p>

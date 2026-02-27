@@ -93,6 +93,7 @@ export type Database = {
         Row: {
           acris_data: Json | null
           address: string
+          agencies_queried: Json | null
           ai_analysis: string | null
           applications_data: Json | null
           bbl: string | null
@@ -128,6 +129,7 @@ export type Database = {
         Insert: {
           acris_data?: Json | null
           address?: string
+          agencies_queried?: Json | null
           ai_analysis?: string | null
           applications_data?: Json | null
           bbl?: string | null
@@ -163,6 +165,7 @@ export type Database = {
         Update: {
           acris_data?: Json | null
           address?: string
+          agencies_queried?: Json | null
           ai_analysis?: string | null
           applications_data?: Json | null
           bbl?: string | null
