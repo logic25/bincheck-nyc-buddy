@@ -91,6 +91,7 @@ export type Database = {
       }
       dd_reports: {
         Row: {
+          acris_data: Json | null
           address: string
           ai_analysis: string | null
           applications_data: Json | null
@@ -125,6 +126,7 @@ export type Database = {
           violations_data: Json | null
         }
         Insert: {
+          acris_data?: Json | null
           address?: string
           ai_analysis?: string | null
           applications_data?: Json | null
@@ -159,6 +161,7 @@ export type Database = {
           violations_data?: Json | null
         }
         Update: {
+          acris_data?: Json | null
           address?: string
           ai_analysis?: string | null
           applications_data?: Json | null

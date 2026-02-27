@@ -1,0 +1,1 @@
+ALTER TABLE public.dd_reports ADD COLUMN acris_data jsonb DEFAULT '[]'::jsonb;

@@ -29,6 +29,9 @@ const NYC_ENDPOINTS = {
   OATH_HEARINGS: "https://data.cityofnewyork.us/resource/jz4z-kudi.json",
   FDNY_VIOLATIONS: "https://data.cityofnewyork.us/resource/avgm-ztsb.json",
   DOB_COMPLAINTS: "https://data.cityofnewyork.us/resource/eabe-havv.json",
+  ACRIS_MASTER: "https://data.cityofnewyork.us/resource/bnx9-e6tj.json",
+  ACRIS_PARTIES: "https://data.cityofnewyork.us/resource/636b-3b5g.json",
+  ACRIS_LEGALS: "https://data.cityofnewyork.us/resource/8h5j-fqxa.json",
 };
 
 const BOROUGH_CODES: Record<string, string> = {
@@ -1215,6 +1218,72 @@ Write in plain paragraphs. No markdown formatting, no headers, no bullet points,
   }
 }
 
+async function fetchACRISData(bbl: string): Promise<any> {
+  if (!bbl || bbl.replace(/\D/g, '').length < 10) return { documents: [], deeds: [], mortgages: [], liens: [] };
+  const clean = bbl.replace(/\D/g, '');
+  const borough = clean.charAt(0);
+  const block = clean.slice(1, 6);
+  const lot = clean.slice(6, 10);
+
+  try {
+    // Fetch master records
+    const masterRecords = await fetchNYCData(NYC_ENDPOINTS.ACRIS_MASTER, {
+      "$where": `borough='${borough}' AND block='${block}' AND lot='${lot}'`,
+      "$limit": "20",
+      "$order": "document_date DESC",
+    });
+
+    if (masterRecords.length === 0) return { documents: [], deeds: [], mortgages: [], liens: [] };
+
+    // Fetch parties for these documents
+    const docIds = masterRecords.map((r: any) => r.document_id).filter(Boolean);
+    const partiesMap: Record<string, any[]> = {};
+
+    if (docIds.length > 0) {
+      const idList = docIds.map((id: string) => `'${id}'`).join(',');
+      const parties = await fetchNYCData(NYC_ENDPOINTS.ACRIS_PARTIES, {
+        "$where": `document_id in(${idList})`,
+        "$limit": "200",
+      });
+      for (const p of parties) {
+        if (!partiesMap[p.document_id]) partiesMap[p.document_id] = [];
+        partiesMap[p.document_id].push(p);
+      }
+    }
+
+    const documents = masterRecords.map((r: any) => {
+      const docParties = partiesMap[r.document_id] || [];
+      const party1 = docParties.filter((p: any) => p.party_type === '1').map((p: any) => [p.name].filter(Boolean).join(' ')).join('; ') || null;
+      const party2 = docParties.filter((p: any) => p.party_type === '2').map((p: any) => [p.name].filter(Boolean).join(' ')).join('; ') || null;
+      return {
+        document_id: r.document_id,
+        document_type: r.doc_type || r.document_type || null,
+        document_date: r.document_date || null,
+        recorded_date: r.recorded_datetime || null,
+        document_amount: r.document_amt ? parseFloat(r.document_amt) : null,
+        party1,
+        party2,
+        crfn: r.crfn || null,
+      };
+    });
+
+    const DEED_TYPES = ['DEED', 'DEEDO', 'DEEDP', 'DEEDM', 'RPTT&RETT'];
+    const MORTGAGE_TYPES = ['MTGE', 'AGMT', 'ASST', 'SMTG', 'CMTG'];
+    const LIEN_TYPES = ['LIEN', 'FEDL', 'MECH', 'JUDGM', 'UCC1', 'UCC3'];
+
+    const docType = (d: any) => (d.document_type || '').toUpperCase();
+    const deeds = documents.filter(d => DEED_TYPES.some(t => docType(d).includes(t))).slice(0, 5);
+    const mortgages = documents.filter(d => MORTGAGE_TYPES.some(t => docType(d).includes(t)));
+    const liens = documents.filter(d => LIEN_TYPES.some(t => docType(d).includes(t)));
+
+    console.log(`ACRIS: ${documents.length} documents, ${deeds.length} deeds, ${mortgages.length} mortgages, ${liens.length} liens`);
+    return { documents, deeds, mortgages, liens };
+  } catch (error) {
+    console.error("ACRIS fetch error:", error);
+    return { documents: [], deeds: [], mortgages: [], liens: [] };
+  }
+}
+
 async function generateAIAnalysis(reportData: any, customerConcern: string | null, LOVABLE_API_KEY: string): Promise<string> {
   const { building, violations, applications, orders } = reportData;
   const openViolations = violations.filter((v: any) => v.status === 'open');
@@ -1222,9 +1291,18 @@ async function generateAIAnalysis(reportData: any, customerConcern: string | nul
   const ecbV = openViolations.filter((v: any) => v.agency === 'ECB');
   const hpdV = openViolations.filter((v: any) => v.agency === 'HPD');
 
+  const acrisData = reportData.acrisData || { documents: [], deeds: [], mortgages: [], liens: [] };
+
   const concernSection = customerConcern
     ? `\n\nCUSTOMER CONCERN: "${customerConcern}"\nPlease specifically address this concern in your analysis and conclusion.`
     : '';
+
+  const acrisSection = acrisData.documents.length > 0
+    ? `\n\nACRIS (Property Transfer & Lien History):
+Deeds: ${acrisData.deeds.length} recorded transfers${acrisData.deeds.length > 0 ? ` — most recent: ${acrisData.deeds[0]?.document_date || 'Unknown'}, amount: $${acrisData.deeds[0]?.document_amount?.toLocaleString() || 'N/A'}` : ''}
+Mortgages: ${acrisData.mortgages.length} recorded${acrisData.mortgages.length > 0 ? ` — most recent: ${acrisData.mortgages[0]?.document_date || 'Unknown'}, amount: $${acrisData.mortgages[0]?.document_amount?.toLocaleString() || 'N/A'}` : ''}
+Liens: ${acrisData.liens.length} recorded`
+    : '\n\nACRIS: No records found (may be a cooperative or records filed under a different lot).';
 
   const prompt = `You are a professional real estate due diligence analyst. Analyze this NYC property data and provide a comprehensive risk assessment.
 
@@ -1239,9 +1317,9 @@ RECENT: ${openViolations.slice(0, 10).map((v: any) => `[${v.agency}] ${v.violati
 
 APPLICATIONS: ${applications.length} total
 ${applications.slice(0, 5).map((a: any) => `[${a.source}] ${a.application_type || 'Unknown'} - ${a.status || 'Unknown'}`).join('; ') || 'None'}
-${concernSection}
+${acrisSection}${concernSection}
 
-Provide: 1. Risk Level (Low/Medium/High/Critical) 2. Key Findings 3. Violation Analysis 4. Permit Activity 5. Recommendations${customerConcern ? ' 6. Conclusion addressing the customer concern directly' : ''}`;
+Provide: 1. Risk Level (Low/Medium/High/Critical) 2. Key Findings 3. Violation Analysis 4. Permit Activity 5. Ownership & Lien History 6. Recommendations${customerConcern ? ' 7. Conclusion addressing the customer concern directly' : ''}`;
 
   try {
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -1332,11 +1410,12 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: "Property not found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // Fetch violations, applications, and complaints in parallel
-    const [allViolations, rawApplications, complaints] = await Promise.all([
+    // Fetch violations, applications, complaints, and ACRIS in parallel
+    const [allViolations, rawApplications, complaints, acrisData] = await Promise.all([
       fetchViolations(bin, bbl),
       fetchApplications(bin),
       fetchDOBComplaints(bin),
+      fetchACRISData(bbl),
     ]);
 
     // CRITICAL: Filter out closed/resolved/dismissed violations — report must only contain open items
@@ -1371,7 +1450,7 @@ serve(async (req) => {
     // Generate AI analysis, line-item notes, and property status summary in parallel
     const [aiAnalysis, lineItemNotes, propertyStatusSummary] = await Promise.all([
       generateAIAnalysis(
-        { building: building || { address: resolvedAddress, bin, bbl }, violations, applications, orders },
+        { building: building || { address: resolvedAddress, bin, bbl }, violations, applications, orders, acrisData },
         customerConcern || null,
         LOVABLE_API_KEY
       ),
@@ -1397,6 +1476,7 @@ serve(async (req) => {
       building_data: building || { address: resolvedAddress, bin, bbl },
       violations_data: violations, applications_data: applications, orders_data: orders,
       complaints_data: complaints,
+      acris_data: acrisData,
       ai_analysis: aiAnalysis,
       line_item_notes: lineItemNotes,
       property_status_summary: propertyStatusSummary || null,
