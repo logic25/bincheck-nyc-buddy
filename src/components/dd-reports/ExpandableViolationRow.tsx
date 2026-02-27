@@ -89,9 +89,25 @@ const ExpandableViolationRow = ({ violation, index, note, onNoteChange, bbl, rea
         </TableCell>
         <TableCell className="font-mono text-sm">{violation.violation_number}</TableCell>
         <TableCell>
-          <Badge variant="outline" className={getAgencyColor(violation.agency)}>
-            {violation.agency}
-          </Badge>
+          <div className="flex items-center gap-1">
+            <Badge variant="outline" className={getAgencyColor(violation.agency)}>
+              {violation.agency}
+            </Badge>
+            {(() => {
+              const desc = (violation.description_raw || violation.violation_type || '').toLowerCase();
+              const isArchitect = desc.includes('illegal conversion') || desc.includes('illegal alteration') ||
+                desc.includes('facade') || desc.includes('fisp') || desc.includes('local law 11') ||
+                desc.includes('structural') || desc.includes('unauthorized alteration') ||
+                desc.includes('change of use') || desc.includes('change of occupancy') ||
+                desc.includes('contrary to approved') || desc.includes('professional certification') ||
+                desc.includes('certificate of occupancy') && desc.includes('contrary');
+              return isArchitect ? (
+                <Badge variant="outline" className="text-[9px] px-1 py-0 border-primary/40 text-primary" title="Architect certification typically involved in resolving this violation type">
+                  RA
+                </Badge>
+              ) : null;
+            })()}
+          </div>
         </TableCell>
         <TableCell className="max-w-[200px] truncate">
           {violation.violation_type || violation.description_raw?.slice(0, 50) || '—'}

@@ -17,7 +17,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import {
   ArrowLeft, Building2, AlertTriangle, FileStack, FileWarning, Download, Trash2,
-  Save, StickyNote, Calendar, User, Loader2, RefreshCw, CheckCircle2, Shield, MapPin, Hash, Pencil, Eye, MessageSquareWarning, ListChecks
+  Save, StickyNote, Calendar, User, Loader2, RefreshCw, CheckCircle2, Shield, MapPin, Hash, Pencil, Eye, MessageSquareWarning, ListChecks, Scale
 } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { format } from 'date-fns';
@@ -26,6 +26,7 @@ import ExpandableViolationRow from './ExpandableViolationRow';
 import ExpandableApplicationRow from './ExpandableApplicationRow';
 import ExpandableComplaintRow from './ExpandableComplaintRow';
 import BatchEditPanel, { type SelectedItem } from './BatchEditPanel';
+import ArchitectRequestDialog from './ArchitectRequestDialog';
 import html2pdf from 'html2pdf.js';
 import { getAgencyColor } from '@/lib/violation-utils';
 import ReactMarkdown from 'react-markdown';
@@ -120,6 +121,7 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
   const [applicationFilter, setApplicationFilter] = useState<string>('all');
   const [violationFilter, setViolationFilter] = useState<string>('all');
   const [activeSection, setActiveSection] = useState<'violations' | 'applications' | 'complaints' | 'analysis' | 'notes'>('violations');
+  const [architectDialogOpen, setArchitectDialogOpen] = useState(false);
 
   // Track edit statuses for line items
   const [editStatuses, setEditStatuses] = useState<Record<string, { status: 'pending' | 'approved' | 'rejected'; id: string }>>({});
@@ -333,6 +335,26 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
   const orders = report.orders_data || { stop_work: [], partial_stop_work: [], vacate: [] };
   const complaints = report.complaints_data || [];
   const building = report.building_data || {};
+
+  // Compute architect-tagged violations from line_item_notes
+  const architectTaggedViolations = (() => {
+    const notes = report.line_item_notes || [];
+    const taggedIds = new Set(
+      notes.filter((n: any) => n.architect_likely_needed).map((n: any) => n.id)
+    );
+    // Also check violation descriptions for common architect-needed patterns
+    return violations.filter((v: any) => {
+      if (taggedIds.has(v.violation_number || v.id)) return true;
+      const desc = (v.description_raw || v.violation_type || '').toLowerCase();
+      return desc.includes('illegal conversion') || desc.includes('illegal alteration') ||
+        desc.includes('facade') || desc.includes('fisp') || desc.includes('local law 11') ||
+        desc.includes('structural') || desc.includes('unauthorized alteration') ||
+        desc.includes('change of use') || desc.includes('change of occupancy') ||
+        desc.includes('contrary to approved') || desc.includes('professional certification') ||
+        desc.includes('certificate of occupancy') && desc.includes('contrary');
+    });
+  })();
+  const hasArchitectNeeded = architectTaggedViolations.length > 0;
 
   const bisApplications = applications.filter((a: any) => a.source === 'BIS');
   const dobNowApplications = applications.filter((a: any) => a.source === 'DOB_NOW');
@@ -787,8 +809,31 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
               <Button variant={applicationFilter === 'in_process' ? 'default' : 'outline'} size="sm" className="h-7 text-xs" onClick={() => setApplicationFilter('in_process')}>
                 In Process ({applications.filter((a: any) => { const s = (a.status || '').toUpperCase(); return ['A','B','C','D','E','F','G','H','K','L','M'].includes(s) || s.includes('FILED') || s.includes('PLAN EXAM'); }).length})
               </Button>
+        </div>
+
+        {/* Architect Opinion Letter CTA */}
+        {hasArchitectNeeded && (
+          <div className="mx-4 mb-4 p-4 rounded-lg border border-primary/20 bg-primary/5">
+            <div className="flex items-start gap-3">
+              <Scale className="w-5 h-5 text-primary mt-0.5 shrink-0" />
+              <div className="flex-1">
+                <p className="text-sm font-medium text-foreground mb-1">Architect Certification Typically Involved</p>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  {architectTaggedViolations.length} open violation{architectTaggedViolations.length !== 1 ? 's' : ''} on this property {architectTaggedViolations.length !== 1 ? 'are' : 'is'} of a type where DOB has historically accepted or required a licensed architect's certification letter as part of the dismissal process. BinCheckNYC can coordinate architect opinion letters through our professional network.
+                </p>
+                <Button
+                  size="sm"
+                  className="mt-3 gap-1.5"
+                  onClick={() => setArchitectDialogOpen(true)}
+                >
+                  <Scale className="w-3.5 h-3.5" />
+                  Request Architect Opinion Letter
+                </Button>
+              </div>
             </div>
           </div>
+        )}
+      </div>
           {applications.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground text-sm">No applications found.</div>
           ) : (
@@ -1008,6 +1053,18 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
           }} userProfile={userProfile} />
         </div>
       </div>
+
+      {/* Architect Request Dialog */}
+      <ArchitectRequestDialog
+        open={architectDialogOpen}
+        onOpenChange={setArchitectDialogOpen}
+        reportId={report.id}
+        propertyAddress={report.address}
+        taggedViolations={architectTaggedViolations.map((v: any) => ({
+          violation_number: v.violation_number || v.id || '',
+          description: (v.violation_type || v.description_raw || 'Unknown').slice(0, 100),
+        }))}
+      />
 
       {/* Batch Edit Panel */}
       {bulkMode && selectedItems.size > 0 && (

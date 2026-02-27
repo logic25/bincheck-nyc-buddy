@@ -730,6 +730,35 @@ function classifyViolation(v: any): { tag: string; reason: string } {
   return { tag: '[MONITOR]', reason: 'unclassified_open' };
 }
 
+// Determine if a violation typically involves architect certification for dismissal
+function isArchitectLikelyNeeded(v: any): boolean {
+  const desc = (v.description_raw || v.violation_type || '').toLowerCase();
+  const disposition = (v.disposition || '').toLowerCase();
+  const status = (v.status || '').toLowerCase();
+  const complaintCat = (v.complaint_category || '').trim();
+
+  // Complaint categories that typically need architect involvement
+  const architectCategories = ['12', '13', '04', '18', '82', '23', '45', '27'];
+  if (architectCategories.includes(complaintCat)) return true;
+
+  // Description-based detection
+  if (desc.includes('illegal conversion') || desc.includes('illegal alteration')) return true;
+  if (desc.includes('contrary to approved') || desc.includes('work contrary to')) return true;
+  if (desc.includes('facade') || desc.includes('fisp') || desc.includes('local law 11')) return true;
+  if (desc.includes('structural') || desc.includes('structural stability')) return true;
+  if (desc.includes('unauthorized alteration') || desc.includes('change of use') || desc.includes('change of occupancy')) return true;
+  if (desc.includes('certificate of occupancy') && desc.includes('contrary')) return true;
+  if (desc.includes('illegal use') || desc.includes('non-conforming use')) return true;
+
+  // Disposition/status mentions professional certification
+  const combined = `${disposition} ${status}`;
+  if (combined.includes('professional certification') || combined.includes('architect') || 
+      combined.includes(' pe ') || combined.includes('letter required') ||
+      combined.includes('prof cert')) return true;
+
+  return false;
+}
+
 function classifyApplication(app: any): { tag: string; reason: string } {
   const bisStatus = (app.job_status || app.status || '').toUpperCase().trim();
   const nowStatus = (app.filing_status || app.status || '').toLowerCase();
@@ -928,6 +957,7 @@ async function generateLineItemNotes(
         classification_reason: reason,
         concern_keyword_match: getConcernOverlaps(vDesc),
         is_target_location: isOnTargetLocation(v.story || v.floor, v.apartment || v.unit),
+        architect_likely_needed: isArchitectLikelyNeeded(v),
       };
     })
     .filter(Boolean)

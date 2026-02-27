@@ -126,6 +126,19 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
   const tableCellStyle = "border border-gray-200 px-2 py-1.5 text-[11px]";
   const tableHeaderStyle = "border border-gray-200 px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-gray-600 bg-gray-50";
 
+  // Check if violation likely needs architect
+  const isArchitectLikelyNeeded = (v: any): boolean => {
+    const desc = (v.description_raw || v.violation_type || '').toLowerCase();
+    return desc.includes('illegal conversion') || desc.includes('illegal alteration') ||
+      desc.includes('facade') || desc.includes('fisp') || desc.includes('local law 11') ||
+      desc.includes('structural') || desc.includes('unauthorized alteration') ||
+      desc.includes('change of use') || desc.includes('change of occupancy') ||
+      desc.includes('contrary to approved') || desc.includes('professional certification') ||
+      (desc.includes('certificate of occupancy') && desc.includes('contrary'));
+  };
+
+  const architectTaggedCount = violations.filter(isArchitectLikelyNeeded).length;
+
   const renderViolationGroup = (agencyViolations: any[], agencyName: string) => {
     if (agencyViolations.length === 0) return null;
     return (
@@ -148,7 +161,12 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
           <tbody>
             {agencyViolations.slice(0, 50).map((v: any, idx: number) => (
               <tr key={idx} className={idx % 2 === 0 ? '' : 'bg-gray-50/50'}>
-                <td className={`${tableCellStyle} font-mono text-[10px]`}>{v.violation_number}</td>
+                <td className={`${tableCellStyle} font-mono text-[10px]`}>
+                  {v.violation_number}
+                  {isArchitectLikelyNeeded(v) && (
+                    <span className="ml-1 text-[8px] font-bold text-blue-700 bg-blue-50 px-1 py-0 rounded" title="Architect certification typically involved">RA</span>
+                  )}
+                </td>
                 <td className={`${tableCellStyle} max-w-[160px]`}>{(v.violation_type || v.description_raw || '—').slice(0, 55)}</td>
                 <td className={tableCellStyle}>{v.severity || v.violation_class || '—'}</td>
                 <td className={`${tableCellStyle} whitespace-nowrap`}>{formatShortDate(v.issued_date)}</td>
@@ -396,6 +414,14 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
             {renderViolationGroup(fdnyViolations, 'FDNY')}
             {renderViolationGroup(otherOathViolations, 'Other Agency (OATH)')}
           </>
+        )}
+        {architectTaggedCount > 0 && (
+          <div className="mt-4 p-3 border border-blue-200 bg-blue-50/50 rounded">
+            <p className="text-[11px] font-semibold text-blue-900 mb-1">Architect Certification Typically Involved</p>
+            <p className="text-[10px] text-gray-700 leading-relaxed">
+              {architectTaggedCount} open violation{architectTaggedCount !== 1 ? 's' : ''} (marked <span className="font-bold text-blue-700 bg-blue-100 px-1 rounded text-[9px]">RA</span>) {architectTaggedCount !== 1 ? 'are' : 'is'} of a type where DOB has historically accepted or required a licensed architect's certification letter as part of the dismissal process. BinCheckNYC can coordinate architect opinion letters through our professional network.
+            </p>
+          </div>
         )}
       </section>
 
