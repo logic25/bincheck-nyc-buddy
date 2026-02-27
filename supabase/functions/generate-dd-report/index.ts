@@ -1373,6 +1373,14 @@ serve(async (req) => {
       ),
     ]);
 
+    // Determine CitiSignal recommendation based on building size
+    const bldg = building || {};
+    const unitsRes = parseInt(bldg.dwelling_units || bldg.unitsres || '0') || 0;
+    const unitsTotal = parseInt(bldg.unitstotal || '0') || 0;
+    const numFloors = parseInt(bldg.stories || bldg.numfloors || '0') || 0;
+    const citisignalRecommended = unitsRes > 3 || unitsTotal > 5 || numFloors > 3;
+    console.log(`CitiSignal recommendation: ${citisignalRecommended} (units_res=${unitsRes}, units_total=${unitsTotal}, floors=${numFloors})`);
+
     const { error: updateError } = await supabase.from('dd_reports').update({
       bin: bin || null, bbl: bbl || null,
       building_data: building || { address: resolvedAddress, bin, bbl },
@@ -1381,6 +1389,7 @@ serve(async (req) => {
       ai_analysis: aiAnalysis,
       line_item_notes: lineItemNotes,
       property_status_summary: propertyStatusSummary || null,
+      citisignal_recommended: citisignalRecommended,
       status: 'pending_review',
     }).eq('id', reportId);
 

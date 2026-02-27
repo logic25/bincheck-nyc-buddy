@@ -97,6 +97,7 @@ export type Database = {
           bbl: string | null
           bin: string | null
           building_data: Json | null
+          citisignal_recommended: boolean | null
           client_email: string | null
           client_firm: string | null
           client_name: string | null
@@ -130,6 +131,7 @@ export type Database = {
           bbl?: string | null
           bin?: string | null
           building_data?: Json | null
+          citisignal_recommended?: boolean | null
           client_email?: string | null
           client_firm?: string | null
           client_name?: string | null
@@ -163,6 +165,7 @@ export type Database = {
           bbl?: string | null
           bin?: string | null
           building_data?: Json | null
+          citisignal_recommended?: boolean | null
           client_email?: string | null
           client_firm?: string | null
           client_name?: string | null
