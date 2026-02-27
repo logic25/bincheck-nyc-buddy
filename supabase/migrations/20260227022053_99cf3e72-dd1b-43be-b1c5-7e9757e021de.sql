@@ -1,0 +1,1 @@
+ALTER TABLE public.dd_reports ADD COLUMN citisignal_recommended boolean DEFAULT false;

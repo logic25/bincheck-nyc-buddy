@@ -30,6 +30,7 @@ interface DDReportPrintViewProps {
     line_item_notes?: any[];
     customer_concern?: string | null;
     property_status_summary?: string | null;
+    citisignal_recommended?: boolean;
   };
   userProfile?: UserProfile;
 }
@@ -411,6 +412,26 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
         <section className="mb-6">
           <h3 className={sectionHeaderStyle}>Notes</h3>
           <p className="text-[11px] whitespace-pre-wrap text-gray-700">{report.general_notes}</p>
+        </section>
+      )}
+
+      {/* CitiSignal Recommendation */}
+      {report.citisignal_recommended && (
+        <section className="mb-6 p-5 rounded border-2 border-teal-300 bg-teal-50/50">
+          <h3 className="text-[13px] font-bold text-teal-900 mb-2">Ongoing Compliance Monitoring Available</h3>
+          <p className="text-[11px] text-gray-700 leading-relaxed mb-3">
+            This property has {violations.length} active violation{violations.length !== 1 ? 's' : ''} and {applications.length} open application{applications.length !== 1 ? 's' : ''} being tracked by multiple NYC agencies. Properties of this size and complexity benefit from continuous monitoring to catch new filings, violation updates, and permit changes as they happen — not just at the point of transaction.
+          </p>
+          <p className="text-[11px] font-semibold text-gray-800 mb-1.5">CitiSignal by BinCheckNYC provides:</p>
+          <ul className="text-[11px] text-gray-700 list-disc ml-5 space-y-0.5 mb-3">
+            <li>Real-time violation and permit monitoring across DOB, ECB, FDNY, HPD, and OATH</li>
+            <li>AI-powered compliance scoring and alerts</li>
+            <li>Property management tools including work orders and vendor coordination</li>
+            <li>Telegram and email notifications for new filings</li>
+          </ul>
+          <p className="text-[11px] text-gray-600">
+            Learn more at <span className="font-semibold text-teal-700">citisignal.com</span> or contact us to set up monitoring for this property.
+          </p>
         </section>
       )}
 
