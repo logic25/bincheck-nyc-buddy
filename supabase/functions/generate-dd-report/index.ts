@@ -1322,11 +1322,21 @@ serve(async (req) => {
     }
 
     // Fetch violations, applications, and complaints in parallel
-    const [violations, rawApplications, complaints] = await Promise.all([
+    const [allViolations, rawApplications, complaints] = await Promise.all([
       fetchViolations(bin, bbl),
       fetchApplications(bin),
       fetchDOBComplaints(bin),
     ]);
+
+    // CRITICAL: Filter out closed/resolved/dismissed violations — report must only contain open items
+    const CLOSED_STATUSES = ['closed', 'resolved', 'dismissed', 'paid', 'complied', 'certified closed'];
+    const violations = allViolations.filter((v: any) => {
+      const status = (v.status || '').toLowerCase();
+      if (CLOSED_STATUSES.includes(status)) return false;
+      if (status.includes('close') || status.includes('dismiss') || status.includes('resolved') || status.includes('complied')) return false;
+      return true;
+    });
+    console.log(`Violations: ${allViolations.length} total → ${violations.length} open (filtered ${allViolations.length - violations.length} closed)`);
 
     const seenApps = new Set<string>();
     const applications = rawApplications.filter((app: any) => {
