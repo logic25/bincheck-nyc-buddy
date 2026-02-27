@@ -89,6 +89,71 @@ export type Database = {
         }
         Relationships: []
       }
+      architect_requests: {
+        Row: {
+          assigned_architect: string | null
+          contact_email: string
+          contact_name: string
+          contact_phone: string | null
+          created_at: string
+          id: string
+          letter_file_url: string | null
+          price_quoted: number
+          property_address: string
+          report_id: string
+          request_description: string | null
+          status: string
+          updated_at: string
+          urgency: string
+          user_id: string
+          violation_numbers: Json
+        }
+        Insert: {
+          assigned_architect?: string | null
+          contact_email: string
+          contact_name: string
+          contact_phone?: string | null
+          created_at?: string
+          id?: string
+          letter_file_url?: string | null
+          price_quoted?: number
+          property_address: string
+          report_id: string
+          request_description?: string | null
+          status?: string
+          updated_at?: string
+          urgency?: string
+          user_id: string
+          violation_numbers?: Json
+        }
+        Update: {
+          assigned_architect?: string | null
+          contact_email?: string
+          contact_name?: string
+          contact_phone?: string | null
+          created_at?: string
+          id?: string
+          letter_file_url?: string | null
+          price_quoted?: number
+          property_address?: string
+          report_id?: string
+          request_description?: string | null
+          status?: string
+          updated_at?: string
+          urgency?: string
+          user_id?: string
+          violation_numbers?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "architect_requests_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "dd_reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dd_reports: {
         Row: {
           acris_data: Json | null
