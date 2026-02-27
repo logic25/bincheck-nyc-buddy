@@ -25,6 +25,7 @@ interface DDReportPrintViewProps {
     applications_data: any;
     orders_data: any;
     complaints_data?: any;
+    acris_data?: any;
     ai_analysis: string | null;
     general_notes: string | null;
     line_item_notes?: any[];
@@ -74,6 +75,8 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
   const orders = report.orders_data || { stop_work: [], vacate: [] };
   const building = report.building_data || {};
   const complaints = report.complaints_data || [];
+  const acris = report.acris_data || { documents: [], deeds: [], mortgages: [], liens: [] };
+  const acrisDocuments = acris.documents || [];
   const reportId = generateReportId(report.report_date);
   const lineItemNotes = report.line_item_notes || [];
 
@@ -380,6 +383,46 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
           <>
             {renderApplicationsTable(bisApplications, 'BIS Applications')}
             {renderApplicationsTable(dobNowApplications, 'DOB NOW Build Applications')}
+          </>
+        )}
+      </section>
+
+      {/* ACRIS - Property Transfer & Lien History */}
+      <section className="mb-6">
+        <h3 className={sectionHeaderStyle}>Property Transfer & Lien History (ACRIS)</h3>
+        {acrisDocuments.length === 0 ? (
+          <p className="text-[11px] text-gray-500 italic">
+            No ACRIS records found for this BBL. This may indicate a cooperative or property with records filed under a different lot identifier.
+          </p>
+        ) : (
+          <>
+            <table className="w-full border-collapse">
+              <thead>
+                <tr>
+                  <th className={tableHeaderStyle}>Date</th>
+                  <th className={tableHeaderStyle}>Document Type</th>
+                  <th className={tableHeaderStyle}>Party 1 (Grantor/Lender)</th>
+                  <th className={tableHeaderStyle}>Party 2 (Grantee/Borrower)</th>
+                  <th className={tableHeaderStyle}>Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                {acrisDocuments.slice(0, 10).map((doc: any, idx: number) => (
+                  <tr key={idx} className={idx % 2 === 0 ? '' : 'bg-gray-50/50'}>
+                    <td className={`${tableCellStyle} whitespace-nowrap`}>{formatShortDate(doc.document_date)}</td>
+                    <td className={tableCellStyle}>{doc.document_type || '—'}</td>
+                    <td className={`${tableCellStyle} max-w-[140px] truncate`}>{doc.party1 || '—'}</td>
+                    <td className={`${tableCellStyle} max-w-[140px] truncate`}>{doc.party2 || '—'}</td>
+                    <td className={`${tableCellStyle} whitespace-nowrap`}>
+                      {doc.document_amount ? `$${doc.document_amount.toLocaleString()}` : '—'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <p className="text-[9px] text-gray-400 mt-2 italic">
+              Source: NYC ACRIS — recorded documents only. Unrecorded agreements not included.
+            </p>
           </>
         )}
       </section>
