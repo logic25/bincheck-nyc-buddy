@@ -1418,6 +1418,38 @@ serve(async (req) => {
       fetchACRISData(bbl),
     ]);
 
+    // Build agencies_queried tracking
+    const dobViolationsFromAll = allViolations.filter((v: any) => v.agency === 'DOB');
+    const ecbViolationsFromAll = allViolations.filter((v: any) => v.agency === 'ECB');
+    const hpdViolationsFromAll = allViolations.filter((v: any) => v.agency === 'HPD');
+    const fdnyViolationsFromAll = allViolations.filter((v: any) => v.agency === 'FDNY');
+    const depViolationsFromAll = allViolations.filter((v: any) => v.agency === 'DEP');
+    const dotViolationsFromAll = allViolations.filter((v: any) => v.agency === 'DOT');
+    const dsnyViolationsFromAll = allViolations.filter((v: any) => v.agency === 'DSNY');
+    const lpcViolationsFromAll = allViolations.filter((v: any) => v.agency === 'LPC');
+    const dofViolationsFromAll = allViolations.filter((v: any) => v.agency === 'DOF');
+
+    const bisAppsCount = rawApplications.filter((a: any) => a.source === 'BIS').length;
+    const dobNowAppsCount = rawApplications.filter((a: any) => a.source === 'DOB_NOW').length;
+    const acrisDocs = acrisData?.documents?.length || 0;
+
+    const agenciesQueried = [
+      { agency: 'DOB', label: 'Dept of Buildings', queried: true, results: dobViolationsFromAll.length, category: 'violations' },
+      { agency: 'ECB', label: 'ECB/OATH', queried: true, results: ecbViolationsFromAll.length, category: 'violations' },
+      { agency: 'HPD', label: 'Housing Preservation', queried: !!bbl, results: hpdViolationsFromAll.length, category: 'violations' },
+      { agency: 'FDNY', label: 'Fire Department', queried: true, results: fdnyViolationsFromAll.length, category: 'violations' },
+      { agency: 'DEP', label: 'Environmental Protection', queried: !!bbl, results: depViolationsFromAll.length, category: 'violations' },
+      { agency: 'DOT', label: 'Transportation', queried: !!bbl, results: dotViolationsFromAll.length, category: 'violations' },
+      { agency: 'DSNY', label: 'Sanitation', queried: !!bbl, results: dsnyViolationsFromAll.length, category: 'violations' },
+      { agency: 'LPC', label: 'Landmarks', queried: !!bbl, results: lpcViolationsFromAll.length, category: 'violations' },
+      { agency: 'DOF', label: 'Dept of Finance', queried: !!bbl, results: dofViolationsFromAll.length, category: 'violations' },
+      { agency: 'DOB-BIS', label: 'DOB BIS Applications', queried: !!bin, results: bisAppsCount, category: 'applications' },
+      { agency: 'DOB-NOW', label: 'DOB NOW Applications', queried: !!bin, results: dobNowAppsCount, category: 'applications' },
+      { agency: 'DOB-COMPLAINTS', label: 'DOB Complaints', queried: !!bin, results: complaints.length, category: 'complaints' },
+      { agency: 'ACRIS', label: 'ACRIS Property Records', queried: !!bbl, results: acrisDocs, category: 'transfers' },
+    ];
+    console.log(`Agencies queried: ${agenciesQueried.filter(a => a.queried).length}, with data: ${agenciesQueried.filter(a => a.results > 0).length}`);
+
     // CRITICAL: Filter out closed/resolved/dismissed violations — report must only contain open items
     const CLOSED_STATUSES = ['closed', 'resolved', 'dismissed', 'paid', 'complied', 'certified closed'];
     const violations = allViolations.filter((v: any) => {
@@ -1477,6 +1509,7 @@ serve(async (req) => {
       violations_data: violations, applications_data: applications, orders_data: orders,
       complaints_data: complaints,
       acris_data: acrisData,
+      agencies_queried: agenciesQueried,
       ai_analysis: aiAnalysis,
       line_item_notes: lineItemNotes,
       property_status_summary: propertyStatusSummary || null,
