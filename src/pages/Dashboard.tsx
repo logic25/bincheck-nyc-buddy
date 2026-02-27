@@ -340,7 +340,7 @@ const Dashboard = () => {
             <Shield className="h-6 w-6 text-primary" />
             <span className="font-display text-xl tracking-tight">BinCheck<span className="text-primary">NYC</span></span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <Button size="sm" onClick={() => navigate("/order")}>
               Order a Report <ArrowRight className="h-3.5 w-3.5 ml-1" />
             </Button>
