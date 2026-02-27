@@ -1,9 +1,36 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
-};
+const ALLOWED_ORIGINS = [
+  'https://binchecknyc.com',
+  'https://id-preview--5687520e-43de-4827-98f8-73a2100ce635.lovable.app',
+  'http://localhost:5173',
+];
+
+function getCorsHeaders(req: Request) {
+  const origin = req.headers.get('origin') || '';
+  const corsOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  return {
+    'Access-Control-Allow-Origin': corsOrigin,
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  };
+}
+
+// In-memory rate limiter: 20 requests per IP per hour
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+const RATE_LIMIT = 20;
+const RATE_WINDOW_MS = 60 * 60 * 1000; // 1 hour
+
+function checkRateLimit(ip: string): boolean {
+  const now = Date.now();
+  const entry = rateLimitMap.get(ip);
+  if (!entry || now > entry.resetAt) {
+    rateLimitMap.set(ip, { count: 1, resetAt: now + RATE_WINDOW_MS });
+    return true;
+  }
+  if (entry.count >= RATE_LIMIT) return false;
+  entry.count++;
+  return true;
+}
 
 const NYC_DATA_BASE = "https://data.cityofnewyork.us/resource";
 
@@ -145,8 +172,17 @@ function deduplicateByKey(records: any[], keyFn: (r: any) => string): any[] {
 }
 
 serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
+  }
+
+  // Rate limit check
+  const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || req.headers.get('cf-connecting-ip') || 'unknown';
+  if (!checkRateLimit(ip)) {
+    return new Response(JSON.stringify({ error: "Rate limit exceeded. Maximum 20 searches per hour." }), {
+      status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
 
   try {
