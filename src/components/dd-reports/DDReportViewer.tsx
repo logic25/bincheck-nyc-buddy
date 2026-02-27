@@ -106,6 +106,8 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
   // True when content cannot be edited: approved status OR non-admin client viewing
   const isReadOnly = report.status === 'approved' || clientReadOnly;
   const [isExporting, setIsExporting] = useState(false);
+  const [isPreviewing, setIsPreviewing] = useState(false);
+  const [previewBlobUrl, setPreviewBlobUrl] = useState<string | null>(null);
   const [generalNotes, setGeneralNotes] = useState(report.general_notes || '');
   const [aiAnalysis, setAiAnalysis] = useState(report.ai_analysis || '');
   const [isEditingAI, setIsEditingAI] = useState(false);
@@ -241,6 +243,35 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
     }
   };
 
+  const handlePreviewPDF = async () => {
+    if (!printRef.current) return;
+    setIsPreviewing(true);
+    try {
+      const element = printRef.current;
+      const opt = {
+        margin: 0.5,
+        image: { type: 'jpeg' as const, quality: 0.98 },
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: 'in' as const, format: 'letter' as const, orientation: 'portrait' as const }
+      };
+      const pdfBlob = await html2pdf().set(opt).from(element).outputPdf('blob');
+      const url = URL.createObjectURL(pdfBlob);
+      setPreviewBlobUrl(url);
+    } catch (error) {
+      console.error('PDF preview error:', error);
+      toast.error('Failed to generate preview');
+      setIsPreviewing(false);
+    }
+  };
+
+  const closePreview = () => {
+    if (previewBlobUrl) {
+      URL.revokeObjectURL(previewBlobUrl);
+      setPreviewBlobUrl(null);
+    }
+    setIsPreviewing(false);
+  };
+
   const saveNotes = useMutation({
     mutationFn: async () => {
       const formattedNotes = Object.entries(lineItemNotes).map(([key, note]) => {
@@ -347,10 +378,16 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
         <div className="flex items-center gap-2">
           {/* Client read-only: show only PDF download */}
           {clientReadOnly ? (
-            <Button onClick={handleExportPDF} disabled={isExporting} className="bg-emerald-600 hover:bg-emerald-700 text-white">
-              {isExporting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
-              Download PDF
-            </Button>
+            <>
+              <Button variant="outline" onClick={handlePreviewPDF} disabled={isPreviewing}>
+                {isPreviewing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Eye className="w-4 h-4 mr-2" />}
+                Preview Report
+              </Button>
+              <Button onClick={handleExportPDF} disabled={isExporting} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+                {isExporting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
+                Download PDF
+              </Button>
+            </>
           ) : (
             <>
               {isAdmin && report.status === 'pending_review' && (
@@ -365,6 +402,10 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
               <Button variant="outline" size="sm" onClick={() => onRegenerate?.(report.id, report.address)} disabled={isRegenerating || !onRegenerate}>
                 {isRegenerating ? <Loader2 className="w-3 h-3 mr-1.5 animate-spin" /> : <RefreshCw className="w-3 h-3 mr-1.5" />}
                 Regen
+              </Button>
+              <Button variant="outline" size="sm" onClick={handlePreviewPDF} disabled={isPreviewing}>
+                {isPreviewing ? <Loader2 className="w-3 h-3 mr-1.5 animate-spin" /> : <Eye className="w-3 h-3 mr-1.5" />}
+                Preview
               </Button>
               <Button variant="outline" size="sm" onClick={handleExportPDF} disabled={isExporting}>
                 {isExporting ? <Loader2 className="w-3 h-3 mr-1.5 animate-spin" /> : <Download className="w-3 h-3 mr-1.5" />}
@@ -945,6 +986,50 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
           onClose={() => { setBulkMode(false); setSelectedItems(new Set()); }}
           onBatchSaved={handleBatchSaved}
         />
+      )}
+
+      {/* PDF Preview Modal */}
+      {(previewBlobUrl || isPreviewing) && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          {/* Overlay */}
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={closePreview} />
+          {/* Modal */}
+          <div className="relative w-[90vw] h-[90vh] max-w-6xl flex flex-col bg-card rounded-xl border border-border shadow-2xl overflow-hidden">
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-3 border-b border-border bg-muted/50">
+              <div className="flex items-center gap-3">
+                <Eye className="w-4 h-4 text-muted-foreground" />
+                <span className="font-semibold text-sm">Report Preview</span>
+                <span className="text-xs text-muted-foreground">— {report.address}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={handleExportPDF} disabled={isExporting}>
+                  <Download className="w-3 h-3 mr-1.5" /> Download
+                </Button>
+                <Button variant="ghost" size="sm" onClick={closePreview}>
+                  ✕
+                </Button>
+              </div>
+            </div>
+            {/* Content */}
+            <div className="flex-1 bg-muted/30">
+              {previewBlobUrl ? (
+                <iframe
+                  src={previewBlobUrl}
+                  className="w-full h-full border-0"
+                  title="PDF Preview"
+                />
+              ) : (
+                <div className="flex items-center justify-center h-full">
+                  <div className="flex items-center gap-3 text-muted-foreground">
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <span className="text-sm">Generating preview…</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
