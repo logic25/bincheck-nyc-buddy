@@ -355,10 +355,7 @@ const Dashboard = () => {
             {isAdmin && (
               <>
                 <Button variant="ghost" size="sm" onClick={() => navigate("/dd-reports")}>
-                  <FileText className="h-4 w-4 mr-1" /> DD Reports
-                </Button>
-                <Button variant="ghost" size="sm" onClick={() => navigate("/admin")}>
-                  <Shield className="h-4 w-4 mr-1" /> Admin
+                  <FileText className="h-4 w-4 mr-1" /> Report Manager
                 </Button>
                 <Button variant="ghost" size="sm" onClick={() => navigate("/help")}>
                   <BookOpen className="h-4 w-4 mr-1" /> Help Center
