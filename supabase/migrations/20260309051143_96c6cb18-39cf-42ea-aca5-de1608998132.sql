@@ -1,0 +1,1 @@
+ALTER TABLE public.dd_reports ADD COLUMN IF NOT EXISTS tax_lien_data jsonb DEFAULT '[]'::jsonb;

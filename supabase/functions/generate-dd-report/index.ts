@@ -36,6 +36,7 @@ const NYC_ENDPOINTS = {
   ACRIS_MASTER: "https://data.cityofnewyork.us/resource/bnx9-e6tj.json",
   ACRIS_PARTIES: "https://data.cityofnewyork.us/resource/636b-3b5g.json",
   ACRIS_LEGALS: "https://data.cityofnewyork.us/resource/8h5j-fqxa.json",
+  TAX_LIEN_SALE: "https://data.cityofnewyork.us/resource/9rz4-mjek.json",
 };
 
 const BOROUGH_CODES: Record<string, string> = {
@@ -1336,11 +1337,48 @@ async function fetchACRISData(bbl: string): Promise<any> {
   } catch (error) {
     console.error("ACRIS fetch error:", error);
     return { documents: [], deeds: [], mortgages: [], liens: [] };
+}
+
+async function fetchTaxLienData(bbl: string): Promise<any[]> {
+  if (!bbl || bbl.length < 10) return [];
+  try {
+    // BBL format: Borough(1) Block(5) Lot(4) — parse into components
+    const borough = bbl.substring(0, 1);
+    const block = bbl.substring(1, 6).replace(/^0+/, '');
+    const lot = bbl.substring(6, 10).replace(/^0+/, '');
+    
+    console.log(`Tax Lien lookup: BBL=${bbl}, Borough=${borough}, Block=${block}, Lot=${lot}`);
+    
+    // Query by borough, block, lot
+    const records = await fetchNYCData(NYC_ENDPOINTS.TAX_LIEN_SALE, {
+      "$where": `borough = '${borough}' AND block = '${block}' AND lot = '${lot}'`,
+      "$limit": "50",
+      "$order": "tax_class_code DESC",
+    });
+    
+    console.log(`Tax Lien Sale: ${records.length} records found`);
+    
+    return records.map((r: any) => ({
+      borough: r.borough,
+      block: r.block,
+      lot: r.lot,
+      building_class: r.building_class || null,
+      tax_class_code: r.tax_class_code || null,
+      lien_sale_year: r.year || r.calendar_year || null,
+      eco_category: r.eco_category || null,
+      community_district: r.community_district || null,
+      council_district: r.council_district || null,
+      raw: r,
+    }));
+  } catch (error) {
+    console.error("Tax Lien Sale fetch error:", error);
+    return [];
   }
+}
 }
 
 async function generateAIAnalysis(reportData: any, customerConcern: string | null, LOVABLE_API_KEY: string): Promise<string> {
-  const { building, violations, applications, orders } = reportData;
+  const { building, violations, applications, orders, taxLienData } = reportData;
   const openViolations = violations.filter((v: any) => v.status === 'open');
   const dobV = openViolations.filter((v: any) => v.agency === 'DOB');
   const ecbV = openViolations.filter((v: any) => v.agency === 'ECB');
@@ -1372,9 +1410,12 @@ RECENT: ${openViolations.slice(0, 10).map((v: any) => `[${v.agency}] ${v.violati
 
 APPLICATIONS: ${applications.length} total
 ${applications.slice(0, 5).map((a: any) => `[${a.source}] ${a.application_type || 'Unknown'} - ${a.status || 'Unknown'}`).join('; ') || 'None'}
-${acrisSection}${concernSection}
+${acrisSection}
 
-Provide: 1. Risk Level (Low/Medium/High/Critical) 2. Key Findings 3. Violation Analysis 4. Permit Activity 5. Ownership & Lien History 6. Recommendations${customerConcern ? ' 7. Conclusion addressing the customer concern directly' : ''}`;
+TAX LIEN SALE STATUS: ${(taxLienData || []).length > 0 ? `⚠️ PROPERTY IS ON THE NYC TAX LIEN SALE LIST (${(taxLienData || []).length} record(s)). This means the property has delinquent taxes, water charges, or other municipal debts that are eligible for sale to a third-party lien purchaser.` : 'Not on the Tax Lien Sale List — no delinquent taxes or charges identified.'}
+${concernSection}
+
+Provide: 1. Risk Level (Low/Medium/High/Critical) 2. Key Findings 3. Violation Analysis 4. Permit Activity 5. Ownership & Lien History 6. Tax Lien Status 7. Recommendations${customerConcern ? ' 8. Conclusion addressing the customer concern directly' : ''}`;
 
   try {
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -1465,12 +1506,13 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: "Property not found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // Fetch violations, applications, complaints, and ACRIS in parallel
-    const [allViolations, rawApplications, complaints, acrisData] = await Promise.all([
+    // Fetch violations, applications, complaints, ACRIS, and tax liens in parallel
+    const [allViolations, rawApplications, complaints, acrisData, taxLienData] = await Promise.all([
       fetchViolations(bin, bbl),
       fetchApplications(bin),
       fetchDOBComplaints(bin),
       fetchACRISData(bbl),
+      fetchTaxLienData(bbl),
     ]);
 
     // Build agencies_queried tracking
@@ -1502,6 +1544,7 @@ serve(async (req) => {
       { agency: 'DOB-NOW', label: 'DOB NOW Applications', queried: !!bin, results: dobNowAppsCount, category: 'applications' },
       { agency: 'DOB-COMPLAINTS', label: 'DOB Complaints', queried: !!bin, results: complaints.length, category: 'complaints' },
       { agency: 'ACRIS', label: 'ACRIS Property Records', queried: !!bbl, results: acrisDocs, category: 'transfers' },
+      { agency: 'DOF-LIEN', label: 'Tax Lien Sale List', queried: !!bbl, results: taxLienData.length, category: 'tax_liens' },
     ];
     console.log(`Agencies queried: ${agenciesQueried.filter(a => a.queried).length}, with data: ${agenciesQueried.filter(a => a.results > 0).length}`);
 
@@ -1541,7 +1584,7 @@ serve(async (req) => {
     // Generate AI analysis, line-item notes, and property status summary in parallel
     const [aiAnalysis, lineItemNotes, propertyStatusSummary] = await Promise.all([
       generateAIAnalysis(
-        { building: building || { address: resolvedAddress, bin, bbl }, violations, applications, orders, acrisData },
+        { building: building || { address: resolvedAddress, bin, bbl }, violations, applications, orders, acrisData, taxLienData },
         customerConcern || null,
         LOVABLE_API_KEY
       ),
@@ -1568,6 +1611,7 @@ serve(async (req) => {
       violations_data: violations, applications_data: applications, orders_data: orders,
       complaints_data: complaints,
       acris_data: acrisData,
+      tax_lien_data: taxLienData,
       agencies_queried: agenciesQueried,
       ai_analysis: aiAnalysis,
       line_item_notes: lineItemNotes,

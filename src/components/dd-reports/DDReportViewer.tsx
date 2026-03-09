@@ -593,6 +593,31 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
         </div>
       )}
 
+      {/* Tax Lien Sale Alert */}
+      {(() => {
+        const taxLiens: any[] = (report as any).tax_lien_data || [];
+        if (taxLiens.length === 0) return null;
+        return (
+          <div className="border-2 border-destructive rounded-xl p-4 sm:p-5 bg-destructive/5 mb-6">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-full bg-destructive/10 flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-5 h-5 text-destructive" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-sm font-bold text-destructive uppercase tracking-wide">⚠️ Tax Lien Sale List — Property Flagged</h3>
+                <p className="text-sm text-foreground/80 mt-1">
+                  This property appears on the NYC Department of Finance Tax Lien Sale List with <strong>{taxLiens.length} record{taxLiens.length !== 1 ? 's' : ''}</strong>. 
+                  This indicates delinquent property taxes, water/sewer charges, or other municipal debt that may be sold to a third-party lien purchaser.
+                </p>
+                <p className="text-xs text-muted-foreground mt-2 italic">
+                  Source: NYC Dept of Finance — Tax Lien Sale Lists. A tax lien sale transfers the right to collect unpaid taxes to a private entity, which may impose additional penalties and interest. Buyers should verify current status directly with DOF.
+                </p>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Building + Compliance Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
         {/* Building Info */}
