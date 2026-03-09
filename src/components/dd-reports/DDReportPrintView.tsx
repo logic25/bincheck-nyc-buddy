@@ -70,11 +70,11 @@ const formatBBL = (bbl: string | null | undefined): string => {
 };
 
 const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
-  const violations = report.violations_data || [];
-  const applications = report.applications_data || [];
+  const violations = (report.violations_data || []).filter((v: any) => !v.hidden);
+  const applications = (report.applications_data || []).filter((a: any) => !a.hidden);
   const orders = report.orders_data || { stop_work: [], vacate: [] };
   const building = report.building_data || {};
-  const complaints = report.complaints_data || [];
+  const complaints = (report.complaints_data || []).filter((c: any) => !c.hidden);
   const acris = report.acris_data || { documents: [], deeds: [], mortgages: [], liens: [] };
   const acrisDocuments = acris.documents || [];
   const reportId = generateReportId(report.report_date);
@@ -536,12 +536,11 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
       <footer className="mt-10 pt-4 border-t-2 border-gray-900">
         <p className="text-[9px] font-bold uppercase tracking-widest text-gray-500 mb-2 text-center">Disclaimer</p>
         <p className="text-[9px] text-gray-500 text-justify leading-[1.6]">
-          This report is provided for informational purposes only in connection with real estate due diligence
-          and does not constitute legal, financial, or investment advice. Information is derived from publicly
-          available municipal records which may contain errors, omissions, or delays.
+          This report is prepared in connection with real estate due diligence using information derived from
+          publicly available municipal records which may contain errors, omissions, or delays.
           BinCheckNYC{userProfile?.company_name ? ` and ${userProfile.company_name}` : ''} make no warranties
-          regarding accuracy or completeness. All parties should independently verify information and consult
-          with licensed attorneys and professionals before closing any transaction.
+          regarding the accuracy or completeness of underlying government data. All findings should be
+          independently verified with the relevant city agencies prior to reliance in any transaction.
         </p>
         <div className="text-center mt-4 pt-3 border-t border-gray-200">
           <p className="text-[10px] font-semibold text-gray-600">

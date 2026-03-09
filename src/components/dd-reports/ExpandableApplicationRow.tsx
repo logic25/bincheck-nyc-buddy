@@ -3,7 +3,7 @@ import { TableRow, TableCell } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { ChevronDown, ChevronRight, ExternalLink } from 'lucide-react';
+import { ChevronDown, ChevronRight, ExternalLink, EyeOff, Eye } from 'lucide-react';
 import InlineNoteEditor from './InlineNoteEditor';
 
 interface EditStatus {
@@ -23,6 +23,8 @@ interface ExpandableApplicationRowProps {
   bulkMode?: boolean;
   isSelected?: boolean;
   onToggleSelect?: () => void;
+  isAdmin?: boolean;
+  onToggleHidden?: () => void;
 }
 
 const formatDate = (dateStr: string | null | undefined): string => {
@@ -42,8 +44,9 @@ const formatDate = (dateStr: string | null | undefined): string => {
   }
 };
 
-const ExpandableApplicationRow = ({ application, index, note, onNoteChange, readOnly = false, reportId, editStatus, onEditSaved, bulkMode = false, isSelected = false, onToggleSelect }: ExpandableApplicationRowProps) => {
+const ExpandableApplicationRow = ({ application, index, note, onNoteChange, readOnly = false, reportId, editStatus, onEditSaved, bulkMode = false, isSelected = false, onToggleSelect, isAdmin = false, onToggleHidden }: ExpandableApplicationRowProps) => {
   const [isOpen, setIsOpen] = useState(false);
+  const isHidden = !!application.hidden;
 
   const getStatusColor = (status: string) => {
     const s = (status || '').toLowerCase();
@@ -74,7 +77,7 @@ const ExpandableApplicationRow = ({ application, index, note, onNoteChange, read
   return (
     <Fragment>
       <TableRow
-        className="cursor-pointer hover:bg-muted/50 transition-colors"
+        className={`cursor-pointer hover:bg-muted/50 transition-colors ${isHidden ? 'opacity-40 line-through' : ''}`}
         onClick={() => setIsOpen(!isOpen)}
       >
         <TableCell className="w-8">
@@ -242,7 +245,7 @@ const ExpandableApplicationRow = ({ application, index, note, onNoteChange, read
                 onEditSaved={onEditSaved}
               />
 
-              <div>
+              <div className="flex items-center gap-2">
                 <Button
                   variant="outline"
                   size="sm"
@@ -258,6 +261,19 @@ const ExpandableApplicationRow = ({ application, index, note, onNoteChange, read
                   <ExternalLink className="w-4 h-4 mr-2" />
                   {application.source === 'DOB_NOW' ? 'Search on DOB NOW Build' : 'View on DOB BIS'}
                 </Button>
+                {isAdmin && onToggleHidden && (
+                  <Button
+                    variant={isHidden ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onToggleHidden();
+                    }}
+                    className={isHidden ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : 'text-destructive border-destructive/30 hover:bg-destructive/10'}
+                  >
+                    {isHidden ? <><Eye className="w-4 h-4 mr-2" /> Restore</> : <><EyeOff className="w-4 h-4 mr-2" /> Exclude from Report</>}
+                  </Button>
+                )}
               </div>
             </div>
           </TableCell>

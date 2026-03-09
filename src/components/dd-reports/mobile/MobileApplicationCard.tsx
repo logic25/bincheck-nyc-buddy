@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ExternalLink, ChevronDown, ChevronRight } from "lucide-react";
+import { ExternalLink, ChevronDown, ChevronRight, EyeOff, Eye } from "lucide-react";
 import InlineNoteEditor from "../InlineNoteEditor";
 
 interface EditStatus {
@@ -22,6 +22,8 @@ interface MobileApplicationCardProps {
   bulkMode?: boolean;
   isSelected?: boolean;
   onToggleSelect?: () => void;
+  isAdmin?: boolean;
+  onToggleHidden?: () => void;
 }
 
 const formatDate = (dateStr: string | null | undefined): string => {
@@ -72,8 +74,11 @@ export default function MobileApplicationCard({
   bulkMode = false,
   isSelected = false,
   onToggleSelect,
+  isAdmin = false,
+  onToggleHidden,
 }: MobileApplicationCardProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const isHidden = !!application?.hidden;
 
   const appKey = useMemo(
     () => `${application?.source || "BIS"}-${application?.id || application?.application_number || index}`,
@@ -90,7 +95,7 @@ export default function MobileApplicationCard({
   }, [application]);
 
   return (
-    <div className="bg-card">
+    <div className={`bg-card ${isHidden ? 'opacity-40' : ''}`}>
       <div
         className="px-3 py-3"
         role="button"
@@ -200,7 +205,7 @@ export default function MobileApplicationCard({
               onEditSaved={onEditSaved}
             />
 
-            <div>
+            <div className="flex flex-col gap-2">
               <Button
                 variant="outline"
                 size="sm"
@@ -217,6 +222,19 @@ export default function MobileApplicationCard({
                 <ExternalLink className="w-4 h-4 mr-2" />
                 {application?.source === "DOB_NOW" ? "Search on DOB NOW Build" : "View on DOB BIS"}
               </Button>
+              {isAdmin && onToggleHidden && (
+                <Button
+                  variant={isHidden ? 'default' : 'outline'}
+                  size="sm"
+                  className={`w-full ${isHidden ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : 'text-destructive border-destructive/30 hover:bg-destructive/10'}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onToggleHidden();
+                  }}
+                >
+                  {isHidden ? <><Eye className="w-4 h-4 mr-2" /> Restore</> : <><EyeOff className="w-4 h-4 mr-2" /> Exclude from Report</>}
+                </Button>
+              )}
             </div>
           </div>
         )}

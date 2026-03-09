@@ -332,11 +332,34 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
   });
 
   // isReadOnly is defined above in the component initializer
-  const violations = report.violations_data || [];
-  const applications = report.applications_data || [];
+  const allViolations = report.violations_data || [];
+  const allApplications = report.applications_data || [];
   const orders = report.orders_data || { stop_work: [], partial_stop_work: [], vacate: [] };
-  const complaints = report.complaints_data || [];
+  const allComplaints = report.complaints_data || [];
   const building = report.building_data || {};
+
+  // For clients, filter out hidden items entirely. For admins, show all.
+  const violations = clientReadOnly ? allViolations.filter((v: any) => !v.hidden) : allViolations;
+  const applications = clientReadOnly ? allApplications.filter((a: any) => !a.hidden) : allApplications;
+  const complaints = clientReadOnly ? allComplaints.filter((c: any) => !c.hidden) : allComplaints;
+
+  // Toggle hidden flag on a line item and persist to DB
+  const toggleItemHidden = async (dataType: 'violations_data' | 'applications_data' | 'complaints_data', itemIndex: number) => {
+    const allData = dataType === 'violations_data' ? [...allViolations] :
+                    dataType === 'applications_data' ? [...allApplications] : [...allComplaints];
+    // Find the real index in the full (unfiltered) array
+    allData[itemIndex] = { ...allData[itemIndex], hidden: !allData[itemIndex].hidden };
+    const { error } = await supabase
+      .from('dd_reports')
+      .update({ [dataType]: allData } as any)
+      .eq('id', report.id);
+    if (error) {
+      toast.error('Failed to update item visibility');
+    } else {
+      queryClient.invalidateQueries({ queryKey: ['dd-reports'] });
+      toast.success(allData[itemIndex].hidden ? 'Item excluded from report' : 'Item restored to report');
+    }
+  };
 
   // Compute architect-tagged violations from line_item_notes
   const architectTaggedViolations = (() => {
@@ -344,8 +367,8 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
     const taggedIds = new Set(
       notes.filter((n: any) => n.architect_likely_needed).map((n: any) => n.id)
     );
-    // Also check violation descriptions for common architect-needed patterns
     return violations.filter((v: any) => {
+      if (v.hidden) return false;
       if (taggedIds.has(v.violation_number || v.id)) return true;
       const desc = (v.description_raw || v.violation_type || '').toLowerCase();
       return desc.includes('illegal conversion') || desc.includes('illegal alteration') ||
@@ -540,7 +563,7 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
           </div>
           <p className="text-sm leading-relaxed text-foreground/85 whitespace-pre-line">{(report as any).property_status_summary}</p>
           <p className="text-[10px] text-muted-foreground mt-3 pt-2 border-t border-border/40 italic">
-            This summary and all notes in this report are for informational purposes only and do not constitute legal, financial, or professional advice. All findings are derived from publicly available records and should be independently verified by qualified professionals.
+            All findings are derived from publicly available municipal records which may contain errors, omissions, or delays. Information should be independently verified with the relevant city agencies.
           </p>
         </div>
       )}
@@ -878,6 +901,7 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
               <div className="sm:hidden divide-y divide-border">
                 {filteredApplications.map((app: any, idx: number) => {
                   const appKey = `${app.source || 'BIS'}-${app.id || app.application_number || idx}`;
+                  const realIdx = allApplications.indexOf(app);
                   return (
                     <MobileApplicationCard
                       key={appKey}
@@ -892,6 +916,8 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
                       bulkMode={bulkMode}
                       isSelected={selectedItems.has(`application:${appKey}:DOB`)}
                       onToggleSelect={() => toggleItemSelection(`application:${appKey}:DOB`)}
+                      isAdmin={isAdmin}
+                      onToggleHidden={realIdx >= 0 ? () => toggleItemHidden('applications_data', realIdx) : undefined}
                     />
                   );
                 })}
@@ -930,6 +956,7 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
                   <TableBody>
                     {filteredApplications.map((app: any, idx: number) => {
                       const appKey = `${app.source || 'BIS'}-${app.id || app.application_number || idx}`;
+                      const realIdx = allApplications.indexOf(app);
                       return (
                         <ExpandableApplicationRow
                           key={appKey}
@@ -944,6 +971,8 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
                           bulkMode={bulkMode}
                           isSelected={selectedItems.has(`application:${appKey}:DOB`)}
                           onToggleSelect={() => toggleItemSelection(`application:${appKey}:DOB`)}
+                          isAdmin={isAdmin}
+                          onToggleHidden={realIdx >= 0 ? () => toggleItemHidden('applications_data', realIdx) : undefined}
                         />
                       );
                     })}

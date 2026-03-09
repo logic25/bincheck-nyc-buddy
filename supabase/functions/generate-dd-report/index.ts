@@ -1236,7 +1236,7 @@ RULES:
 - If there are penalty amounts, state the total: 'Total outstanding ECB penalties: $45,000' — do NOT say whether this is high or low.
 - Translate codes and abbreviations into plain English so non-experts understand what each item IS.
 - Never use words like: risk, caution, concern, alarming, significant, recommend, suggest, advise, action required, should, must, urgent.
-- End with: 'This summary is for informational purposes only. Consult qualified professionals for advice regarding these findings.'
+- End with: 'All findings are derived from publicly available municipal records which may contain errors, omissions, or delays. Information should be independently verified with the relevant city agencies.'
 
 GOOD EXAMPLE: 'Violation 123456 is an active ECB violation for failure to maintain the building facade under Local Law 11. A hearing is scheduled for March 15, 2026. The listed penalty is $10,000.'
 
