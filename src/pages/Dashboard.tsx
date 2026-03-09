@@ -382,19 +382,16 @@ const Dashboard = () => {
                   <Button variant="ghost" className="justify-start" onClick={() => navigate("/settings")}>
                     <Settings className="h-4 w-4 mr-2" /> Settings
                   </Button>
-                  {isAdmin && (
-                    <>
-                      <Button variant="ghost" className="justify-start" onClick={() => navigate("/dd-reports")}>
-                        <FileText className="h-4 w-4 mr-2" /> DD Reports
-                      </Button>
-                      <Button variant="ghost" className="justify-start" onClick={() => navigate("/admin")}>
-                        <Shield className="h-4 w-4 mr-2" /> Admin
-                      </Button>
-                      <Button variant="ghost" className="justify-start" onClick={() => navigate("/help")}>
-                        <BookOpen className="h-4 w-4 mr-2" /> Help Center
-                      </Button>
-                    </>
-                  )}
+                   {isAdmin && (
+                     <>
+                       <Button variant="ghost" className="justify-start" onClick={() => navigate("/dd-reports")}>
+                         <FileText className="h-4 w-4 mr-2" /> Report Manager
+                       </Button>
+                       <Button variant="ghost" className="justify-start" onClick={() => navigate("/help")}>
+                         <BookOpen className="h-4 w-4 mr-2" /> Help Center
+                       </Button>
+                     </>
+                   )}
                   <Button variant="ghost" className="justify-start text-destructive" onClick={handleLogout}>
                     <LogOut className="h-4 w-4 mr-2" /> Sign Out
                   </Button>
