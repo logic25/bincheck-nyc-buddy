@@ -355,10 +355,7 @@ const Dashboard = () => {
             {isAdmin && (
               <>
                 <Button variant="ghost" size="sm" onClick={() => navigate("/dd-reports")}>
-                  <FileText className="h-4 w-4 mr-1" /> DD Reports
-                </Button>
-                <Button variant="ghost" size="sm" onClick={() => navigate("/admin")}>
-                  <Shield className="h-4 w-4 mr-1" /> Admin
+                  <FileText className="h-4 w-4 mr-1" /> Report Manager
                 </Button>
                 <Button variant="ghost" size="sm" onClick={() => navigate("/help")}>
                   <BookOpen className="h-4 w-4 mr-1" /> Help Center
@@ -385,19 +382,16 @@ const Dashboard = () => {
                   <Button variant="ghost" className="justify-start" onClick={() => navigate("/settings")}>
                     <Settings className="h-4 w-4 mr-2" /> Settings
                   </Button>
-                  {isAdmin && (
-                    <>
-                      <Button variant="ghost" className="justify-start" onClick={() => navigate("/dd-reports")}>
-                        <FileText className="h-4 w-4 mr-2" /> DD Reports
-                      </Button>
-                      <Button variant="ghost" className="justify-start" onClick={() => navigate("/admin")}>
-                        <Shield className="h-4 w-4 mr-2" /> Admin
-                      </Button>
-                      <Button variant="ghost" className="justify-start" onClick={() => navigate("/help")}>
-                        <BookOpen className="h-4 w-4 mr-2" /> Help Center
-                      </Button>
-                    </>
-                  )}
+                   {isAdmin && (
+                     <>
+                       <Button variant="ghost" className="justify-start" onClick={() => navigate("/dd-reports")}>
+                         <FileText className="h-4 w-4 mr-2" /> Report Manager
+                       </Button>
+                       <Button variant="ghost" className="justify-start" onClick={() => navigate("/help")}>
+                         <BookOpen className="h-4 w-4 mr-2" /> Help Center
+                       </Button>
+                     </>
+                   )}
                   <Button variant="ghost" className="justify-start text-destructive" onClick={handleLogout}>
                     <LogOut className="h-4 w-4 mr-2" /> Sign Out
                   </Button>
@@ -411,10 +405,12 @@ const Dashboard = () => {
       <main className="container py-6 sm:py-8 px-4 max-w-5xl space-y-6 sm:space-y-8">
         {/* Page title */}
         <div>
-          <h1 className="font-display text-2xl sm:text-3xl font-bold">{isAdmin ? 'Admin Dashboard' : 'My Portal'}</h1>
+          <h1 className="font-display text-2xl sm:text-3xl font-bold">
+            Welcome{userProfile?.display_name ? `, ${userProfile.display_name}` : ''}
+          </h1>
           <p className="text-muted-foreground text-sm sm:text-base mt-1">
             {isAdmin
-              ? 'Manage reports, review orders, and run property searches.'
+              ? 'Overview of reports and activity.'
               : 'Your due diligence reports and property searches, all in one place.'}
           </p>
         </div>
@@ -479,8 +475,8 @@ const Dashboard = () => {
                 <Badge variant="destructive" className="text-xs">{adminActionItems.length}</Badge>
               </div>
               <Button variant="ghost" size="sm" onClick={() => navigate("/dd-reports")}>
-                View All <ArrowRight className="h-3.5 w-3.5 ml-1" />
-              </Button>
+                 View All in Report Manager <ArrowRight className="h-3.5 w-3.5 ml-1" />
+               </Button>
             </div>
             {adminActionItems.slice(0, 5).map((r) => {
               const si = statusInfo(r.status);

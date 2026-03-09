@@ -19,7 +19,7 @@ import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import {
   Shield, ArrowLeft, Loader2, Zap, Trash2, ChevronRight, ChevronLeft,
-  Brain, BarChart3, TrendingUp, DollarSign, Activity, Plus, BookOpen, Search,
+  Brain, BarChart3, TrendingUp, DollarSign, Activity, Plus, BookOpen, Search, FileText,
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { format, subDays, startOfDay } from 'date-fns';
@@ -545,10 +545,7 @@ const Help = () => {
               <ArrowLeft className="h-4 w-4 mr-1" /> Dashboard
             </Button>
             <Button variant="ghost" size="sm" onClick={() => navigate('/dd-reports')}>
-              DD Reports
-            </Button>
-            <Button variant="ghost" size="sm" onClick={() => navigate('/admin')}>
-              <Shield className="h-4 w-4 mr-1" /> Admin
+              <FileText className="h-4 w-4 mr-1" /> Report Manager
             </Button>
           </div>
         </div>

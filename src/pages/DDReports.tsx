@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -19,11 +19,15 @@ import {
 import {
   FileText, Plus, Search, AlertTriangle, Loader2, Eye, Trash2, Clock, RefreshCw,
   Shield, ArrowLeft, LogOut, Settings, Zap, Inbox, Phone, Mail, Building2, BookOpen, Menu,
+  Users, Brain, Pencil, Scale, BarChart3,
 } from 'lucide-react';
 import { useUserRole } from '@/hooks/useUserRole';
 import { format } from 'date-fns';
 import DDReportViewer from '@/components/dd-reports/DDReportViewer';
 import CreateDDReportDialog from '@/components/dd-reports/CreateDDReportDialog';
+import EditReviewTab from '@/components/admin/EditReviewTab';
+import AILearningTab from '@/components/admin/AILearningTab';
+import ArchitectLettersTab from '@/components/admin/ArchitectLettersTab';
 
 interface DDReport {
   id: string;
@@ -87,7 +91,7 @@ const DDReports = () => {
   const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [mainTab, setMainTab] = useState<'incoming' | 'reports'>('incoming');
+  const [mainTab, setMainTab] = useState<string>('incoming');
   const [statusTab, setStatusTab] = useState('pending_review');
   const [userId, setUserId] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
@@ -327,74 +331,60 @@ const DDReports = () => {
             <span className="font-display text-xl tracking-tight">BinCheck<span className="text-primary">NYC</span></span>
           </div>
           {/* Desktop nav */}
-          <div className="hidden md:flex items-center gap-2">
-            <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard')}>
-              <ArrowLeft className="h-4 w-4 mr-1" /> Dashboard
-            </Button>
-            <Button variant="ghost" size="sm" onClick={() => navigate('/settings')}>
-              <Settings className="h-4 w-4 mr-1" /> Settings
-            </Button>
-            {isAdmin && (
-              <>
-                <Button variant="ghost" size="sm" onClick={() => navigate('/admin')}>
-                  <Shield className="h-4 w-4 mr-1" /> Admin
-                </Button>
-                <Button variant="ghost" size="sm" onClick={() => navigate('/help')}>
-                  <BookOpen className="h-4 w-4 mr-1" /> Help Center
-                </Button>
-              </>
-            )}
-            <Button variant="ghost" size="sm" onClick={handleLogout}>
-              <LogOut className="h-4 w-4 mr-1" /> Sign Out
-            </Button>
-          </div>
+           <div className="hidden md:flex items-center gap-2">
+             <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard')}>
+               <ArrowLeft className="h-4 w-4 mr-1" /> Home
+             </Button>
+             <Button variant="ghost" size="sm" onClick={() => navigate('/settings')}>
+               <Settings className="h-4 w-4 mr-1" /> Settings
+             </Button>
+             <Button variant="ghost" size="sm" onClick={() => navigate('/help')}>
+               <BookOpen className="h-4 w-4 mr-1" /> Help Center
+             </Button>
+             <Button variant="ghost" size="sm" onClick={handleLogout}>
+               <LogOut className="h-4 w-4 mr-1" /> Sign Out
+             </Button>
+           </div>
           {/* Mobile nav */}
-          <Sheet>
-            <SheetTrigger asChild className="md:hidden">
-              <Button variant="ghost" size="icon">
-                <Menu className="h-5 w-5" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="right" className="w-64">
-              <nav className="flex flex-col gap-2 mt-8">
-                <Button variant="ghost" className="justify-start" onClick={() => navigate('/dashboard')}>
-                  <ArrowLeft className="h-4 w-4 mr-2" /> Dashboard
-                </Button>
-                <Button variant="ghost" className="justify-start" onClick={() => navigate('/settings')}>
-                  <Settings className="h-4 w-4 mr-2" /> Settings
-                </Button>
-                {isAdmin && (
-                  <>
-                    <Button variant="ghost" className="justify-start" onClick={() => navigate('/admin')}>
-                      <Shield className="h-4 w-4 mr-2" /> Admin
-                    </Button>
-                    <Button variant="ghost" className="justify-start" onClick={() => navigate('/help')}>
-                      <BookOpen className="h-4 w-4 mr-2" /> Help Center
-                    </Button>
-                  </>
-                )}
-                <Button variant="ghost" className="justify-start text-destructive" onClick={handleLogout}>
-                  <LogOut className="h-4 w-4 mr-2" /> Sign Out
-                </Button>
-              </nav>
-            </SheetContent>
-          </Sheet>
+           <Sheet>
+             <SheetTrigger asChild className="md:hidden">
+               <Button variant="ghost" size="icon">
+                 <Menu className="h-5 w-5" />
+               </Button>
+             </SheetTrigger>
+             <SheetContent side="right" className="w-64">
+               <nav className="flex flex-col gap-2 mt-8">
+                 <Button variant="ghost" className="justify-start" onClick={() => navigate('/dashboard')}>
+                   <ArrowLeft className="h-4 w-4 mr-2" /> Home
+                 </Button>
+                 <Button variant="ghost" className="justify-start" onClick={() => navigate('/settings')}>
+                   <Settings className="h-4 w-4 mr-2" /> Settings
+                 </Button>
+                 <Button variant="ghost" className="justify-start" onClick={() => navigate('/help')}>
+                   <BookOpen className="h-4 w-4 mr-2" /> Help Center
+                 </Button>
+                 <Button variant="ghost" className="justify-start text-destructive" onClick={handleLogout}>
+                   <LogOut className="h-4 w-4 mr-2" /> Sign Out
+                 </Button>
+               </nav>
+             </SheetContent>
+           </Sheet>
         </div>
       </header>
 
       <main className="container py-8 max-w-5xl space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-display font-bold">Due Diligence Reports</h1>
-            <p className="text-muted-foreground text-sm sm:text-base mt-1">Transaction-ready property risk reports — work queue</p>
-          </div>
-          <Button onClick={() => setCreateDialogOpen(true)} className="w-full sm:w-auto">
-            <Plus className="w-4 h-4 mr-2" /> New Report
-          </Button>
-        </div>
+         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+           <div>
+             <h1 className="text-2xl sm:text-3xl font-display font-bold">Report Manager</h1>
+             <p className="text-muted-foreground text-sm sm:text-base mt-1">Manage orders, review reports, and admin tools</p>
+           </div>
+           <Button onClick={() => setCreateDialogOpen(true)} className="w-full sm:w-auto">
+             <Plus className="w-4 h-4 mr-2" /> New Report
+           </Button>
+         </div>
 
-        {/* Main tabs: Incoming Orders vs Reports */}
-        <Tabs value={mainTab} onValueChange={(v) => setMainTab(v as 'incoming' | 'reports')}>
+         {/* Main tabs: Incoming Orders / Reports / Admin sections */}
+         <Tabs value={mainTab} onValueChange={(v) => setMainTab(v as any)}>
           <TabsList className="h-auto w-full sm:w-auto flex-wrap">
             <TabsTrigger value="incoming" className="gap-1.5 flex-1 sm:flex-none">
               <Inbox className="h-4 w-4" />
@@ -406,13 +396,22 @@ const DDReports = () => {
               )}
             </TabsTrigger>
             <TabsTrigger value="reports" className="gap-1.5 flex-1 sm:flex-none">
-              <FileText className="h-4 w-4" />
-              <span className="hidden xs:inline">Reports</span> Queue
-              {(reports?.length ?? 0) > 0 && (
-                <span className="ml-1 text-xs bg-muted px-1.5 py-0.5 rounded-full">{reports!.length}</span>
-              )}
-            </TabsTrigger>
-          </TabsList>
+               <FileText className="h-4 w-4" />
+               <span className="hidden xs:inline">Reports</span> Queue
+               {(reports?.length ?? 0) > 0 && (
+                 <span className="ml-1 text-xs bg-muted px-1.5 py-0.5 rounded-full">{reports!.length}</span>
+               )}
+             </TabsTrigger>
+             <TabsTrigger value="edit-review" className="gap-1.5 flex-1 sm:flex-none">
+               <Pencil className="h-4 w-4" /> Edit Review
+             </TabsTrigger>
+             <TabsTrigger value="architect-letters" className="gap-1.5 flex-1 sm:flex-none">
+               <Scale className="h-4 w-4" /> Architect Letters
+             </TabsTrigger>
+             <TabsTrigger value="ai-learning" className="gap-1.5 flex-1 sm:flex-none">
+               <Brain className="h-4 w-4" /> AI Learning
+             </TabsTrigger>
+           </TabsList>
 
           {/* ── INCOMING ORDERS TAB ── */}
           <TabsContent value="incoming" className="mt-4">
@@ -648,7 +647,21 @@ const DDReports = () => {
               </TabsContent>
             </Tabs>
           </TabsContent>
-        </Tabs>
+           {/* ── EDIT REVIEW TAB ── */}
+           <TabsContent value="edit-review" className="mt-4">
+             <EditReviewTab />
+           </TabsContent>
+
+           {/* ── ARCHITECT LETTERS TAB ── */}
+           <TabsContent value="architect-letters" className="mt-4">
+             <ArchitectLettersTab />
+           </TabsContent>
+
+           {/* ── AI LEARNING TAB ── */}
+           <TabsContent value="ai-learning" className="mt-4">
+             <AILearningTab />
+           </TabsContent>
+         </Tabs>
 
         <CreateDDReportDialog
           open={createDialogOpen}
