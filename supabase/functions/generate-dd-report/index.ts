@@ -49,7 +49,10 @@ const BOROUGH_CODES: Record<string, string> = {
 
 const NYC_APP_TOKEN = Deno.env.get("NYC_APP_TOKEN") || "";
 
-async function fetchNYCData(endpoint: string, params: Record<string, string>): Promise<any[]> {
+// Track which API calls encountered errors
+const agencyErrors = new Set<string>();
+
+async function fetchNYCData(endpoint: string, params: Record<string, string>, agencyTag?: string): Promise<any[]> {
   const url = new URL(endpoint);
   Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
   if (NYC_APP_TOKEN) url.searchParams.set("$$app_token", NYC_APP_TOKEN);
@@ -59,6 +62,7 @@ async function fetchNYCData(endpoint: string, params: Record<string, string>): P
     if (!response.ok) {
       const errorText = await response.text();
       console.error(`NYC API error ${response.status}: ${errorText.substring(0, 200)}`);
+      if (agencyTag) agencyErrors.add(agencyTag);
       return [];
     }
     const data = await response.json();
@@ -66,6 +70,7 @@ async function fetchNYCData(endpoint: string, params: Record<string, string>): P
     return Array.isArray(data) ? data : [];
   } catch (error) {
     console.error(`Error fetching from ${endpoint}:`, error);
+    if (agencyTag) agencyErrors.add(agencyTag);
     return [];
   }
 }
