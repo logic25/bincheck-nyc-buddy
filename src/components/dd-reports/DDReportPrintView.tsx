@@ -26,7 +26,7 @@ interface DDReportPrintViewProps {
     orders_data: any;
     complaints_data?: any;
     acris_data?: any;
-    ai_analysis: string | null;
+    ai_analysis?: string | null;
     general_notes: string | null;
     line_item_notes?: any[];
     customer_concern?: string | null;
