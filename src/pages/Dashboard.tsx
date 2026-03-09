@@ -408,8 +408,8 @@ const Dashboard = () => {
       <main className="container py-6 sm:py-8 px-4 max-w-5xl space-y-6 sm:space-y-8">
         {/* Page title */}
         <div>
-          <h1 className="font-display text-3xl font-bold">{isAdmin ? 'Admin Dashboard' : 'My Portal'}</h1>
-          <p className="text-muted-foreground mt-1">
+          <h1 className="font-display text-2xl sm:text-3xl font-bold">{isAdmin ? 'Admin Dashboard' : 'My Portal'}</h1>
+          <p className="text-muted-foreground text-sm sm:text-base mt-1">
             {isAdmin
               ? 'Manage reports, review orders, and run property searches.'
               : 'Your due diligence reports and property searches, all in one place.'}
@@ -417,7 +417,7 @@ const Dashboard = () => {
         </div>
 
         {/* Stat Cards — role-aware */}
-        <div className={`grid grid-cols-1 gap-4 ${isAdmin ? 'sm:grid-cols-4' : 'sm:grid-cols-3'}`}>
+        <div className={`grid grid-cols-2 gap-3 sm:gap-4 ${isAdmin ? 'sm:grid-cols-4' : 'sm:grid-cols-3'}`}>
           <Card>
             <CardContent className="pt-6 pb-5 flex items-center gap-4">
               <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
