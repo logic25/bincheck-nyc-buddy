@@ -1622,7 +1622,7 @@ serve(async (req) => {
       acris_data: acrisData,
       tax_lien_data: taxLienData,
       agencies_queried: agenciesQueried,
-      ai_analysis: aiAnalysis,
+      ai_analysis: null,
       line_item_notes: lineItemNotes,
       property_status_summary: propertyStatusSummary || null,
       citisignal_recommended: citisignalRecommended,
