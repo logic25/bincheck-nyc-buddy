@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import {
   Shield, LogOut, Loader2, Trash2, FileText, Settings,
-  ArrowRight, Download, ClipboardList, Clock, CheckCircle2, Search, MapPin, Package, BookOpen, Menu,
+  ArrowRight, Download, ClipboardList, Clock, CheckCircle2, Search, MapPin, Package, BookOpen, Menu, Eye,
 } from "lucide-react";
 import { getScoreColor } from "@/lib/scoring";
 import { toast } from "sonner";
@@ -54,6 +54,8 @@ const Dashboard = () => {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { isAdmin, isLoading: roleLoading } = useUserRole();
+  const [viewAsClient, setViewAsClient] = useState(false);
+  const showClientView = !isAdmin || viewAsClient;
   const [savedReports, setSavedReports] = useState<ReportRow[]>([]);
   const [loadingSaved, setLoadingSaved] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
@@ -165,7 +167,7 @@ const Dashboard = () => {
     setLoadingSaved(false);
   };
 
-  // Client DD reports query (only for non-admin)
+  // Client DD reports query (for non-admin OR admin in client-preview mode)
   const { data: ddReports, isLoading: loadingDD } = useQuery({
     queryKey: ['dashboard-dd-reports', userId, userEmail],
     queryFn: async () => {
@@ -190,7 +192,7 @@ const Dashboard = () => {
 
       return [...(ownedReports || []), ...clientReports] as DDReportRow[];
     },
-    enabled: !!userId && !roleLoading && !isAdmin,
+    enabled: !!userId && !roleLoading,
   });
 
   const { data: selectedReport, isLoading: loadingSelectedReport } = useQuery({
@@ -200,7 +202,7 @@ const Dashboard = () => {
       if (error) throw error;
       return data as any;
     },
-    enabled: !!selectedReportId && !isAdmin,
+    enabled: !!selectedReportId && showClientView,
   });
 
   const { data: userProfile } = useQuery({
@@ -225,7 +227,7 @@ const Dashboard = () => {
       if (error) throw error;
       return data || [];
     },
-    enabled: !!userEmail && !isAdmin,
+    enabled: !!userEmail && showClientView,
   });
 
   const regenerateReport = useMutation({
@@ -263,8 +265,8 @@ const Dashboard = () => {
 
   const statusInfo = (status: string) => CLIENT_STATUS_LABELS[status] ?? { label: status, variant: 'outline' as const };
 
-  // Client report viewer (non-admin)
-  if (!isAdmin && selectedReportId) {
+  // Client report viewer (non-admin or admin previewing client view)
+  if (showClientView && selectedReportId) {
     if (loadingSelectedReport) {
       return (
         <div className="min-h-screen bg-background flex items-center justify-center">
@@ -382,15 +384,28 @@ const Dashboard = () => {
           <h1 className="font-display text-2xl sm:text-3xl font-bold">
             Welcome{userProfile?.display_name ? `, ${userProfile.display_name}` : userEmail ? `, ${userEmail.split('@')[0].charAt(0).toUpperCase() + userEmail.split('@')[0].slice(1)}` : ''}
           </h1>
-          <p className="text-muted-foreground text-sm sm:text-base mt-1">
-            {isAdmin
-              ? 'Manage orders, review reports, and admin tools.'
-              : 'Your due diligence reports and property searches, all in one place.'}
-          </p>
+          <div className="flex items-center gap-3 mt-1">
+            <p className="text-muted-foreground text-sm sm:text-base">
+              {!showClientView
+                ? 'Manage orders, review reports, and admin tools.'
+                : 'Your due diligence reports and property searches, all in one place.'}
+            </p>
+            {isAdmin && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setViewAsClient(!viewAsClient)}
+                className="shrink-0 text-xs"
+              >
+                <Eye className="h-3.5 w-3.5 mr-1" />
+                {viewAsClient ? 'Back to Admin' : 'View as Client'}
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* ── ADMIN VIEW ── */}
-        {isAdmin && userId ? (
+        {!showClientView && userId ? (
           <AdminReportManager
             userId={userId}
             userEmail={userEmail}
