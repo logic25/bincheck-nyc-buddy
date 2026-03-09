@@ -1,106 +1,124 @@
+# BinCheckNYC Production Readiness Plan
 
-
-# Comprehensive Data Quality Fix
-
-## Overview
-10 changes across 3 files + 1 migration. Remove broken BIS scraper, add 3 missing datasets, implement deterministic rules engine for violation classification, fix print view, and deduplicate records.
+## Executive Summary
+5-phase plan to take BinCheckNYC from MVP (3/10 readiness) to production-ready (8/10) for commercial sale to attorneys and title companies.
 
 ---
 
-## 1. Remove BIS Web Scraper (generate-dd-report)
+## Phase 1: Foundation & Mobile (Week 1) ✅ IN PROGRESS
 
-Delete `fetchBISJobsFromWebsite` function (lines 295-381) and all references to it in `fetchApplications` (lines 414-430). DOB Jobs dataset `ic3t-wcy2` is the sole source.
+### Mobile Responsiveness
+- [x] Index.tsx - hamburger menu for mobile nav
+- [x] Dashboard.tsx - hamburger menu for mobile nav  
+- [x] DDReports.tsx - hamburger menu + responsive tabs
+- [ ] Order.tsx - verify form layouts on mobile
+- [ ] Settings.tsx - verify mobile layout
+- [ ] Admin.tsx - verify mobile layout
 
-## 2. Dual-Query DOB Jobs (generate-dd-report)
+### Global Error Handling
+- [ ] Create ErrorBoundary component with user-friendly fallback UI
+- [ ] Wrap App.tsx with ErrorBoundary
+- [ ] Add error recovery actions (reload, go home)
 
-Replace the single query at line 388 with two parallel queries:
-- Query A: `bin__=${bin}&$limit=500&$order=latest_action_date DESC`
-- Query B: `bin__=${bin}&$limit=500&$order=pre__filing_date ASC`
-
-Merge via `Promise.all`, deduplicate by `job__` keeping the record with more non-null fields. This captures 1990s filings that fell off the recent-activity window.
-
-## 3. Add FDNY Violations Dataset (avgm-ztsb)
-
-**Both edge functions.** Fire inspection violations (sprinkler, standpipe, fire alarm, egress) issued by Bureau of Fire Prevention -- separate from OATH hearings.
-
-- Fetch by BIN with `$limit=200&$order=inspection_date DESC`
-- Map to standard violation shape with `agency: "FDNY"`
-- Deduplicate against OATH FDNY results by ticket/violation number
-
-## 4. Add DOB Safety Violations (855j-jady)
-
-**Both edge functions.** DOB NOW-era violations not in `3h2n-5cm9`.
-
-- Fetch by BIN with `$limit=500`
-- Deduplicate against existing DOB violations by `isn_dob_bis_viol` or `violation_number`
-
-## 5. Add DOB Complaints Received (eabe-havv)
-
-**Both edge functions + print view + DB migration.**
-
-- Replace `82gq-khvr` with `eabe-havv` (includes 311 + DOB-entered complaints)
-- Query by BIN, `$limit=200&$order=date_entered DESC`
-- Store as `complaints_data` in dd_reports (new JSONB column via migration)
-- Add "DOB Complaints" table section in DDReportPrintView between violations and applications
-
-## 6. Increase HPD Violations Limit (generate-dd-report)
-
-Change HPD `$limit` from `"200"` to `"1000"` at line 236. Large older buildings can have 500+ open HPD violations.
-
-## 7. Add OATH + FDNY Violations to Print View (DDReportPrintView)
-
-Currently only renders DOB, ECB, HPD groups. Add:
-- FDNY violation group
-- Other OATH agencies group (DEP, DOT, DSNY, LPC, DOF)
-- Update Compliance Summary counts to include these agencies
-
-## 8. Deterministic Rules Engine (generate-dd-report)
-
-Add three functions: `parseConcern`, `classifyViolation`, `classifyApplication`.
-
-- **parseConcern**: Extracts target unit/floor, purchase/refinance intent, and system keywords from customer concern text
-- **classifyViolation**: Deterministic classification based on agency, status, severity class, penalty amount, and customer concern relevance. Key rules:
-  - HPD Class C/B = always ACTION REQUIRED
-  - ECB with penalty or default = ACTION REQUIRED
-  - DOB stop work/vacate/unsafe = ACTION REQUIRED
-  - FDNY sprinkler/standpipe/egress = ACTION REQUIRED
-  - Closed/resolved = RESOLVED
-  - Customer concern keyword match = elevate to ACTION REQUIRED
-  - Purchase + target location = elevate
-- **classifyApplication**: Time-based rules for DOB application lifecycle:
-  - Approved but no activity 2+ years = ACTION REQUIRED (likely withdrawn)
-  - Approved but no activity 1+ year = MONITOR (service notice territory)
-  - Stale pre-filing 18+ months = MONITOR
-
-Modify `generateLineItemNotes` to:
-1. Run each item through the classifier, adding `pre_assigned_tag` field
-2. Update the AI prompt to instruct: "Use the pre_assigned_tag exactly as-is. Your job is ONLY to write the note sentence."
-3. Include DOB application lifecycle guidance and customer concern framing instructions
-
-## 9. Violation Deduplication (generate-dd-report)
-
-After `fetchViolations` returns, deduplicate by `agency + violation_number`. When duplicates exist (e.g., same FDNY violation in both avgm-ztsb and OATH), keep the record with more non-null fields.
-
-## 10. Remove Dead Code (generate-dd-report)
-
-Delete the `if (false) {}` block at lines 703-705.
+### Security Headers
+- [ ] Add Content Security Policy meta tag to index.html
+- [ ] Add X-Content-Type-Options, X-Frame-Options headers
 
 ---
 
-## Database Migration
+## Phase 2: Real Payment Processing (Week 2-3) — HARD BLOCKER
 
-Add `complaints_data` JSONB column to `dd_reports`:
+### Stripe Integration
+- [ ] Enable Stripe connector in Lovable
+- [ ] Create checkout edge function for $199 one-time
+- [ ] Create subscription edge function for $599/mo professional
+- [ ] Handle payment webhooks (payment_intent.succeeded, subscription events)
+- [ ] Update Order.tsx to use real Stripe checkout
+- [ ] Add payment status tracking to dd_reports table
+- [ ] Email confirmation on successful payment
 
-```sql
-ALTER TABLE dd_reports ADD COLUMN IF NOT EXISTS complaints_data jsonb DEFAULT '[]'::jsonb;
-```
+### Order Fulfillment
+- [ ] Link paid orders to report generation queue
+- [ ] Track order → report → delivery lifecycle
+- [ ] Add payment receipts/invoices
 
-## Files Changed
+---
 
-| File | Changes |
-|------|---------|
-| `supabase/functions/generate-dd-report/index.ts` | Remove BIS scraper; dual-query DOB Jobs; add FDNY (avgm-ztsb), DOB Safety (855j-jady), DOB Complaints (eabe-havv); increase HPD limit; add parseConcern + classifyViolation + classifyApplication; update AI prompt for pre-assigned tags; add violation dedup; remove dead code; save complaints_data |
-| `supabase/functions/search-property/index.ts` | Add FDNY Violations (avgm-ztsb); add DOB Safety Violations (855j-jady); replace complaints with eabe-havv |
-| `src/components/dd-reports/DDReportPrintView.tsx` | Add FDNY + Other OATH violation groups; add DOB Complaints section; update compliance summary counts |
-| `supabase/migrations/` | Add complaints_data column to dd_reports |
+## Phase 3: Security & Reliability (Week 4)
 
+### Database-Backed Rate Limiting
+- [ ] Create rate_limits table (ip, endpoint, count, window_start)
+- [ ] Replace in-memory rate limiter in search-property
+- [ ] Add rate limiting to generate-dd-report
+- [ ] Add rate limiting to all other edge functions
+
+### API Response Validation
+- [ ] Add Zod schemas for NYC Open Data responses (DOB, HPD, ECB, OATH, ACRIS)
+- [ ] Validate and sanitize all external API data before processing
+- [ ] Log validation failures for monitoring
+
+### Error Monitoring
+- [ ] Add Sentry integration (or similar)
+- [ ] Capture frontend errors with context
+- [ ] Capture edge function errors
+- [ ] Set up alerts for error spikes
+
+---
+
+## Phase 4: Testing & CI/CD (Week 5-6)
+
+### Test Coverage
+- [ ] Unit tests for scoring.ts (risk calculation)
+- [ ] Unit tests for violation-utils.ts
+- [ ] Integration tests for generate-dd-report edge function
+- [ ] E2E tests for critical flows (order → report → download)
+
+### CI/CD Pipeline
+- [ ] GitHub Actions for build/test on PR
+- [ ] Automated deployment to staging
+- [ ] Dependency scanning (npm audit, Snyk)
+- [ ] Type checking in CI
+
+---
+
+## Phase 5: Scale & Polish (Week 7-8)
+
+### Performance
+- [ ] Add report caching for repeat queries
+- [ ] Optimize large building queries (1000+ violations)
+- [ ] Add loading skeletons throughout
+
+### Monitoring & Observability
+- [ ] Structured logging in edge functions
+- [ ] Uptime monitoring
+- [ ] Performance metrics dashboard
+
+### Documentation
+- [ ] API documentation for edge functions
+- [ ] User-facing help center content
+- [ ] Internal architecture docs
+
+---
+
+## Current Blockers for Commercial Sale
+
+| Blocker | Phase | Status |
+|---------|-------|--------|
+| Real payment processing | 2 | Not started |
+| Global error boundary | 1 | Not started |
+| Rate limiting on report generation | 3 | Not started |
+| Basic test coverage | 4 | Not started |
+
+---
+
+## Estimated Timeline
+
+| Phase | Duration | Cumulative |
+|-------|----------|------------|
+| Phase 1 | 1 week | Week 1 |
+| Phase 2 | 2 weeks | Week 3 |
+| Phase 3 | 1 week | Week 4 |
+| Phase 4 | 2 weeks | Week 6 |
+| Phase 5 | 2 weeks | Week 8 |
+
+**Total: 8 weeks to production-ready**
