@@ -458,7 +458,7 @@ async function fetchViolations(bin: string, bbl: string, isResidentialProperty: 
     const [dobViolationsRaw, dobSafetyRaw, fdnyDirect] = await Promise.all([
       fetchNYCData(NYC_ENDPOINTS.DOB_VIOLATIONS, {
         "bin": bin, "$where": "disposition_date IS NULL", "$limit": "200", "$order": "issue_date DESC",
-      }),
+      }, 'DOB'),
       fetchDOBSafetyViolations(bin),
       fetchFDNYViolations(bin),
     ]);
