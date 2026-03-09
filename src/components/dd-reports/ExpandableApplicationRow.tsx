@@ -44,8 +44,9 @@ const formatDate = (dateStr: string | null | undefined): string => {
   }
 };
 
-const ExpandableApplicationRow = ({ application, index, note, onNoteChange, readOnly = false, reportId, editStatus, onEditSaved, bulkMode = false, isSelected = false, onToggleSelect }: ExpandableApplicationRowProps) => {
+const ExpandableApplicationRow = ({ application, index, note, onNoteChange, readOnly = false, reportId, editStatus, onEditSaved, bulkMode = false, isSelected = false, onToggleSelect, isAdmin = false, onToggleHidden }: ExpandableApplicationRowProps) => {
   const [isOpen, setIsOpen] = useState(false);
+  const isHidden = !!application.hidden;
 
   const getStatusColor = (status: string) => {
     const s = (status || '').toLowerCase();
