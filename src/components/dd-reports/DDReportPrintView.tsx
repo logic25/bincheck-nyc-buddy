@@ -303,7 +303,7 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
       <div className="mb-4" style={{ pageBreakAfter: 'avoid' }}>
         <div className="flex items-start justify-between border-b-2 border-black pb-3">
           <div>
-            <h1 className="text-[20px] font-extrabold tracking-tight text-black">Due Diligence Report</h1>
+            <h1 className="text-[20px] font-extrabold tracking-tight text-black">BinCheckNYC Report</h1>
             <p className="text-[10px] text-gray-700 mt-0.5 font-bold tracking-wide uppercase">Property Compliance Assessment</p>
           </div>
           <div className="text-right">
