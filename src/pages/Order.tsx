@@ -535,17 +535,68 @@ const Order = () => {
               </CardContent>
             </Card>
 
+            {/* Card Payment Form */}
+            <Card className="border-border">
+              <CardContent className="p-5 space-y-4">
+                <p className="text-sm font-semibold flex items-center gap-2">
+                  <Lock className="h-4 w-4 text-muted-foreground" /> Payment Details
+                </p>
+                <div className="space-y-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Name on Card</Label>
+                    <Input
+                      placeholder="Jane Smith"
+                      value={cardName}
+                      onChange={(e) => setCardName(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Card Number</Label>
+                    <Input
+                      placeholder="4242 4242 4242 4242"
+                      value={cardNumber}
+                      onChange={(e) => setCardNumber(formatCardNumber(e.target.value))}
+                      maxLength={19}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Expiry</Label>
+                      <Input
+                        placeholder="MM/YY"
+                        value={cardExpiry}
+                        onChange={(e) => setCardExpiry(formatExpiry(e.target.value))}
+                        maxLength={5}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">CVC</Label>
+                      <Input
+                        placeholder="123"
+                        value={cardCvc}
+                        onChange={(e) => setCardCvc(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                        maxLength={4}
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-muted/50 rounded-md px-3 py-2 text-xs text-muted-foreground flex items-start gap-2">
+                  <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                  <span>Beta mode — use test card <span className="font-mono font-medium text-foreground">4242 4242 4242 4242</span> with any expiry &amp; CVC. No real charges.</span>
+                </div>
+              </CardContent>
+            </Card>
+
             <div className="space-y-3">
-              <Button className="w-full" size="lg" onClick={handlePayAndOrder} disabled={isProcessing}>
+              <Button className="w-full" size="lg" onClick={handlePayAndOrder} disabled={isProcessing || !cardValid}>
                 {isProcessing ? (
                   <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Processing payment...</>
                 ) : (
                   <><Lock className="h-4 w-4 mr-2" /> Pay {priceLabel} &amp; Order Report</>
                 )}
               </Button>
-              <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground">
-                <span className="flex items-center gap-1"><Lock className="h-3 w-3" /> Secured by Stripe</span>
-                <span className="flex items-center gap-1"><AlertCircle className="h-3 w-3" /> Payment UI — Stripe not yet wired</span>
+              <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
+                <Lock className="h-3 w-3" /> 256-bit SSL encrypted
               </div>
               <Button variant="ghost" className="w-full" onClick={() => setStep(2)}>
                 <ArrowLeft className="h-4 w-4 mr-1" /> Back
