@@ -420,75 +420,77 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
         </section>
       )}
 
-      {/* Building Information — flows right after summary */}
-      <section className="mb-4" style={{ pageBreakInside: 'avoid' }}>
-        <h3 className={sectionHeaderStyle}>Building Information</h3>
-        <div className="grid grid-cols-4 gap-x-4 gap-y-1 text-[10px]">
-          {[
-            ['Year Built', building.year_built || '—'],
-            ['Stories', building.stories || '—'],
-            ['Dwelling Units', building.dwelling_units ?? '—'],
-            ['Building Class', building.building_class || '—'],
-            ['Zoning', building.zoning_district || '—'],
-            ['Building Area', building.building_area_sqft ? `${building.building_area_sqft.toLocaleString()} sqft` : '—'],
-            ['Lot Area', building.lot_area_sqft ? `${building.lot_area_sqft.toLocaleString()} sqft` : '—'],
-            ['Assessed Value', building.assessed_total_value ? formatCurrency(building.assessed_total_value) : '—'],
-            ['Owner', building.owner_name || '—'],
-            ['Landmark', building.is_landmark ? 'Yes' : building.historic_district ? `Historic: ${building.historic_district}` : 'No'],
-            ['Land Use', building.land_use || '—'],
-          ].map(([label, value], i) => (
-            <div key={i}>
-              <span className="text-gray-700 font-semibold">{label}:</span>{' '}
-              <span className="font-bold text-gray-900">{value}</span>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Compliance Summary — compact inline row, no page break */}
-      <section className="mb-4" style={{ pageBreakInside: 'avoid' }}>
-        <h3 className={sectionHeaderStyle}>Compliance Summary</h3>
-        <div className="flex gap-1.5">
-          {[
-            {
-              label: 'Open Violations',
-              value: violations.length,
-              sub: `DOB: ${dobViolations.length} | ECB: ${ecbViolations.length} | HPD: ${hpdViolations.length}${fdnyViolations.length > 0 ? ` | FDNY: ${fdnyViolations.length}` : ''}${otherOathViolations.length > 0 ? ` | Other: ${otherOathViolations.length}` : ''}`,
-            },
-            {
-              label: 'Applications',
-              value: applications.length,
-              sub: `BIS: ${bisApplications.length} | DOB NOW: ${dobNowApplications.length}`,
-            },
-            {
-              label: 'Stop Work Orders',
-              value: orders.stop_work?.length || 0,
-              danger: (orders.stop_work?.length || 0) > 0,
-            },
-            {
-              label: 'Vacate Orders',
-              value: orders.vacate?.length || 0,
-              danger: (orders.vacate?.length || 0) > 0,
-            },
-          ].map((item, i) => (
-            <div key={i} className={`flex-1 py-1.5 px-2 border rounded text-center ${item.danger ? 'border-red-500 bg-red-100' : 'border-gray-500'}`}>
-              <div className={`text-[14px] font-bold ${item.danger ? 'text-red-700' : 'text-black'}`}>{item.value}</div>
-              <div className="text-[7px] font-bold text-gray-800 uppercase">{item.label}</div>
-              {item.sub && <div className="text-[6px] text-gray-700 mt-0.5">{item.sub}</div>}
-            </div>
-          ))}
-        </div>
-        {totalEcbPenalties > 0 && (
-          <div className="mt-2 p-1.5 border border-red-400 bg-red-100 rounded text-center">
-            <span className="text-[10px] font-bold text-red-900">
-              Total Outstanding ECB Penalties: {formatCurrency(totalEcbPenalties)}
-            </span>
-            <span className="text-[9px] text-gray-800 ml-2">
-              (Unpaid ECB penalties typically become property liens)
-            </span>
+      {/* Building Info + Compliance Summary — grouped to stay on same page */}
+      <div style={{ pageBreakInside: 'avoid' }}>
+        <section className="mb-3">
+          <h3 className={sectionHeaderStyle}>Building Information</h3>
+          <div className="grid grid-cols-4 gap-x-4 gap-y-1.5 text-[10px]">
+            {[
+              ['Year Built', building.year_built || '—'],
+              ['Stories', building.stories || '—'],
+              ['Dwelling Units', building.dwelling_units ?? '—'],
+              ['Building Class', building.building_class || '—'],
+              ['Zoning', building.zoning_district || '—'],
+              ['Building Area', building.building_area_sqft ? `${building.building_area_sqft.toLocaleString()} sqft` : '—'],
+              ['Lot Area', building.lot_area_sqft ? `${building.lot_area_sqft.toLocaleString()} sqft` : '—'],
+              ['Assessed Value', building.assessed_total_value ? formatCurrency(building.assessed_total_value) : '—'],
+              ['Owner', building.owner_name || '—'],
+              ['Landmark', building.is_landmark ? 'Yes' : building.historic_district ? `Historic: ${building.historic_district}` : 'No'],
+              ['Land Use', building.land_use || '—'],
+            ].map(([label, value], i) => (
+              <div key={i}>
+                <span className="text-gray-400 text-[9px]">{label}</span>
+                <div className="font-semibold text-gray-900">{value}</div>
+              </div>
+            ))}
           </div>
-        )}
-      </section>
+        </section>
+
+        {/* Compliance Summary — compact horizontal bar */}
+        <section className="mb-4">
+          <h3 className={sectionHeaderStyle}>Compliance Summary</h3>
+          <div className="flex gap-2">
+            {[
+              {
+                label: 'Open Violations',
+                value: violations.length,
+                sub: `DOB: ${dobViolations.length} | ECB: ${ecbViolations.length} | HPD: ${hpdViolations.length}${fdnyViolations.length > 0 ? ` | FDNY: ${fdnyViolations.length}` : ''}${otherOathViolations.length > 0 ? ` | Other: ${otherOathViolations.length}` : ''}`,
+              },
+              {
+                label: 'Applications',
+                value: applications.length,
+                sub: `BIS: ${bisApplications.length} | DOB NOW: ${dobNowApplications.length}`,
+              },
+              {
+                label: 'Stop Work Orders',
+                value: orders.stop_work?.length || 0,
+                danger: (orders.stop_work?.length || 0) > 0,
+              },
+              {
+                label: 'Vacate Orders',
+                value: orders.vacate?.length || 0,
+                danger: (orders.vacate?.length || 0) > 0,
+              },
+            ].map((item, i) => (
+              <div key={i} className={`flex-1 py-2 px-3 rounded-lg text-center ${item.danger ? 'border border-red-300 bg-red-50' : 'border border-gray-200 bg-gray-50'}`}>
+                <div className={`text-[16px] font-bold ${item.danger ? 'text-red-600' : 'text-black'}`}>{item.value}</div>
+                <div className="text-[7px] font-semibold text-gray-500 uppercase tracking-wider">{item.label}</div>
+                {item.sub && <div className="text-[6px] text-gray-400 mt-0.5">{item.sub}</div>}
+              </div>
+            ))}
+          </div>
+          {totalEcbPenalties > 0 && (
+            <div className="mt-2 p-1.5 border border-red-200 bg-red-50 rounded-lg text-center">
+              <span className="text-[10px] font-semibold text-red-700">
+                Total Outstanding ECB Penalties: {formatCurrency(totalEcbPenalties)}
+              </span>
+              <span className="text-[9px] text-gray-500 ml-2">
+                (Unpaid ECB penalties typically become property liens)
+              </span>
+            </div>
+          )}
+        </section>
+      </div>
 
       {/* Critical Orders */}
       {(orders.stop_work?.length > 0 || orders.vacate?.length > 0 || orders.partial_stop_work?.length > 0) && (
