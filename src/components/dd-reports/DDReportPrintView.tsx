@@ -137,10 +137,10 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
     return parts.join(' / ') || '—';
   };
 
-  // Print-optimized styles — modern, clean, high contrast
-  const sectionHeaderStyle = "text-[11px] font-semibold uppercase tracking-[0.12em] text-gray-500 border-b border-gray-300 pb-1.5 mb-3";
-  const tableCellStyle = "border border-gray-300 px-2 py-1.5 text-[10px] align-top text-gray-900";
-  const tableHeaderStyle = "border border-gray-300 px-2 py-1.5 text-[9px] font-semibold uppercase tracking-wider text-gray-600 bg-gray-50";
+  // Print styles — compact, modern
+  const sectionHeaderStyle = "text-[10px] font-semibold uppercase tracking-[0.1em] text-gray-500 border-b border-gray-200 pb-1 mb-2";
+  const tableCellStyle = "border border-gray-200 px-1.5 py-1 text-[9px] align-top text-gray-900";
+  const tableHeaderStyle = "border border-gray-200 px-1.5 py-1 text-[8px] font-semibold uppercase tracking-wider text-gray-500 bg-gray-50";
 
   const isArchitectLikelyNeeded = (v: any): boolean => {
     const desc = (v.description_raw || v.violation_type || '').toLowerCase();
@@ -298,43 +298,42 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
   };
 
   return (
-    <div className="print-container bg-white text-black p-8 max-w-4xl mx-auto" style={{ fontFamily: "'Inter', 'Helvetica Neue', Arial, sans-serif", fontSize: '11px', lineHeight: '1.5', color: '#1a1a1a' }}>
-      {/* Letterhead — clean modern header */}
-      <div className="mb-6" style={{ pageBreakAfter: 'avoid' }}>
-        <div className="flex items-end justify-between pb-4" style={{ borderBottom: '1px solid #e5e5e5' }}>
+    <div className="print-container bg-white text-black p-6 max-w-4xl mx-auto" style={{ fontFamily: "'Inter', 'Helvetica Neue', Arial, sans-serif", fontSize: '11px', lineHeight: '1.4', color: '#1a1a1a' }}>
+      {/* Letterhead */}
+      <div className="mb-3" style={{ pageBreakAfter: 'avoid' }}>
+        <div className="flex items-end justify-between pb-2" style={{ borderBottom: '1px solid #ddd' }}>
           <div>
-            <h1 className="text-[22px] font-bold tracking-[-0.02em] text-black" style={{ letterSpacing: '-0.5px' }}>BinCheckNYC Report</h1>
-            <p className="text-[9px] text-gray-400 mt-1 font-medium tracking-[0.15em] uppercase">Property Compliance Assessment</p>
+            <h1 className="text-[18px] font-bold tracking-tight text-black">BinCheckNYC Report</h1>
+            <p className="text-[8px] text-gray-400 mt-0.5 font-medium tracking-[0.12em] uppercase">Property Compliance Assessment</p>
           </div>
-          <div className="text-right">
-            <p className="text-[9px] text-gray-400 font-medium">Report ID: {reportId}</p>
-            <p className="text-[9px] text-gray-400">{format(new Date(report.report_date), 'MMMM d, yyyy')}</p>
+          <div className="text-right text-[8px] text-gray-400">
+            <p>Report ID: {reportId}</p>
+            <p>{format(new Date(report.report_date), 'MMMM d, yyyy')}</p>
           </div>
         </div>
-        {/* Meta Row */}
-        <div className="grid grid-cols-2 gap-4 mt-3 text-[10px]">
+        <div className="grid grid-cols-2 gap-4 mt-2 text-[10px]">
           <div>
-            <p className="text-gray-400 text-[8px] uppercase tracking-[0.15em] font-medium mb-0.5">Prepared For</p>
-            <p className="font-semibold text-black text-[11px]">{report.prepared_for}</p>
+            <p className="text-gray-400 text-[7px] uppercase tracking-[0.12em] font-medium">Prepared For</p>
+            <p className="font-semibold text-black">{report.prepared_for}</p>
           </div>
           <div className="text-right">
-            <p className="text-gray-400 text-[8px] uppercase tracking-[0.15em] font-medium mb-0.5">Prepared By</p>
-            <p className="font-semibold text-black text-[11px]">{preparedByLine || '—'}</p>
-            {credentialsLine && <p className="text-gray-500 text-[9px] mt-0.5">{credentialsLine}</p>}
+            <p className="text-gray-400 text-[7px] uppercase tracking-[0.12em] font-medium">Prepared By</p>
+            <p className="font-semibold text-black">{preparedByLine || '—'}</p>
+            {credentialsLine && <p className="text-gray-500 text-[8px]">{credentialsLine}</p>}
           </div>
         </div>
       </div>
 
       {/* Subject Property */}
-      <div className="mb-5 p-4 rounded-lg border border-gray-200 bg-gray-50" style={{ pageBreakInside: 'avoid' }}>
+      <div className="mb-3 p-3 rounded border border-gray-200 bg-gray-50" style={{ pageBreakInside: 'avoid' }}>
         <div className="flex items-start justify-between">
           <div>
-            <p className="text-[8px] text-gray-400 uppercase tracking-[0.15em] font-medium mb-1">Subject Property</p>
-            <p className="text-[15px] font-bold text-black tracking-[-0.01em]">{report.address}</p>
+            <p className="text-[7px] text-gray-400 uppercase tracking-[0.12em] font-medium">Subject Property</p>
+            <p className="text-[13px] font-bold text-black">{report.address}</p>
           </div>
-          <div className="text-right text-[10px] space-y-0.5">
-            <p><span className="text-gray-400 text-[9px]">BIN</span> <span className="font-mono font-semibold text-black ml-1">{report.bin || '—'}</span></p>
-            <p><span className="text-gray-400 text-[9px]">BBL</span> <span className="font-mono font-semibold text-black ml-1">{formatBBL(report.bbl)}</span></p>
+          <div className="text-right text-[9px]">
+            <p><span className="text-gray-400 text-[8px]">BIN</span> <span className="font-mono font-semibold text-black ml-1">{report.bin || '—'}</span></p>
+            <p><span className="text-gray-400 text-[8px]">BBL</span> <span className="font-mono font-semibold text-black ml-1">{formatBBL(report.bbl)}</span></p>
           </div>
         </div>
         {/* Agency Sources */}
@@ -345,24 +344,26 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
           const withData = queried.filter((a: any) => a.results > 0);
           const withErrors = queried.filter((a: any) => a.error && a.results === 0);
           return (
-            <div className="mt-3 pt-3 border-t border-gray-200">
+            <div className="mt-2 pt-2 border-t border-gray-200">
               {withErrors.length > 0 && (
-                <div className="mb-2 p-1.5 rounded border border-amber-300 bg-amber-50">
-                  <p className="text-[9px] font-medium text-amber-800">
+                <div className="mb-1.5 p-1 rounded border border-amber-300 bg-amber-50">
+                  <p className="text-[8px] font-medium text-amber-800">
                     ⚠ {withErrors.length} source{withErrors.length !== 1 ? 's' : ''} unavailable: {withErrors.map(a => a.agency).join(', ')}
                   </p>
                 </div>
               )}
-              <p className="text-[8px] text-gray-400 uppercase tracking-[0.15em] font-medium mb-1.5">
-                Sources Checked ({withData.length} of {queried.length} returned records{withErrors.length > 0 ? ` · ${withErrors.length} unavailable` : ''})
+              <p className="text-[7px] text-gray-400 uppercase tracking-[0.12em] font-medium mb-1">
+                Sources ({withData.length}/{queried.length} returned data)
               </p>
-              <div className="flex flex-wrap gap-1">
+              <div className="flex flex-wrap gap-0.5">
                 {queried.map((a: any) => {
                   const isError = a.error && a.results === 0;
+                  const badgeText = `${a.agency}${a.results > 0 ? ` (${a.results})` : isError ? ' ⚠' : ''}`;
                   return (
                     <span
                       key={a.agency}
-                      className={`inline-flex items-center justify-center text-[8px] font-semibold px-2 py-1 rounded-md leading-none ${
+                      style={{ height: '16px', lineHeight: '16px', fontSize: '7px', display: 'inline-block', textAlign: 'center', verticalAlign: 'middle' }}
+                      className={`font-semibold px-1.5 rounded ${
                         a.results > 0
                           ? 'bg-black text-white'
                           : isError
@@ -370,7 +371,7 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
                             : 'bg-white text-gray-500 border border-gray-300'
                       }`}
                     >
-                      {a.agency}{a.results > 0 ? ` (${a.results})` : isError ? ' ⚠' : ''}
+                      {badgeText}
                     </span>
                   );
                 })}
@@ -379,114 +380,110 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
           );
         })()}
         {(report as any).customer_concern && (
-          <div className="mt-3 pt-3 border-t border-gray-200">
-            <p className="text-[8px] text-gray-400 uppercase tracking-[0.15em] font-medium mb-0.5">Scope of Review</p>
-            <p className="text-[10px] text-gray-700 italic">"{(report as any).customer_concern}"</p>
+          <div className="mt-2 pt-2 border-t border-gray-200">
+            <p className="text-[7px] text-gray-400 uppercase tracking-[0.12em] font-medium">Scope of Review</p>
+            <p className="text-[9px] text-gray-700 italic">"{(report as any).customer_concern}"</p>
           </div>
         )}
       </div>
 
       {/* Property Status Summary */}
       {report.property_status_summary && (
-        <section className="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200" style={{ pageBreakInside: 'avoid' }}>
-          <h3 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-gray-500 mb-2">Property Status Summary</h3>
-          <div className="flex flex-wrap gap-1.5 mb-2 pb-2 border-b border-gray-200">
-            <span className="text-[9px] font-semibold text-gray-700 bg-white px-1.5 py-0.5 rounded-md border border-gray-200">DOB: {dobViolations.length}</span>
-            <span className="text-[9px] font-semibold text-gray-700 bg-white px-1.5 py-0.5 rounded-md border border-gray-200">ECB: {ecbViolations.length}</span>
-            <span className="text-[9px] font-semibold text-gray-700 bg-white px-1.5 py-0.5 rounded-md border border-gray-200">HPD: {hpdViolations.length}</span>
-            {fdnyViolations.length > 0 && <span className="text-[9px] font-semibold text-gray-700 bg-white px-1.5 py-0.5 rounded-md border border-gray-200">FDNY: {fdnyViolations.length}</span>}
-            {otherOathViolations.length > 0 && <span className="text-[9px] font-semibold text-gray-700 bg-white px-1.5 py-0.5 rounded-md border border-gray-200">Other: {otherOathViolations.length}</span>}
-            <span className="text-[9px] font-semibold text-gray-700 bg-white px-1.5 py-0.5 rounded-md border border-gray-200">Applications: {applications.length}</span>
-            {complaints.length > 0 && <span className="text-[9px] font-semibold text-gray-700 bg-white px-1.5 py-0.5 rounded-md border border-gray-200">Open Complaints: {complaints.length}</span>}
+        <section className="mb-3 p-3 bg-gray-50 rounded border border-gray-200" style={{ pageBreakInside: 'avoid' }}>
+          <h3 className="text-[10px] font-semibold uppercase tracking-[0.1em] text-gray-500 mb-1.5">Property Status Summary</h3>
+          <div className="flex flex-wrap gap-1 mb-1.5 pb-1.5 border-b border-gray-200">
+            <span className="text-[8px] font-semibold text-gray-700 bg-white px-1 py-0.5 rounded border border-gray-200">DOB: {dobViolations.length}</span>
+            <span className="text-[8px] font-semibold text-gray-700 bg-white px-1 py-0.5 rounded border border-gray-200">ECB: {ecbViolations.length}</span>
+            <span className="text-[8px] font-semibold text-gray-700 bg-white px-1 py-0.5 rounded border border-gray-200">HPD: {hpdViolations.length}</span>
+            {fdnyViolations.length > 0 && <span className="text-[8px] font-semibold text-gray-700 bg-white px-1 py-0.5 rounded border border-gray-200">FDNY: {fdnyViolations.length}</span>}
+            {otherOathViolations.length > 0 && <span className="text-[8px] font-semibold text-gray-700 bg-white px-1 py-0.5 rounded border border-gray-200">Other: {otherOathViolations.length}</span>}
+            <span className="text-[8px] font-semibold text-gray-700 bg-white px-1 py-0.5 rounded border border-gray-200">Applications: {applications.length}</span>
+            {complaints.length > 0 && <span className="text-[8px] font-semibold text-gray-700 bg-white px-1 py-0.5 rounded border border-gray-200">Complaints: {complaints.length}</span>}
             {totalEcbPenalties > 0 && (
-              <span className="text-[9px] font-semibold text-red-700 bg-red-50 px-1.5 py-0.5 rounded-md border border-red-200">
-                ECB Penalties Due: {formatCurrency(totalEcbPenalties)}
+              <span className="text-[8px] font-semibold text-red-700 bg-red-50 px-1 py-0.5 rounded border border-red-200">
+                ECB Penalties: {formatCurrency(totalEcbPenalties)}
               </span>
             )}
           </div>
-          <p className="text-[10px] leading-relaxed text-gray-800 whitespace-pre-line">{report.property_status_summary}</p>
+          <p className="text-[9px] leading-[1.4] text-gray-800 whitespace-pre-line">{report.property_status_summary}</p>
         </section>
       )}
 
       {/* Tax Lien Sale Alert */}
       {(report.tax_lien_data || []).length > 0 && (
-        <section className="mb-4 p-3 bg-red-50 rounded-lg border border-red-300" style={{ pageBreakInside: 'avoid' }}>
-          <h3 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-red-700 mb-1">⚠ Tax Lien Sale List — Property Flagged</h3>
-          <p className="text-[10px] leading-relaxed text-red-800">
-            This property appears on the NYC Department of Finance Tax Lien Sale List with {(report.tax_lien_data || []).length} record{(report.tax_lien_data || []).length !== 1 ? 's' : ''}.
-            This indicates delinquent property taxes, water/sewer charges, or other municipal debt eligible for sale to a third-party lien purchaser.
-            Buyers should verify current status directly with DOF before proceeding.
+        <section className="mb-3 p-2 bg-red-50 rounded border border-red-300" style={{ pageBreakInside: 'avoid' }}>
+          <h3 className="text-[10px] font-semibold uppercase tracking-[0.1em] text-red-700 mb-0.5">⚠ Tax Lien Sale — Property Flagged</h3>
+          <p className="text-[9px] leading-[1.4] text-red-800">
+            This property appears on the NYC DOF Tax Lien Sale List with {(report.tax_lien_data || []).length} record{(report.tax_lien_data || []).length !== 1 ? 's' : ''}.
+            Verify current status directly with DOF before proceeding.
           </p>
         </section>
       )}
 
-      {/* Building Info + Compliance Summary — grouped to stay on same page */}
+      {/* Building Info + Compliance Summary — keep together */}
       <div style={{ pageBreakInside: 'avoid' }}>
-        <section className="mb-3">
+        <section className="mb-2">
           <h3 className={sectionHeaderStyle}>Building Information</h3>
-          <div className="grid grid-cols-4 gap-x-4 gap-y-1.5 text-[10px]">
+          <div className="grid grid-cols-4 gap-x-3 gap-y-0.5 text-[9px]">
             {[
               ['Year Built', building.year_built || '—'],
               ['Stories', building.stories || '—'],
-              ['Dwelling Units', building.dwelling_units ?? '—'],
-              ['Building Class', building.building_class || '—'],
+              ['Units', building.dwelling_units ?? '—'],
+              ['Class', building.building_class || '—'],
               ['Zoning', building.zoning_district || '—'],
-              ['Building Area', building.building_area_sqft ? `${building.building_area_sqft.toLocaleString()} sqft` : '—'],
-              ['Lot Area', building.lot_area_sqft ? `${building.lot_area_sqft.toLocaleString()} sqft` : '—'],
-              ['Assessed Value', building.assessed_total_value ? formatCurrency(building.assessed_total_value) : '—'],
+              ['Bldg Area', building.building_area_sqft ? `${building.building_area_sqft.toLocaleString()} sf` : '—'],
+              ['Lot Area', building.lot_area_sqft ? `${building.lot_area_sqft.toLocaleString()} sf` : '—'],
+              ['Assessed', building.assessed_total_value ? formatCurrency(building.assessed_total_value) : '—'],
               ['Owner', building.owner_name || '—'],
-              ['Landmark', building.is_landmark ? 'Yes' : building.historic_district ? `Historic: ${building.historic_district}` : 'No'],
+              ['Landmark', building.is_landmark ? 'Yes' : building.historic_district ? `Historic` : 'No'],
               ['Land Use', building.land_use || '—'],
             ].map(([label, value], i) => (
               <div key={i}>
-                <span className="text-gray-400 text-[9px]">{label}</span>
-                <div className="font-semibold text-gray-900">{value}</div>
+                <span className="text-gray-400">{label}:</span>{' '}
+                <span className="font-semibold text-gray-900">{value}</span>
               </div>
             ))}
           </div>
         </section>
 
-        {/* Compliance Summary — compact horizontal bar */}
-        <section className="mb-4">
+        <section className="mb-3">
           <h3 className={sectionHeaderStyle}>Compliance Summary</h3>
-          <div className="flex gap-2">
+          <div className="flex gap-1.5">
             {[
               {
                 label: 'Open Violations',
                 value: violations.length,
-                sub: `DOB: ${dobViolations.length} | ECB: ${ecbViolations.length} | HPD: ${hpdViolations.length}${fdnyViolations.length > 0 ? ` | FDNY: ${fdnyViolations.length}` : ''}${otherOathViolations.length > 0 ? ` | Other: ${otherOathViolations.length}` : ''}`,
+                sub: `DOB ${dobViolations.length} · ECB ${ecbViolations.length} · HPD ${hpdViolations.length}${fdnyViolations.length > 0 ? ` · FDNY ${fdnyViolations.length}` : ''}`,
               },
               {
                 label: 'Applications',
                 value: applications.length,
-                sub: `BIS: ${bisApplications.length} | DOB NOW: ${dobNowApplications.length}`,
+                sub: `BIS ${bisApplications.length} · NOW ${dobNowApplications.length}`,
               },
               {
-                label: 'Stop Work Orders',
+                label: 'Stop Work',
                 value: orders.stop_work?.length || 0,
                 danger: (orders.stop_work?.length || 0) > 0,
               },
               {
-                label: 'Vacate Orders',
+                label: 'Vacate',
                 value: orders.vacate?.length || 0,
                 danger: (orders.vacate?.length || 0) > 0,
               },
             ].map((item, i) => (
-              <div key={i} className={`flex-1 py-2 px-3 rounded-lg text-center ${item.danger ? 'border border-red-300 bg-red-50' : 'border border-gray-200 bg-gray-50'}`}>
-                <div className={`text-[16px] font-bold ${item.danger ? 'text-red-600' : 'text-black'}`}>{item.value}</div>
-                <div className="text-[7px] font-semibold text-gray-500 uppercase tracking-wider">{item.label}</div>
+              <div key={i} className={`flex-1 py-1.5 px-2 rounded text-center ${item.danger ? 'border border-red-300 bg-red-50' : 'border border-gray-200 bg-gray-50'}`}>
+                <div className={`text-[14px] font-bold ${item.danger ? 'text-red-600' : 'text-black'}`}>{item.value}</div>
+                <div className="text-[6px] font-semibold text-gray-500 uppercase tracking-wider">{item.label}</div>
                 {item.sub && <div className="text-[6px] text-gray-400 mt-0.5">{item.sub}</div>}
               </div>
             ))}
           </div>
           {totalEcbPenalties > 0 && (
-            <div className="mt-2 p-1.5 border border-red-200 bg-red-50 rounded-lg text-center">
-              <span className="text-[10px] font-semibold text-red-700">
-                Total Outstanding ECB Penalties: {formatCurrency(totalEcbPenalties)}
+            <div className="mt-1.5 p-1 border border-red-200 bg-red-50 rounded text-center">
+              <span className="text-[9px] font-semibold text-red-700">
+                ECB Penalties Outstanding: {formatCurrency(totalEcbPenalties)}
               </span>
-              <span className="text-[9px] text-gray-500 ml-2">
-                (Unpaid ECB penalties typically become property liens)
-              </span>
+              <span className="text-[8px] text-gray-500 ml-1">(typically become property liens)</span>
             </div>
           )}
         </section>
