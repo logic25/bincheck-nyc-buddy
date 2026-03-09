@@ -132,10 +132,10 @@ const OATH_AGENCY_CODES: Record<string, string> = {
 };
 const OATH_RESOLVED = ["paid", "dismissed", "written off", "defaulted", "satisfied", "complied", "waived"];
 
-async function fetchOATH(bbl: string): Promise<any[]> {
+async function fetchOATH(bbl: string): Promise<{ data: any[]; error: boolean }> {
   const cleanBbl = bbl.replace(/\D/g, "");
   const boroughName = OATH_BOROUGH_NAMES[cleanBbl.charAt(0)];
-  if (!boroughName) return [];
+  if (!boroughName) return { data: [], error: false };
   const blockPadded = cleanBbl.slice(1, 6);
   const lotPadded = cleanBbl.slice(6, 10);
 
@@ -146,20 +146,26 @@ async function fetchOATH(bbl: string): Promise<any[]> {
     })
   );
 
-  return results.flat().map((r: any) => {
-    const combined = `${(r.hearing_status || "").toLowerCase()} ${(r.hearing_result || "").toLowerCase()} ${(r.compliance_status || "").toLowerCase()}`;
-    const isResolved = OATH_RESOLVED.some(t => combined.includes(t));
-    return {
-      ticket_number: r.ticket_number || "",
-      issuing_agency: OATH_AGENCY_CODES[r.issuing_agency] || r.issuing_agency || "",
-      violation_date: r.violation_date || "",
-      charge_1_code_description: r.charge_1_code_description || "",
-      penalty_imposed: r.penalty_imposed || "0",
-      hearing_status: r.hearing_status || "",
-      hearing_result: r.hearing_result || "",
-      status: isResolved ? "closed" : "open",
-    };
-  });
+  const hadError = results.some(r => r.error);
+  const allData = results.flatMap(r => r.data);
+
+  return {
+    data: allData.map((r: any) => {
+      const combined = `${(r.hearing_status || "").toLowerCase()} ${(r.hearing_result || "").toLowerCase()} ${(r.compliance_status || "").toLowerCase()}`;
+      const isResolved = OATH_RESOLVED.some(t => combined.includes(t));
+      return {
+        ticket_number: r.ticket_number || "",
+        issuing_agency: OATH_AGENCY_CODES[r.issuing_agency] || r.issuing_agency || "",
+        violation_date: r.violation_date || "",
+        charge_1_code_description: r.charge_1_code_description || "",
+        penalty_imposed: r.penalty_imposed || "0",
+        hearing_status: r.hearing_status || "",
+        hearing_result: r.hearing_result || "",
+        status: isResolved ? "closed" : "open",
+      };
+    }),
+    error: hadError,
+  };
 }
 
 // Deduplicate records by key, keeping the one with more non-null fields
