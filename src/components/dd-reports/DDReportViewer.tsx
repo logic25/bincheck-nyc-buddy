@@ -430,7 +430,7 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
   const sectionNav = [
     { key: 'violations' as const, label: 'Violations', count: violations.length, icon: AlertTriangle },
     { key: 'applications' as const, label: 'Applications', count: applications.length, icon: FileStack },
-    ...(complaints.length > 0 ? [{ key: 'complaints' as const, label: 'Complaints', count: complaints.length, icon: MessageSquareWarning }] : []),
+    ...(openComplaints.length > 0 ? [{ key: 'complaints' as const, label: 'Complaints', count: openComplaints.length, icon: MessageSquareWarning }] : []),
     { key: 'acris' as const, label: 'ACRIS', count: acrisDocuments.length, icon: Landmark },
     { key: 'analysis' as const, label: 'AI Analysis', icon: Shield },
     { key: 'notes' as const, label: 'Notes', icon: StickyNote },
