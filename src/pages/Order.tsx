@@ -66,6 +66,25 @@ const Order = () => {
   // Step 3 — Plan
   const [plan, setPlan] = useState<"one-time" | "professional">(initialPlan as any);
 
+  // Mock card form state
+  const [cardNumber, setCardNumber] = useState("");
+  const [cardExpiry, setCardExpiry] = useState("");
+  const [cardCvc, setCardCvc] = useState("");
+  const [cardName, setCardName] = useState("");
+
+  const formatCardNumber = (value: string) => {
+    const digits = value.replace(/\D/g, "").slice(0, 16);
+    return digits.replace(/(\d{4})(?=\d)/g, "$1 ");
+  };
+
+  const formatExpiry = (value: string) => {
+    const digits = value.replace(/\D/g, "").slice(0, 4);
+    if (digits.length <= 2) return digits;
+    return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+  };
+
+  const cardValid = cardNumber.replace(/\s/g, "").length === 16 && cardExpiry.length === 5 && cardCvc.length >= 3 && cardName.trim().length > 0;
+
   const fetchSuggestions = useCallback(async (text: string) => {
     if (text.length < 3 || /^\d+$/.test(text.trim())) { setSuggestions([]); return; }
     try {
