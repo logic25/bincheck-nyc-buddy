@@ -584,10 +584,10 @@ async function fetchApplications(bin: string): Promise<any[]> {
   const [dobJobsRecent, dobJobsOldest] = await Promise.all([
     fetchNYCData(NYC_ENDPOINTS.DOB_JOBS, {
       "bin__": bin, "$limit": "500", "$order": "latest_action_date DESC",
-    }),
+    }, 'DOB-BIS'),
     fetchNYCData(NYC_ENDPOINTS.DOB_JOBS, {
       "bin__": bin, "$limit": "500", "$order": "pre__filing_date ASC",
-    }),
+    }, 'DOB-BIS'),
   ]);
 
   // Merge and deduplicate by job number
