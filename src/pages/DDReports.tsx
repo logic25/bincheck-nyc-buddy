@@ -395,19 +395,19 @@ const DDReports = () => {
 
         {/* Main tabs: Incoming Orders vs Reports */}
         <Tabs value={mainTab} onValueChange={(v) => setMainTab(v as 'incoming' | 'reports')}>
-          <TabsList className="h-auto">
-            <TabsTrigger value="incoming" className="gap-1.5">
+          <TabsList className="h-auto w-full sm:w-auto flex-wrap">
+            <TabsTrigger value="incoming" className="gap-1.5 flex-1 sm:flex-none">
               <Inbox className="h-4 w-4" />
-              Incoming Orders
+              <span className="hidden xs:inline">Incoming</span> Orders
               {(incomingOrders?.length ?? 0) > 0 && (
                 <span className="ml-1 text-xs bg-destructive text-destructive-foreground px-1.5 py-0.5 rounded-full font-semibold">
                   {incomingOrders!.length}
                 </span>
               )}
             </TabsTrigger>
-            <TabsTrigger value="reports" className="gap-1.5">
+            <TabsTrigger value="reports" className="gap-1.5 flex-1 sm:flex-none">
               <FileText className="h-4 w-4" />
-              Reports Queue
+              <span className="hidden xs:inline">Reports</span> Queue
               {(reports?.length ?? 0) > 0 && (
                 <span className="ml-1 text-xs bg-muted px-1.5 py-0.5 rounded-full">{reports!.length}</span>
               )}
