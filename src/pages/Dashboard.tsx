@@ -202,7 +202,7 @@ const Dashboard = () => {
       if (error) throw error;
       return data as any;
     },
-    enabled: !!selectedReportId && !isAdmin,
+    enabled: !!selectedReportId && showClientView,
   });
 
   const { data: userProfile } = useQuery({
