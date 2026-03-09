@@ -1584,7 +1584,7 @@ serve(async (req) => {
     // Generate AI analysis, line-item notes, and property status summary in parallel
     const [aiAnalysis, lineItemNotes, propertyStatusSummary] = await Promise.all([
       generateAIAnalysis(
-        { building: building || { address: resolvedAddress, bin, bbl }, violations, applications, orders, acrisData },
+        { building: building || { address: resolvedAddress, bin, bbl }, violations, applications, orders, acrisData, taxLienData },
         customerConcern || null,
         LOVABLE_API_KEY
       ),
