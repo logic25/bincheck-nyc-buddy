@@ -532,10 +532,10 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
           </>
         )}
         {architectTaggedCount > 0 && (
-          <div className="mt-3 p-2 border border-blue-400 bg-blue-100 rounded" style={{ pageBreakInside: 'avoid' }}>
-            <p className="text-[10px] font-bold text-blue-900 mb-0.5">Architect Certification Typically Involved</p>
-            <p className="text-[9px] text-gray-900 leading-relaxed">
-              {architectTaggedCount} open violation{architectTaggedCount !== 1 ? 's' : ''} (marked <span className="font-bold text-blue-800 bg-blue-200 px-0.5 rounded text-[8px]">RA</span>) {architectTaggedCount !== 1 ? 'are' : 'is'} of a type where DOB has historically accepted or required a licensed architect's certification letter as part of the dismissal process. BinCheckNYC can coordinate architect opinion letters through our professional network.
+          <div className="mt-3 p-2.5 border border-blue-200 bg-blue-50 rounded-lg" style={{ pageBreakInside: 'avoid' }}>
+            <p className="text-[10px] font-semibold text-blue-700 mb-0.5">Architect Certification Typically Involved</p>
+            <p className="text-[9px] text-gray-700 leading-relaxed">
+              {architectTaggedCount} open violation{architectTaggedCount !== 1 ? 's' : ''} (marked <span className="font-semibold text-blue-700 bg-blue-100 px-0.5 rounded text-[8px]">RA</span>) {architectTaggedCount !== 1 ? 'are' : 'is'} of a type where DOB has historically accepted or required a licensed architect's certification letter as part of the dismissal process. BinCheckNYC can coordinate architect opinion letters through our professional network.
             </p>
           </div>
         )}
