@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -29,6 +29,25 @@ const CreateDDReportDialog = ({ open, onOpenChange, onSuccess }: CreateDDReportD
   const [preparedFor, setPreparedFor] = useState('');
   const [preparedBy, setPreparedBy] = useState('');
   const [customerConcern, setCustomerConcern] = useState('');
+  const [defaultPreparedBy, setDefaultPreparedBy] = useState('');
+
+  // Auto-fill "Prepared By" with the current user's display name
+  useEffect(() => {
+    if (!open) return;
+    const prefill = async () => {
+      const { data: session } = await supabase.auth.getSession();
+      if (!session?.session?.user) return;
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('display_name')
+        .eq('user_id', session.session.user.id)
+        .single();
+      const name = profile?.display_name || session.session.user.email?.split('@')[0] || '';
+      setDefaultPreparedBy(name);
+      if (!preparedBy) setPreparedBy(name);
+    };
+    prefill();
+  }, [open]);
 
   const createReport = useMutation({
     mutationFn: async () => {
