@@ -1,7 +1,8 @@
 import { format } from 'date-fns';
 import { getAgencyDisplayName } from '@/lib/violation-utils';
 import { decodeComplaintCategory } from '@/lib/complaint-category-decoder';
-import ReactMarkdown from 'react-markdown';
+import { calculateComplianceScore } from '@/lib/scoring';
+import type { PropertyData } from '@/types/property';
 
 interface UserProfile {
   email: string | null;
@@ -33,9 +34,15 @@ interface DDReportPrintViewProps {
     property_status_summary?: string | null;
     tax_lien_data?: any[];
     citisignal_recommended?: boolean;
+    agencies_queried?: any[];
   };
   userProfile?: UserProfile;
 }
+
+// ─── Constants ─────────────────────────────────────────────────────────────
+const NAVY = '#1e3a5f';
+const CARD_BG = '#f9fafb';
+const BORDER = '#e5e7eb';
 
 const generateReportId = (date: string): string => {
   const d = new Date(date);
@@ -77,6 +84,19 @@ const formatCurrency = (val: any): string => {
   return `$${num.toLocaleString()}`;
 };
 
+// ─── Tag extraction helpers ────────────────────────────────────────────────
+const getItemTag = (note: string): 'action' | 'monitor' | 'clear' => {
+  if (!note) return 'clear';
+  if (note.includes('[ACTION REQUIRED]')) return 'action';
+  if (note.includes('[MONITOR]')) return 'monitor';
+  return 'clear';
+};
+
+const stripTag = (note: string): string => {
+  return note.replace(/\[ACTION REQUIRED\]\s*/g, '').replace(/\[MONITOR\]\s*/g, '').trim();
+};
+
+// ─── Component ─────────────────────────────────────────────────────────────
 const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
   const violations = (report.violations_data || []).filter((v: any) => !v.hidden);
   const applications = (report.applications_data || []).filter((a: any) => !a.hidden);
@@ -137,11 +157,6 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
     return parts.join(' / ') || '—';
   };
 
-  // Print styles — compact, modern
-  const sectionHeaderStyle = "text-[10px] font-semibold uppercase tracking-[0.1em] text-gray-500 border-b border-gray-200 pb-1 mb-2";
-  const tableCellStyle = "border border-gray-200 px-1.5 py-1 text-[9px] align-top text-gray-900";
-  const tableHeaderStyle = "border border-gray-200 px-1.5 py-1 text-[8px] font-semibold uppercase tracking-wider text-gray-500 bg-gray-50";
-
   const isArchitectLikelyNeeded = (v: any): boolean => {
     const desc = (v.description_raw || v.violation_type || '').toLowerCase();
     return desc.includes('illegal conversion') || desc.includes('illegal alteration') ||
@@ -160,45 +175,180 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
     return sum + Math.max(0, penalty - paid);
   }, 0);
 
+  // ─── Compliance Score ────────────────────────────────────────────────────
+  const propertyData: PropertyData = {
+    bin: report.bin || '',
+    address: report.address,
+    borough: '',
+    block: '',
+    lot: '',
+    dobViolations: dobViolations.map((v: any) => ({
+      isn_dob_bis_viol: v.id || '',
+      violation_type: v.violation_type || '',
+      violation_category: v.violation_category || '',
+      violation_type_code: v.violation_type_code || '',
+      violation_number: v.violation_number || '',
+      violation_date: v.issued_date || '',
+      status: v.status || 'OPEN',
+      description: v.description_raw || '',
+    })),
+    ecbViolations: ecbViolations.map((v: any) => ({
+      isn_dob_bis_viol: v.id || '',
+      ecb_violation_number: v.violation_number || '',
+      ecb_violation_status: v.status || '',
+      violation_type: v.violation_type || '',
+      violation_description: v.description_raw || '',
+      penalty_balance_due: v.penalty_imposed || '0',
+      amount_paid: v.amount_paid || '0',
+      amount_baldue: v.penalty_imposed || '0',
+      infraction_codes: '',
+      violation_date: v.issued_date || '',
+      status: v.status || 'OPEN',
+    })),
+    hpdViolations: hpdViolations.map((v: any) => ({
+      violationid: v.id || '',
+      boroid: '',
+      block: '',
+      lot: '',
+      class: v.violation_class || v.severity || '',
+      inspectiondate: v.issued_date || '',
+      currentstatusid: '',
+      currentstatus: v.status || '',
+      currentstatusdate: '',
+      violationstatus: v.status || 'OPEN',
+    })),
+    oathViolations: [...fdnyViolations, ...otherOathViolations].map((v: any) => ({
+      ticket_number: v.violation_number || '',
+      issuing_agency: v.agency || '',
+      violation_date: v.issued_date || '',
+      charge_1_code_description: v.description_raw || '',
+      penalty_imposed: v.penalty_imposed || '0',
+      hearing_status: '',
+      hearing_result: '',
+      status: v.status || 'OPEN',
+    })),
+    dobComplaints: complaints.map((c: any) => ({
+      complaint_number: c.complaint_number || '',
+      date_entered: c.date_entered || '',
+      status: c.status || '',
+      complaint_category: c.complaint_category || '',
+      unit: '',
+      description: c.category_description || '',
+    })),
+    permits: applications.map((a: any) => ({
+      job__: a.application_number || a.job_number || '',
+      job_type: a.application_type || a.work_type || '',
+      job_status: a.status || '',
+      job_status_descrp: a.status_description || '',
+      filing_date: a.filing_date || '',
+      filing_status: '',
+      permit_type: '',
+      permit_status: a.permit_status || a.status || '',
+    })),
+  };
+
+  const complianceScore = calculateComplianceScore(propertyData);
+
+  // ─── Extract KEY FINDINGS and MONITOR items from line_item_notes ─────────
+  const actionItems: { note: string; agency: string; id: string }[] = [];
+  const monitorItems: { note: string; agency: string; id: string }[] = [];
+
+  lineItemNotes.forEach((n: any) => {
+    const tag = getItemTag(n.note || '');
+    const cleanNote = stripTag(n.note || '');
+    if (tag === 'action' && cleanNote) {
+      actionItems.push({ note: cleanNote, agency: n.agency || '', id: n.item_id || '' });
+    } else if (tag === 'monitor' && cleanNote) {
+      monitorItems.push({ note: cleanNote, agency: n.agency || '', id: n.item_id || '' });
+    }
+  });
+
+  // ─── Styles ──────────────────────────────────────────────────────────────
+  const sectionHeaderStyle: React.CSSProperties = {
+    fontSize: '14px',
+    fontWeight: 700,
+    textTransform: 'uppercase' as const,
+    letterSpacing: '0.08em',
+    color: NAVY,
+    borderBottom: `2px solid ${NAVY}`,
+    paddingBottom: '6px',
+    marginBottom: '16px',
+  };
+
+  const tableHeaderStyle = `border border-gray-200 px-2 py-2 text-[10px] font-semibold uppercase tracking-wide text-gray-800 bg-gray-100`;
+  const tableCellStyle = `border border-gray-200 px-2 py-2 text-[11px] align-top text-gray-900`;
+
+  // ─── Score colors ────────────────────────────────────────────────────────
+  const getScoreBg = (score: number) => {
+    if (score >= 80) return { bg: '#dcfce7', border: '#16a34a', text: '#15803d', label: 'LOW RISK' };
+    if (score >= 50) return { bg: '#fef9c3', border: '#ca8a04', text: '#a16207', label: 'MODERATE RISK' };
+    return { bg: '#fecaca', border: '#dc2626', text: '#b91c1c', label: 'HIGH RISK' };
+  };
+  const scoreStyle = getScoreBg(complianceScore.overall);
+
+  // ─── Severity badge ──────────────────────────────────────────────────────
+  const renderSeverityBadge = (note: string) => {
+    const tag = getItemTag(note);
+    if (tag === 'action') {
+      return <span style={{ fontSize: '9px', fontWeight: 600, backgroundColor: '#fee2e2', color: '#991b1b', padding: '2px 8px', borderRadius: '9999px', whiteSpace: 'nowrap' }}>HIGH</span>;
+    }
+    if (tag === 'monitor') {
+      return <span style={{ fontSize: '9px', fontWeight: 600, backgroundColor: '#fef9c3', color: '#92400e', padding: '2px 8px', borderRadius: '9999px', whiteSpace: 'nowrap' }}>MONITOR</span>;
+    }
+    return <span style={{ fontSize: '9px', fontWeight: 600, backgroundColor: '#dcfce7', color: '#166534', padding: '2px 8px', borderRadius: '9999px', whiteSpace: 'nowrap' }}>CLEAR</span>;
+  };
+
+  // ─── Agency Sources ──────────────────────────────────────────────────────
+  const aq: any[] = (report as any).agencies_queried || [];
+  const queriedAgencies = aq.filter((a: any) => a.queried);
+
+  // ─── Render helpers ──────────────────────────────────────────────────────
   const renderViolationGroup = (agencyViolations: any[], agencyName: string) => {
     if (agencyViolations.length === 0) return null;
     return (
-      <div className="mb-3" style={{ pageBreakInside: 'avoid' }}>
-        <div className="flex items-center justify-between mb-1.5">
-          <h4 className="text-[11px] font-semibold text-gray-800">{agencyName} Violations</h4>
-          <span className="text-[8px] font-medium text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded-md">{agencyViolations.length} items</span>
+      <div className="mb-6" style={{ pageBreakInside: 'avoid' }}>
+        <div className="flex items-center justify-between mb-2">
+          <h4 style={{ fontSize: '12px', fontWeight: 700, color: NAVY }}>{agencyName} Violations</h4>
+          <span style={{ fontSize: '10px', fontWeight: 500, color: '#6b7280', backgroundColor: CARD_BG, padding: '2px 8px', borderRadius: '6px' }}>{agencyViolations.length} items</span>
         </div>
         <table className="w-full border-collapse">
           <thead>
             <tr>
-              <th className={tableHeaderStyle} style={{ width: '14%' }}>Violation #</th>
-              <th className={tableHeaderStyle} style={{ width: '18%' }}>Type / Description</th>
-              <th className={tableHeaderStyle} style={{ width: '8%' }}>Severity</th>
-              <th className={tableHeaderStyle} style={{ width: '8%' }}>Issued</th>
-              <th className={tableHeaderStyle} style={{ width: '7%' }}>Status</th>
-              <th className={tableHeaderStyle} style={{ width: '45%' }}>Notes</th>
+              <th className={tableHeaderStyle} style={{ width: '6%' }}>Priority</th>
+              <th className={tableHeaderStyle} style={{ width: '13%' }}>Violation #</th>
+              <th className={tableHeaderStyle} style={{ width: '17%' }}>Type / Description</th>
+              <th className={tableHeaderStyle} style={{ width: '7%' }}>Severity</th>
+              <th className={tableHeaderStyle} style={{ width: '7%' }}>Issued</th>
+              <th className={tableHeaderStyle} style={{ width: '6%' }}>Status</th>
+              <th className={tableHeaderStyle} style={{ width: '44%' }}>Notes</th>
             </tr>
           </thead>
           <tbody>
-            {agencyViolations.map((v: any, idx: number) => (
-              <tr key={idx} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-100'} style={{ pageBreakInside: 'avoid' }}>
-                <td className={`${tableCellStyle} font-mono text-[9px]`}>
-                  {v.violation_number}
-                  {isArchitectLikelyNeeded(v) && (
-                    <span className="ml-1 text-[7px] font-bold text-blue-800 bg-blue-100 px-0.5 rounded">RA</span>
-                  )}
-                </td>
-                <td className={tableCellStyle}>
-                  <div className="break-words">{(v.violation_type || v.description_raw || '—').slice(0, 80)}</div>
-                </td>
-                <td className={tableCellStyle}>{v.severity || v.violation_class || '—'}</td>
-                <td className={`${tableCellStyle} whitespace-nowrap`}>{formatShortDate(v.issued_date)}</td>
-                <td className={tableCellStyle}>{v.status}</td>
-                <td className={`${tableCellStyle} text-gray-800`}>
-                  <div className="break-words leading-[1.3]">{getNote('violation', v.id || v.violation_number)}</div>
-                </td>
-              </tr>
-            ))}
+            {agencyViolations.map((v: any, idx: number) => {
+              const note = getNote('violation', v.id || v.violation_number);
+              return (
+                <tr key={idx} style={{ backgroundColor: idx % 2 === 0 ? '#ffffff' : CARD_BG, pageBreakInside: 'avoid' }}>
+                  <td className={tableCellStyle} style={{ textAlign: 'center' }}>
+                    {renderSeverityBadge(note)}
+                  </td>
+                  <td className={`${tableCellStyle} font-mono`} style={{ fontSize: '10px' }}>
+                    {v.violation_number}
+                    {isArchitectLikelyNeeded(v) && (
+                      <span style={{ marginLeft: '4px', fontSize: '8px', fontWeight: 700, color: '#1e40af', backgroundColor: '#dbeafe', padding: '1px 3px', borderRadius: '3px' }}>RA</span>
+                    )}
+                  </td>
+                  <td className={tableCellStyle}>
+                    <div style={{ wordBreak: 'break-word' }}>{(v.violation_type || v.description_raw || '—').slice(0, 80)}</div>
+                  </td>
+                  <td className={tableCellStyle}>{v.severity || v.violation_class || '—'}</td>
+                  <td className={tableCellStyle} style={{ whiteSpace: 'nowrap' }}>{formatShortDate(v.issued_date)}</td>
+                  <td className={tableCellStyle}>{v.status}</td>
+                  <td className={tableCellStyle} style={{ color: '#1f2937' }}>
+                    <div style={{ wordBreak: 'break-word', lineHeight: '1.4' }}>{stripTag(note)}</div>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
@@ -209,10 +359,10 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
     if (apps.length === 0) return null;
     const isBIS = title.includes('BIS');
     return (
-      <div className="mb-3" style={{ pageBreakInside: 'avoid' }}>
-        <div className="flex items-center justify-between mb-1.5">
-          <h4 className="text-[11px] font-semibold text-gray-800">{title}</h4>
-          <span className="text-[8px] font-medium text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded-md">{apps.length} items</span>
+      <div className="mb-6" style={{ pageBreakInside: 'avoid' }}>
+        <div className="flex items-center justify-between mb-2">
+          <h4 style={{ fontSize: '12px', fontWeight: 700, color: NAVY }}>{title}</h4>
+          <span style={{ fontSize: '10px', fontWeight: 500, color: '#6b7280', backgroundColor: CARD_BG, padding: '2px 8px', borderRadius: '6px' }}>{apps.length} items</span>
         </div>
         <table className="w-full border-collapse">
           <thead>
@@ -232,28 +382,29 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
               const applicantName = isBIS
                 ? (app.filing_professional_name || '—')
                 : (app.applicant_name || [app.applicant_first_name, app.applicant_last_name].filter(Boolean).join(' ') || '—');
+              const note = getNote('application', appKey);
               return (
-                <tr key={idx} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-100'} style={{ pageBreakInside: 'avoid' }}>
-                  <td className={`${tableCellStyle} font-mono text-[9px]`}>
+                <tr key={idx} style={{ backgroundColor: idx % 2 === 0 ? '#ffffff' : CARD_BG, pageBreakInside: 'avoid' }}>
+                  <td className={`${tableCellStyle} font-mono`} style={{ fontSize: '10px' }}>
                     {app.application_number || app.job_number}
                     {(() => {
                       const status = (app.status || app.status_description || app.permit_status || '').toUpperCase();
                       const closedStatuses = ['SIGNED OFF', 'SIGN-OFF', 'SIGNOFF', 'CLOSED', 'COMPLETED', 'COMPLETE', 'X', 'WITHDRAWN', 'DISAPPROVED'];
                       const isOpen = !closedStatuses.some(cs => status.includes(cs));
-                      return isOpen ? <span className="ml-1 text-[7px] font-bold text-emerald-800 bg-emerald-100 px-0.5 rounded">CO</span> : null;
+                      return isOpen ? <span style={{ marginLeft: '4px', fontSize: '8px', fontWeight: 700, color: '#065f46', backgroundColor: '#d1fae5', padding: '1px 3px', borderRadius: '3px' }}>CO</span> : null;
                     })()}
                   </td>
                   <td className={tableCellStyle}>{app.application_type || app.work_type || '—'}</td>
-                  <td className={`${tableCellStyle} whitespace-nowrap`}>{formatShortDate(app.filing_date || app.issued_date)}</td>
+                  <td className={tableCellStyle} style={{ whiteSpace: 'nowrap' }}>{formatShortDate(app.filing_date || app.issued_date)}</td>
                   <td className={tableCellStyle}>
-                    <span className="text-[9px]">{app.status_description || app.permit_status || app.status || '—'}</span>
+                    <span style={{ fontSize: '10px' }}>{app.status_description || app.permit_status || app.status || '—'}</span>
                   </td>
-                  <td className={`${tableCellStyle} text-[9px]`}>{applicantName}</td>
+                  <td className={tableCellStyle} style={{ fontSize: '10px' }}>{applicantName}</td>
                   <td className={tableCellStyle}>
-                    <div className="break-words">{(app.job_description || '—').slice(0, 120)}</div>
+                    <div style={{ wordBreak: 'break-word' }}>{(app.job_description || '—').slice(0, 120)}</div>
                   </td>
-                  <td className={`${tableCellStyle} text-gray-800`}>
-                    <div className="break-words leading-[1.3]">{getNote('application', appKey)}</div>
+                  <td className={tableCellStyle} style={{ color: '#1f2937' }}>
+                    <div style={{ wordBreak: 'break-word', lineHeight: '1.4' }}>{stripTag(note)}</div>
                   </td>
                 </tr>
               );
@@ -267,8 +418,8 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
   const renderComplaintsTable = () => {
     if (!complaints || complaints.length === 0) return null;
     return (
-      <section className="mb-4" style={{ pageBreakInside: 'avoid' }}>
-        <h3 className={sectionHeaderStyle}>Open DOB Complaints ({complaints.length})</h3>
+      <section className="mb-8" style={{ pageBreakInside: 'avoid' }}>
+        <h3 style={sectionHeaderStyle}>Open DOB Complaints ({complaints.length})</h3>
         <table className="w-full border-collapse">
           <thead>
             <tr>
@@ -281,13 +432,13 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
           </thead>
           <tbody>
             {complaints.map((c: any, idx: number) => (
-              <tr key={idx} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-100'} style={{ pageBreakInside: 'avoid' }}>
-                <td className={`${tableCellStyle} font-mono text-[9px]`}>{c.complaint_number || '—'}</td>
-                <td className={`${tableCellStyle} whitespace-nowrap`}>{formatShortDate(c.date_entered)}</td>
+              <tr key={idx} style={{ backgroundColor: idx % 2 === 0 ? '#ffffff' : CARD_BG, pageBreakInside: 'avoid' }}>
+                <td className={`${tableCellStyle} font-mono`} style={{ fontSize: '10px' }}>{c.complaint_number || '—'}</td>
+                <td className={tableCellStyle} style={{ whiteSpace: 'nowrap' }}>{formatShortDate(c.date_entered)}</td>
                 <td className={tableCellStyle}>{c.status || '—'}</td>
                 <td className={tableCellStyle}>{decodeComplaintCategory(c.complaint_category)}</td>
                 <td className={tableCellStyle}>
-                  <div className="break-words">{(c.category_description || decodeComplaintCategory(c.complaint_category)).slice(0, 100)}</div>
+                  <div style={{ wordBreak: 'break-word' }}>{(c.category_description || decodeComplaintCategory(c.complaint_category)).slice(0, 100)}</div>
                 </td>
               </tr>
             ))}
@@ -297,101 +448,238 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
     );
   };
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // RENDER
+  // ═══════════════════════════════════════════════════════════════════════════
   return (
-    <div className="print-container bg-white text-black p-6 max-w-4xl mx-auto" style={{ fontFamily: "'Inter', 'Helvetica Neue', Arial, sans-serif", fontSize: '11px', lineHeight: '1.4', color: '#1a1a1a' }}>
-      {/* Letterhead */}
-      <div className="mb-3" style={{ pageBreakAfter: 'avoid' }}>
-        <div className="flex items-end justify-between pb-2" style={{ borderBottom: '1px solid #ddd' }}>
+    <div className="print-container bg-white text-black max-w-4xl mx-auto" style={{ fontFamily: "'Inter', 'Helvetica Neue', Arial, sans-serif", fontSize: '12px', lineHeight: '1.5', color: '#111827', padding: '32px' }}>
+
+      {/* ═══════════════════════════════════════════════════════════════════════
+          PAGE 1: EXECUTIVE DASHBOARD
+          ═══════════════════════════════════════════════════════════════════ */}
+
+      {/* Header */}
+      <div style={{ borderBottom: `2px solid ${NAVY}`, paddingBottom: '12px', marginBottom: '24px' }}>
+        <div className="flex items-end justify-between">
           <div>
-            <h1 className="text-[18px] font-bold tracking-tight text-black">BinCheckNYC Report</h1>
-            <p className="text-[8px] text-gray-400 mt-0.5 font-medium tracking-[0.12em] uppercase">Property Compliance Assessment</p>
+            <h1 style={{ fontSize: '24px', fontWeight: 700, color: NAVY, letterSpacing: '-0.01em', margin: 0 }}>BinCheckNYC Report</h1>
+            <p style={{ fontSize: '11px', color: '#6b7280', marginTop: '2px', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.12em' }}>Property Compliance Assessment</p>
           </div>
-          <div className="text-right text-[8px] text-gray-400">
-            <p>Report ID: {reportId}</p>
-            <p>{format(new Date(report.report_date), 'MMMM d, yyyy')}</p>
+          <div style={{ textAlign: 'right', fontSize: '11px', color: '#6b7280' }}>
+            <p style={{ margin: 0 }}>Report ID: <span className="font-mono" style={{ fontWeight: 600 }}>{reportId}</span></p>
+            <p style={{ margin: 0 }}>{format(new Date(report.report_date), 'MMMM d, yyyy')}</p>
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-4 mt-2 text-[10px]">
+
+        {/* Subject Property + Prepared By */}
+        <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div>
-            <p className="text-gray-400 text-[7px] uppercase tracking-[0.12em] font-medium">Prepared For</p>
-            <p className="font-semibold text-black">{report.prepared_for}</p>
+            <p style={{ fontSize: '18px', fontWeight: 700, color: '#111827', margin: 0 }}>{report.address}</p>
+            <p style={{ fontSize: '11px', color: '#6b7280', margin: '2px 0 0' }}>
+              BIN: <span className="font-mono" style={{ fontWeight: 600 }}>{report.bin || '—'}</span>
+              <span style={{ margin: '0 8px', color: '#d1d5db' }}>|</span>
+              BBL: <span className="font-mono" style={{ fontWeight: 600 }}>{formatBBL(report.bbl)}</span>
+            </p>
           </div>
-          <div className="text-right">
-            <p className="text-gray-400 text-[7px] uppercase tracking-[0.12em] font-medium">Prepared By</p>
-            <p className="font-semibold text-black">{preparedByLine || '—'}</p>
-            {credentialsLine && <p className="text-gray-500 text-[8px]">{credentialsLine}</p>}
+          <div style={{ textAlign: 'right' }}>
+            <p style={{ fontSize: '10px', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.1em', margin: 0 }}>Prepared for</p>
+            <p style={{ fontSize: '12px', fontWeight: 600, margin: '1px 0 0' }}>{report.prepared_for}</p>
+            {preparedByLine && (
+              <>
+                <p style={{ fontSize: '10px', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.1em', margin: '6px 0 0' }}>Prepared by</p>
+                <p style={{ fontSize: '12px', fontWeight: 600, margin: '1px 0 0' }}>{preparedByLine}</p>
+              </>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Subject Property */}
-      <div className="mb-3 p-3 rounded border border-gray-200 bg-gray-50" style={{ pageBreakInside: 'avoid' }}>
-        <div className="flex items-start justify-between">
-          <div>
-            <p className="text-[7px] text-gray-400 uppercase tracking-[0.12em] font-medium">Subject Property</p>
-            <p className="text-[13px] font-bold text-black">{report.address}</p>
+      {/* Compliance Risk Score — Hero Card */}
+      <div style={{
+        backgroundColor: scoreStyle.bg,
+        border: `2px solid ${scoreStyle.border}`,
+        borderRadius: '12px',
+        padding: '20px 24px',
+        marginBottom: '24px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+      }}>
+        <div>
+          <p style={{ fontSize: '10px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.12em', color: scoreStyle.text, margin: 0 }}>Compliance Risk Score</p>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginTop: '4px' }}>
+            <span style={{ fontSize: '48px', fontWeight: 800, color: scoreStyle.text, lineHeight: 1 }}>{complianceScore.overall}</span>
+            <span style={{ fontSize: '20px', fontWeight: 600, color: scoreStyle.text, opacity: 0.7 }}>/ 100</span>
           </div>
-          <div className="text-right text-[9px]">
-            <p><span className="text-gray-400 text-[8px]">BIN</span> <span className="font-mono font-semibold text-black ml-1">{report.bin || '—'}</span></p>
-            <p><span className="text-gray-400 text-[8px]">BBL</span> <span className="font-mono font-semibold text-black ml-1">{formatBBL(report.bbl)}</span></p>
-          </div>
+          <p style={{ fontSize: '14px', fontWeight: 700, color: scoreStyle.text, marginTop: '4px' }}>{scoreStyle.label}</p>
         </div>
-        {/* Agency Sources */}
-        {(() => {
-          const aq: any[] = (report as any).agencies_queried || [];
-          if (aq.length === 0) return null;
-          const queried = aq.filter((a: any) => a.queried);
-          const withData = queried.filter((a: any) => a.results > 0);
-          const withErrors = queried.filter((a: any) => a.error && a.results === 0);
-          return (
-            <div className="mt-2 pt-2 border-t border-gray-200">
-              {withErrors.length > 0 && (
-                <div className="mb-1.5 p-1 rounded border border-amber-300 bg-amber-50">
-                  <p className="text-[8px] font-medium text-amber-800">
-                    ⚠ {withErrors.length} source{withErrors.length !== 1 ? 's' : ''} unavailable: {withErrors.map(a => a.agency).join(', ')}
-                  </p>
-                </div>
-              )}
-              <p className="text-[7px] text-gray-400 uppercase tracking-[0.12em] font-medium mb-1">
-                Sources ({withData.length}/{queried.length} returned data)
-              </p>
-              <div className="flex flex-wrap gap-0.5">
-                {queried.map((a: any) => {
-                  const isError = a.error && a.results === 0;
-                  const badgeText = `${a.agency}${a.results > 0 ? ` (${a.results})` : isError ? ' ⚠' : ''}`;
-                  return (
-                    <span
-                      key={a.agency}
-                      style={{ height: '16px', lineHeight: '16px', fontSize: '7px', display: 'inline-block', textAlign: 'center', verticalAlign: 'middle' }}
-                      className={`font-semibold px-1.5 rounded ${
-                        a.results > 0
-                          ? 'bg-black text-white'
-                          : isError
-                            ? 'bg-amber-50 text-amber-700 border border-amber-300'
-                            : 'bg-white text-gray-500 border border-gray-300'
-                      }`}
-                    >
-                      {badgeText}
-                    </span>
-                  );
-                })}
+        {/* Category breakdown */}
+        <div style={{ display: 'flex', gap: '16px' }}>
+          {complianceScore.categories.map((cat) => {
+            const catColor = getScoreBg(cat.score);
+            return (
+              <div key={cat.category} style={{ textAlign: 'center' }}>
+                <p style={{ fontSize: '10px', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0 }}>{cat.category}</p>
+                <p style={{ fontSize: '20px', fontWeight: 700, color: catColor.text, margin: '2px 0 0' }}>{cat.score}</p>
+                <p style={{ fontSize: '9px', color: '#9ca3af', margin: 0 }}>/100</p>
               </div>
-            </div>
-          );
-        })()}
-        {(report as any).customer_concern && (
-          <div className="mt-2 pt-2 border-t border-gray-200">
-            <p className="text-[7px] text-gray-400 uppercase tracking-[0.12em] font-medium">Scope of Review</p>
-            <p className="text-[9px] text-gray-700 italic">"{(report as any).customer_concern}"</p>
-          </div>
-        )}
+            );
+          })}
+        </div>
       </div>
 
-      {/* Building Info + Compliance Summary — compact, keep on page 1 */}
-      <div style={{ pageBreakInside: 'avoid' }}>
-        <section className="mb-2">
-          <h3 className={sectionHeaderStyle}>Building Information</h3>
-          <div className="grid grid-cols-4 gap-x-3 gap-y-0.5 text-[9px]">
+      {/* Key Findings + Items to Monitor */}
+      {(actionItems.length > 0 || monitorItems.length > 0) && (
+        <div style={{ marginBottom: '24px', display: 'flex', gap: '16px' }}>
+          {actionItems.length > 0 && (
+            <div style={{
+              flex: monitorItems.length > 0 ? '1' : '1',
+              backgroundColor: '#fef2f2',
+              border: '1px solid #fecaca',
+              borderRadius: '8px',
+              padding: '16px 20px',
+            }}>
+              <p style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#991b1b', margin: '0 0 8px' }}>Key Findings</p>
+              {actionItems.map((item, i) => {
+                // Extract first sentence or first ~80 chars as summary
+                const summary = item.note.split('.')[0] || item.note.slice(0, 80);
+                return (
+                  <p key={i} style={{ fontSize: '11px', color: '#7f1d1d', margin: '0 0 4px', lineHeight: '1.4' }}>
+                    • {summary}{item.agency ? ` (${item.agency})` : ''}
+                  </p>
+                );
+              })}
+            </div>
+          )}
+          {monitorItems.length > 0 && (
+            <div style={{
+              flex: '1',
+              backgroundColor: '#fefce8',
+              border: '1px solid #fde68a',
+              borderRadius: '8px',
+              padding: '16px 20px',
+            }}>
+              <p style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#92400e', margin: '0 0 8px' }}>Items to Monitor</p>
+              {monitorItems.map((item, i) => {
+                const summary = item.note.split('.')[0] || item.note.slice(0, 80);
+                return (
+                  <p key={i} style={{ fontSize: '11px', color: '#78350f', margin: '0 0 4px', lineHeight: '1.4' }}>
+                    • {summary}{item.agency ? ` (${item.agency})` : ''}
+                  </p>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Compliance Summary Cards — compact row */}
+      <div style={{ display: 'flex', gap: '12px', marginBottom: '24px' }}>
+        {[
+          { label: 'Violations', value: violations.length, sub: `DOB ${dobViolations.length} · ECB ${ecbViolations.length} · HPD ${hpdViolations.length}${fdnyViolations.length > 0 ? ` · FDNY ${fdnyViolations.length}` : ''}` },
+          { label: 'Applications', value: applications.length, sub: `BIS ${bisApplications.length} · NOW ${dobNowApplications.length}` },
+          { label: 'Stop Work', value: orders.stop_work?.length || 0, danger: (orders.stop_work?.length || 0) > 0 },
+          { label: 'Vacate', value: orders.vacate?.length || 0, danger: (orders.vacate?.length || 0) > 0 },
+        ].map((item, i) => (
+          <div key={i} style={{
+            flex: 1,
+            padding: '10px 16px',
+            borderRadius: '8px',
+            textAlign: 'center',
+            backgroundColor: (item as any).danger ? '#fef2f2' : CARD_BG,
+            border: `1px solid ${(item as any).danger ? '#fecaca' : BORDER}`,
+          }}>
+            <div style={{ fontSize: '22px', fontWeight: 700, color: (item as any).danger ? '#dc2626' : '#111827' }}>{item.value}</div>
+            <div style={{ fontSize: '10px', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{item.label}</div>
+            {item.sub && <div style={{ fontSize: '9px', color: '#9ca3af', marginTop: '2px' }}>{item.sub}</div>}
+          </div>
+        ))}
+      </div>
+
+      {/* ECB Penalties callout */}
+      {totalEcbPenalties > 0 && (
+        <div style={{ textAlign: 'center', padding: '8px', backgroundColor: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', marginBottom: '24px' }}>
+          <span style={{ fontSize: '12px', fontWeight: 600, color: '#dc2626' }}>
+            ECB Penalties Outstanding: {formatCurrency(totalEcbPenalties)}
+          </span>
+          <span style={{ fontSize: '10px', color: '#6b7280', marginLeft: '8px' }}>(typically become property liens)</span>
+        </div>
+      )}
+
+      {/* Tax Lien Alert */}
+      {(report.tax_lien_data || []).length > 0 && (
+        <div style={{ padding: '12px 16px', backgroundColor: '#fef2f2', border: '2px solid #dc2626', borderRadius: '8px', marginBottom: '24px', pageBreakInside: 'avoid' }}>
+          <p style={{ fontSize: '12px', fontWeight: 700, color: '#dc2626', margin: '0 0 4px' }}>⚠ Tax Lien Sale — Property Flagged</p>
+          <p style={{ fontSize: '11px', color: '#7f1d1d', margin: 0, lineHeight: '1.5' }}>
+            This property appears on the NYC DOF Tax Lien Sale List with {(report.tax_lien_data || []).length} record{(report.tax_lien_data || []).length !== 1 ? 's' : ''}.
+            Verify current status directly with DOF before proceeding.
+          </p>
+        </div>
+      )}
+
+      {/* Sources Checked */}
+      {queriedAgencies.length > 0 && (
+        <div style={{ marginBottom: '24px' }}>
+          <p style={{ fontSize: '10px', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '8px' }}>Sources Checked</p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+            {queriedAgencies.map((a: any) => {
+              const isError = a.error && a.results === 0;
+              const hasData = a.results > 0;
+              return (
+                <span
+                  key={a.agency}
+                  style={{
+                    display: 'inline-block',
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    padding: '4px 12px',
+                    borderRadius: '6px',
+                    ...(hasData
+                      ? { backgroundColor: NAVY, color: '#ffffff' }
+                      : isError
+                        ? { backgroundColor: '#fefce8', color: '#92400e', border: '1px solid #fde68a' }
+                        : { backgroundColor: '#ffffff', color: '#6b7280', border: `1px solid ${BORDER}` }
+                    ),
+                  }}
+                >
+                  {a.agency}{hasData ? ` (${a.results})` : isError ? ' ⚠' : ' ✓'}
+                </span>
+              );
+            })}
+          </div>
+          {queriedAgencies.filter((a: any) => a.error && a.results === 0).length > 0 && (
+            <p style={{ fontSize: '10px', color: '#92400e', marginTop: '6px' }}>
+              ⚠ {queriedAgencies.filter((a: any) => a.error && a.results === 0).length} source(s) returned errors — data may be incomplete.
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* Scope of Review */}
+      {(report as any).customer_concern && (
+        <div style={{ padding: '12px 16px', backgroundColor: CARD_BG, border: `1px solid ${BORDER}`, borderRadius: '8px', marginBottom: '24px' }}>
+          <p style={{ fontSize: '10px', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.1em', margin: '0 0 4px', fontWeight: 600 }}>Scope of Review</p>
+          <p style={{ fontSize: '12px', color: '#374151', fontStyle: 'italic', margin: 0 }}>"{(report as any).customer_concern}"</p>
+        </div>
+      )}
+
+      {/* ═══════════════════════════════════════════════════════════════════════
+          PAGE 2+: DATA SECTIONS
+          ═══════════════════════════════════════════════════════════════════ */}
+
+      {/* Force page break after executive dashboard */}
+      <div style={{ pageBreakBefore: 'always' }} />
+
+      {/* Property Overview Card */}
+      <section style={{ marginBottom: '32px' }}>
+        <h3 style={sectionHeaderStyle}>Property Overview</h3>
+        <div style={{
+          backgroundColor: CARD_BG,
+          border: `1px solid ${BORDER}`,
+          borderRadius: '8px',
+          padding: '20px',
+        }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '12px 24px', fontSize: '12px' }}>
             {[
               ['Year Built', building.year_built || '—'],
               ['Stories', building.stories || '—'],
@@ -400,125 +688,67 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
               ['Zoning', building.zoning_district || '—'],
               ['Bldg Area', building.building_area_sqft ? `${building.building_area_sqft.toLocaleString()} sf` : '—'],
               ['Lot Area', building.lot_area_sqft ? `${building.lot_area_sqft.toLocaleString()} sf` : '—'],
-              ['Assessed', building.assessed_total_value ? formatCurrency(building.assessed_total_value) : '—'],
-              ['Owner', building.owner_name || '—'],
-              ['Landmark', building.is_landmark ? 'Yes' : building.historic_district ? `Historic` : 'No'],
               ['Land Use', building.land_use || '—'],
+              ['Assessed Value', building.assessed_total_value ? formatCurrency(building.assessed_total_value) : '—'],
+              ['Landmark', building.is_landmark ? 'Yes' : building.historic_district ? `Historic — ${building.historic_district}` : 'No'],
             ].map(([label, value], i) => (
-              <div key={i}>
-                <span className="text-gray-400">{label}:</span>{' '}
-                <span className="font-semibold text-gray-900">{value}</span>
+              <div key={i} style={{ marginBottom: '4px' }}>
+                <span style={{ fontSize: '10px', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</span>
+                <p style={{ fontSize: '12px', fontWeight: 600, color: '#111827', margin: '2px 0 0' }}>{value}</p>
               </div>
             ))}
           </div>
-        </section>
-
-        <section className="mb-3">
-          <h3 className={sectionHeaderStyle}>Compliance Summary</h3>
-          <div className="flex gap-1.5">
-            {[
-              {
-                label: 'Open Violations',
-                value: violations.length,
-                sub: `DOB ${dobViolations.length} · ECB ${ecbViolations.length} · HPD ${hpdViolations.length}${fdnyViolations.length > 0 ? ` · FDNY ${fdnyViolations.length}` : ''}`,
-              },
-              {
-                label: 'Applications',
-                value: applications.length,
-                sub: `BIS ${bisApplications.length} · NOW ${dobNowApplications.length}`,
-              },
-              {
-                label: 'Stop Work',
-                value: orders.stop_work?.length || 0,
-                danger: (orders.stop_work?.length || 0) > 0,
-              },
-              {
-                label: 'Vacate',
-                value: orders.vacate?.length || 0,
-                danger: (orders.vacate?.length || 0) > 0,
-              },
-            ].map((item, i) => (
-              <div key={i} className={`flex-1 py-1.5 px-2 rounded text-center ${item.danger ? 'border border-red-300 bg-red-50' : 'border border-gray-200 bg-gray-50'}`}>
-                <div className={`text-[14px] font-bold ${item.danger ? 'text-red-600' : 'text-black'}`}>{item.value}</div>
-                <div className="text-[6px] font-semibold text-gray-500 uppercase tracking-wider">{item.label}</div>
-                {item.sub && <div className="text-[6px] text-gray-400 mt-0.5">{item.sub}</div>}
-              </div>
-            ))}
-          </div>
-          {totalEcbPenalties > 0 && (
-            <div className="mt-1.5 p-1 border border-red-200 bg-red-50 rounded text-center">
-              <span className="text-[9px] font-semibold text-red-700">
-                ECB Penalties Outstanding: {formatCurrency(totalEcbPenalties)}
-              </span>
-              <span className="text-[8px] text-gray-500 ml-1">(typically become property liens)</span>
+          {building.owner_name && (
+            <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: `1px solid ${BORDER}` }}>
+              <span style={{ fontSize: '10px', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Owner</span>
+              <p style={{ fontSize: '12px', fontWeight: 600, color: '#111827', margin: '2px 0 0' }}>{building.owner_name}</p>
             </div>
           )}
-        </section>
-      </div>
+        </div>
+      </section>
 
-      {/* Property Status Summary — narrative section, flows after compact data */}
+      {/* Property Status Summary */}
       {report.property_status_summary && (
-        <section className="mb-3 p-3 bg-gray-50 rounded border border-gray-200" style={{ pageBreakInside: 'avoid' }}>
-          <h3 className="text-[10px] font-semibold uppercase tracking-[0.1em] text-gray-500 mb-1.5">Property Status Summary</h3>
-          <div className="flex flex-wrap gap-1 mb-1.5 pb-1.5 border-b border-gray-200">
-            <span className="text-[8px] font-semibold text-gray-700 bg-white px-1 py-0.5 rounded border border-gray-200">DOB: {dobViolations.length}</span>
-            <span className="text-[8px] font-semibold text-gray-700 bg-white px-1 py-0.5 rounded border border-gray-200">ECB: {ecbViolations.length}</span>
-            <span className="text-[8px] font-semibold text-gray-700 bg-white px-1 py-0.5 rounded border border-gray-200">HPD: {hpdViolations.length}</span>
-            {fdnyViolations.length > 0 && <span className="text-[8px] font-semibold text-gray-700 bg-white px-1 py-0.5 rounded border border-gray-200">FDNY: {fdnyViolations.length}</span>}
-            {otherOathViolations.length > 0 && <span className="text-[8px] font-semibold text-gray-700 bg-white px-1 py-0.5 rounded border border-gray-200">Other: {otherOathViolations.length}</span>}
-            <span className="text-[8px] font-semibold text-gray-700 bg-white px-1 py-0.5 rounded border border-gray-200">Applications: {applications.length}</span>
-            {complaints.length > 0 && <span className="text-[8px] font-semibold text-gray-700 bg-white px-1 py-0.5 rounded border border-gray-200">Complaints: {complaints.length}</span>}
-            {totalEcbPenalties > 0 && (
-              <span className="text-[8px] font-semibold text-red-700 bg-red-50 px-1 py-0.5 rounded border border-red-200">
-                ECB Penalties: {formatCurrency(totalEcbPenalties)}
-              </span>
-            )}
+        <section style={{ marginBottom: '32px' }}>
+          <h3 style={sectionHeaderStyle}>Property Status Summary</h3>
+          <div style={{ fontSize: '12px', lineHeight: '1.7', color: '#111827' }}>
+            {report.property_status_summary.split('\n\n').map((paragraph, i) => (
+              <p key={i} style={{ margin: '0 0 12px' }}>{paragraph}</p>
+            ))}
           </div>
-          <p className="text-[9px] leading-[1.4] text-gray-800 whitespace-pre-line">{report.property_status_summary}</p>
-        </section>
-      )}
-
-      {/* Tax Lien Sale Alert */}
-      {(report.tax_lien_data || []).length > 0 && (
-        <section className="mb-3 p-2 bg-red-50 rounded border border-red-300" style={{ pageBreakInside: 'avoid' }}>
-          <h3 className="text-[10px] font-semibold uppercase tracking-[0.1em] text-red-700 mb-0.5">⚠ Tax Lien Sale — Property Flagged</h3>
-          <p className="text-[9px] leading-[1.4] text-red-800">
-            This property appears on the NYC DOF Tax Lien Sale List with {(report.tax_lien_data || []).length} record{(report.tax_lien_data || []).length !== 1 ? 's' : ''}.
-            Verify current status directly with DOF before proceeding.
-          </p>
         </section>
       )}
 
       {/* Critical Orders */}
       {(orders.stop_work?.length > 0 || orders.vacate?.length > 0 || orders.partial_stop_work?.length > 0) && (
-        <section className="mb-4" style={{ pageBreakInside: 'avoid' }}>
-          <h3 className={`${sectionHeaderStyle} text-red-600 border-red-200`}>⚠ Active Orders</h3>
+        <section style={{ marginBottom: '32px', pageBreakInside: 'avoid' }}>
+          <h3 style={{ ...sectionHeaderStyle, color: '#dc2626', borderBottomColor: '#dc2626' }}>⚠ Active Orders</h3>
           {orders.stop_work?.map((order: any, idx: number) => (
-            <div key={`swo-${idx}`} className="p-2.5 mb-1.5 border border-red-200 bg-red-50 rounded-lg">
-              <p className="font-semibold text-[10px] text-red-700">Stop Work Order — {formatShortDate(order.issued_date)}</p>
-              <p className="text-[10px] text-gray-800 mt-0.5">{order.description || 'No description available'}</p>
+            <div key={`swo-${idx}`} style={{ padding: '12px 16px', marginBottom: '8px', border: '1px solid #fecaca', backgroundColor: '#fef2f2', borderRadius: '8px' }}>
+              <p style={{ fontWeight: 600, fontSize: '12px', color: '#dc2626', margin: '0 0 4px' }}>Stop Work Order — {formatShortDate(order.issued_date)}</p>
+              <p style={{ fontSize: '11px', color: '#374151', margin: 0 }}>{order.description || 'No description available'}</p>
             </div>
           ))}
           {orders.partial_stop_work?.map((order: any, idx: number) => (
-            <div key={`pswo-${idx}`} className="p-2.5 mb-1.5 border border-orange-200 bg-orange-50 rounded-lg">
-              <p className="font-semibold text-[10px] text-orange-700">Partial Stop Work Order — {formatShortDate(order.issued_date)}</p>
-              <p className="text-[10px] text-gray-800 mt-0.5">{order.description || 'No description available'}</p>
+            <div key={`pswo-${idx}`} style={{ padding: '12px 16px', marginBottom: '8px', border: '1px solid #fed7aa', backgroundColor: '#fff7ed', borderRadius: '8px' }}>
+              <p style={{ fontWeight: 600, fontSize: '12px', color: '#c2410c', margin: '0 0 4px' }}>Partial Stop Work Order — {formatShortDate(order.issued_date)}</p>
+              <p style={{ fontSize: '11px', color: '#374151', margin: 0 }}>{order.description || 'No description available'}</p>
             </div>
           ))}
           {orders.vacate?.map((order: any, idx: number) => (
-            <div key={`vacate-${idx}`} className="p-2.5 mb-1.5 border border-red-200 bg-red-50 rounded-lg">
-              <p className="font-semibold text-[10px] text-red-700">Vacate Order — {formatShortDate(order.issued_date)}</p>
-              <p className="text-[10px] text-gray-800 mt-0.5">{order.description || 'No description available'}</p>
+            <div key={`vacate-${idx}`} style={{ padding: '12px 16px', marginBottom: '8px', border: '1px solid #fecaca', backgroundColor: '#fef2f2', borderRadius: '8px' }}>
+              <p style={{ fontWeight: 600, fontSize: '12px', color: '#dc2626', margin: '0 0 4px' }}>Vacate Order — {formatShortDate(order.issued_date)}</p>
+              <p style={{ fontSize: '11px', color: '#374151', margin: 0 }}>{order.description || 'No description available'}</p>
             </div>
           ))}
         </section>
       )}
 
-      {/* Violations by Agency — only major page break here */}
-      <section className="mb-4" style={{ breakBefore: 'page' }}>
-        <h3 className={sectionHeaderStyle}>Open Violations ({violations.length})</h3>
+      {/* Violations by Agency */}
+      <section style={{ marginBottom: '32px' }}>
+        <h3 style={sectionHeaderStyle}>Open Violations ({violations.length})</h3>
         {violations.length === 0 ? (
-          <p className="text-[10px] text-gray-700 italic">No open violations found across all agencies queried.</p>
+          <p style={{ fontSize: '12px', color: '#374151', fontStyle: 'italic' }}>No open violations found across all agencies queried.</p>
         ) : (
           <>
             {renderViolationGroup(dobViolations, 'DOB')}
@@ -529,23 +759,42 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
           </>
         )}
         {architectTaggedCount > 0 && (
-          <div className="mt-3 p-2.5 border border-blue-200 bg-blue-50 rounded-lg" style={{ pageBreakInside: 'avoid' }}>
-            <p className="text-[10px] font-semibold text-blue-700 mb-0.5">Architect Certification Typically Involved</p>
-            <p className="text-[9px] text-gray-700 leading-relaxed">
-              {architectTaggedCount} open violation{architectTaggedCount !== 1 ? 's' : ''} (marked <span className="font-semibold text-blue-700 bg-blue-100 px-0.5 rounded text-[8px]">RA</span>) {architectTaggedCount !== 1 ? 'are' : 'is'} of a type where DOB has historically accepted or required a licensed architect's certification letter as part of the dismissal process. BinCheckNYC can coordinate architect opinion letters through our professional network.
+          <div style={{ marginTop: '16px', padding: '12px 16px', border: '1px solid #bfdbfe', backgroundColor: '#eff6ff', borderRadius: '8px', pageBreakInside: 'avoid' }}>
+            <p style={{ fontSize: '12px', fontWeight: 600, color: '#1e40af', margin: '0 0 4px' }}>Architect Certification Typically Involved</p>
+            <p style={{ fontSize: '11px', color: '#374151', lineHeight: '1.6', margin: 0 }}>
+              {architectTaggedCount} open violation{architectTaggedCount !== 1 ? 's' : ''} (marked <span style={{ fontWeight: 700, color: '#1e40af', backgroundColor: '#dbeafe', padding: '1px 4px', borderRadius: '3px', fontSize: '9px' }}>RA</span>) {architectTaggedCount !== 1 ? 'are' : 'is'} of a type where DOB has historically accepted or required a licensed architect's certification letter as part of the dismissal process. BinCheckNYC can coordinate architect opinion letters through our professional network.
             </p>
           </div>
         )}
       </section>
 
+      {/* Recommended Actions */}
+      {actionItems.length > 0 && (
+        <section style={{ marginBottom: '32px', pageBreakInside: 'avoid' }}>
+          <h3 style={sectionHeaderStyle}>Recommended Actions</h3>
+          <div style={{ backgroundColor: CARD_BG, border: `1px solid ${BORDER}`, borderRadius: '8px', padding: '20px' }}>
+            <ol style={{ margin: 0, paddingLeft: '20px' }}>
+              {actionItems.map((item, i) => (
+                <li key={i} style={{ fontSize: '12px', color: '#111827', marginBottom: '8px', lineHeight: '1.5' }}>
+                  {item.note.split('.').slice(0, 2).join('.').trim()}{item.id ? ` (${item.id})` : ''}
+                </li>
+              ))}
+            </ol>
+            <p style={{ fontSize: '11px', color: '#6b7280', fontStyle: 'italic', marginTop: '12px', borderTop: `1px solid ${BORDER}`, paddingTop: '12px' }}>
+              Estimated resolution timeline: 2–6 weeks (consult with DOB-registered expediter)
+            </p>
+          </div>
+        </section>
+      )}
+
       {/* DOB Complaints */}
       {renderComplaintsTable()}
 
       {/* Applications */}
-      <section className="mb-4">
-        <h3 className={sectionHeaderStyle}>Permit Applications ({applications.length})</h3>
+      <section style={{ marginBottom: '32px' }}>
+        <h3 style={sectionHeaderStyle}>Permit Applications ({applications.length})</h3>
         {applications.length === 0 ? (
-          <p className="text-[10px] text-gray-700 italic">No applications found.</p>
+          <p style={{ fontSize: '12px', color: '#374151', fontStyle: 'italic' }}>No applications found.</p>
         ) : (
           <>
             {renderApplicationsTable(bisApplications, 'BIS Applications')}
@@ -553,20 +802,20 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
           </>
         )}
         {closeoutTaggedCount > 0 && (
-          <div className="mt-3 p-2.5 border border-emerald-200 bg-emerald-50 rounded-lg" style={{ pageBreakInside: 'avoid' }}>
-            <p className="text-[10px] font-semibold text-emerald-700 mb-0.5">Permit Closeout May Be Required</p>
-            <p className="text-[9px] text-gray-700 leading-relaxed">
-              {closeoutTaggedCount} application{closeoutTaggedCount !== 1 ? 's' : ''} (marked <span className="font-semibold text-emerald-700 bg-emerald-100 px-0.5 rounded text-[8px]">CO</span>) {closeoutTaggedCount !== 1 ? 'are' : 'is'} still open and may need to be formally closed out with DOB. Open permits can affect property transfers and new filings. Green Light Expediting can manage the closeout process on your behalf.
+          <div style={{ marginTop: '16px', padding: '12px 16px', border: '1px solid #a7f3d0', backgroundColor: '#ecfdf5', borderRadius: '8px', pageBreakInside: 'avoid' }}>
+            <p style={{ fontSize: '12px', fontWeight: 600, color: '#065f46', margin: '0 0 4px' }}>Permit Closeout May Be Required</p>
+            <p style={{ fontSize: '11px', color: '#374151', lineHeight: '1.6', margin: 0 }}>
+              {closeoutTaggedCount} application{closeoutTaggedCount !== 1 ? 's' : ''} (marked <span style={{ fontWeight: 700, color: '#065f46', backgroundColor: '#d1fae5', padding: '1px 4px', borderRadius: '3px', fontSize: '9px' }}>CO</span>) {closeoutTaggedCount !== 1 ? 'are' : 'is'} still open and may need to be formally closed out with DOB. Open permits can affect property transfers and new filings. Green Light Expediting can manage the closeout process on your behalf.
             </p>
           </div>
         )}
       </section>
 
       {/* ACRIS - Property Transfer & Lien History */}
-      <section className="mb-4" style={{ pageBreakInside: 'avoid' }}>
-        <h3 className={sectionHeaderStyle}>Property Transfer & Lien History (ACRIS)</h3>
+      <section style={{ marginBottom: '32px', pageBreakInside: 'avoid' }}>
+        <h3 style={sectionHeaderStyle}>Property Transfer & Lien History (ACRIS)</h3>
         {acrisDocuments.length === 0 ? (
-          <p className="text-[10px] text-gray-700 italic">
+          <p style={{ fontSize: '12px', color: '#374151', fontStyle: 'italic' }}>
             No ACRIS records found for this BBL. This may indicate a cooperative or property with records filed under a different lot identifier.
           </p>
         ) : (
@@ -584,29 +833,29 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
               </thead>
               <tbody>
                 {acrisDocuments.slice(0, 20).map((doc: any, idx: number) => (
-                  <tr key={idx} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-100'} style={{ pageBreakInside: 'avoid' }}>
-                    <td className={`${tableCellStyle} whitespace-nowrap`}>{formatShortDate(doc.document_date || doc.recorded_datetime)}</td>
+                  <tr key={idx} style={{ backgroundColor: idx % 2 === 0 ? '#ffffff' : CARD_BG, pageBreakInside: 'avoid' }}>
+                    <td className={tableCellStyle} style={{ whiteSpace: 'nowrap' }}>{formatShortDate(doc.document_date || doc.recorded_datetime)}</td>
                     <td className={tableCellStyle}>{doc.document_type || doc.doc_type || '—'}</td>
                     <td className={tableCellStyle}>
-                      <div className="break-words text-[9px]">{doc.party1 || '—'}</div>
+                      <div style={{ wordBreak: 'break-word', fontSize: '10px' }}>{doc.party1 || '—'}</div>
                     </td>
                     <td className={tableCellStyle}>
-                      <div className="break-words text-[9px]">{doc.party2 || '—'}</div>
+                      <div style={{ wordBreak: 'break-word', fontSize: '10px' }}>{doc.party2 || '—'}</div>
                     </td>
-                    <td className={`${tableCellStyle} whitespace-nowrap`}>
+                    <td className={tableCellStyle} style={{ whiteSpace: 'nowrap' }}>
                       {doc.document_amount ? formatCurrency(doc.document_amount) : '—'}
                     </td>
-                    <td className={`${tableCellStyle} font-mono text-[8px]`}>{doc.crfn || doc.reel_page || '—'}</td>
+                    <td className={`${tableCellStyle} font-mono`} style={{ fontSize: '9px' }}>{doc.crfn || doc.reel_page || '—'}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
             {acrisDocuments.length > 20 && (
-              <p className="text-[8px] text-gray-700 mt-1 italic">
+              <p style={{ fontSize: '10px', color: '#374151', marginTop: '6px', fontStyle: 'italic' }}>
                 Showing 20 of {acrisDocuments.length} recorded documents. Additional records available upon request.
               </p>
             )}
-            <p className="text-[8px] text-gray-600 mt-1 italic">
+            <p style={{ fontSize: '10px', color: '#6b7280', marginTop: '6px', fontStyle: 'italic' }}>
               Source: NYC ACRIS — recorded documents only. Unrecorded agreements not included.
             </p>
           </>
@@ -615,48 +864,48 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
 
       {/* General Notes */}
       {report.general_notes && (
-        <section className="mb-4" style={{ pageBreakInside: 'avoid' }}>
-          <h3 className={sectionHeaderStyle}>Notes</h3>
-          <p className="text-[10px] whitespace-pre-wrap text-gray-900 leading-relaxed">{report.general_notes}</p>
+        <section style={{ marginBottom: '32px', pageBreakInside: 'avoid' }}>
+          <h3 style={sectionHeaderStyle}>Notes</h3>
+          <p style={{ fontSize: '12px', whiteSpace: 'pre-wrap', color: '#111827', lineHeight: '1.6' }}>{report.general_notes}</p>
         </section>
       )}
 
       {/* Footer — Disclaimer + Copyright */}
-      <footer className="mt-8 pt-4 border-t border-gray-200" style={{ pageBreakInside: 'avoid' }}>
-        <p className="text-[8px] font-semibold uppercase tracking-[0.15em] text-gray-400 mb-1.5 text-center">Disclaimer</p>
-        <p className="text-[9px] text-gray-500 text-justify leading-[1.6]">
+      <footer style={{ marginTop: '40px', paddingTop: '20px', borderTop: `2px solid ${NAVY}`, pageBreakInside: 'avoid' }}>
+        <p style={{ fontSize: '10px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.15em', color: '#9ca3af', marginBottom: '8px', textAlign: 'center' }}>Disclaimer</p>
+        <p style={{ fontSize: '10px', color: '#6b7280', textAlign: 'justify', lineHeight: '1.7' }}>
           This report is prepared in connection with real estate due diligence using information derived from
           publicly available municipal records which may contain errors, omissions, or delays.
           BinCheckNYC{userProfile?.company_name ? ` and ${userProfile.company_name}` : ''} make no warranties
           regarding the accuracy or completeness of underlying government data. All findings should be
           independently verified with the relevant city agencies prior to reliance in any transaction.
         </p>
-        <div className="text-center mt-3 pt-2 border-t border-gray-100">
-          <p className="text-[9px] font-semibold text-gray-400">
+        <div style={{ textAlign: 'center', marginTop: '16px', paddingTop: '12px', borderTop: '1px solid #e5e7eb' }}>
+          <p style={{ fontSize: '11px', fontWeight: 600, color: '#9ca3af' }}>
             © {new Date().getFullYear()} BinCheckNYC{userProfile?.company_name ? ` · ${userProfile.company_name}` : ''}
           </p>
-          <p className="text-[8px] text-gray-400 mt-0.5">Proprietary analysis · All rights reserved</p>
+          <p style={{ fontSize: '10px', color: '#9ca3af', marginTop: '2px' }}>Proprietary analysis · All rights reserved</p>
         </div>
 
         {/* Additional Services */}
-        <div className="mt-4 pt-3 border-t border-gray-100">
-          <p className="text-[8px] font-medium uppercase tracking-[0.15em] text-gray-400 mb-2 text-center">Additional Services</p>
+        <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid #e5e7eb' }}>
+          <p style={{ fontSize: '10px', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.15em', color: '#9ca3af', marginBottom: '12px', textAlign: 'center' }}>Additional Services</p>
           
           {report.citisignal_recommended && (
-            <div className="mb-2 p-2.5 rounded-lg border border-gray-200" style={{ pageBreakInside: 'avoid' }}>
-              <p className="text-[9px] font-semibold text-gray-500 mb-0.5">Ongoing Compliance Monitoring</p>
-              <p className="text-[8px] text-gray-400 leading-relaxed">
+            <div style={{ marginBottom: '10px', padding: '12px 16px', borderRadius: '8px', border: `1px solid ${BORDER}`, pageBreakInside: 'avoid' }}>
+              <p style={{ fontSize: '11px', fontWeight: 600, color: '#6b7280', margin: '0 0 4px' }}>Ongoing Compliance Monitoring</p>
+              <p style={{ fontSize: '10px', color: '#9ca3af', lineHeight: '1.6', margin: 0 }}>
                 This property has {violations.length} active violation{violations.length !== 1 ? 's' : ''} and {applications.length} open application{applications.length !== 1 ? 's' : ''} across multiple agencies. CitiSignal by BinCheckNYC provides real-time monitoring, AI-powered compliance scoring, and alerts for new filings.
-                Learn more at <span className="font-semibold">citisignal.com</span>
+                Learn more at <span style={{ fontWeight: 600 }}>citisignal.com</span>
               </p>
             </div>
           )}
 
-          <div className="p-2.5 rounded-lg border border-gray-200" style={{ pageBreakInside: 'avoid' }}>
-            <p className="text-[9px] font-semibold text-gray-500 mb-0.5">Certified Physical Copy — $150</p>
-            <p className="text-[8px] text-gray-400 leading-relaxed">
+          <div style={{ padding: '12px 16px', borderRadius: '8px', border: `1px solid ${BORDER}`, pageBreakInside: 'avoid' }}>
+            <p style={{ fontSize: '11px', fontWeight: 600, color: '#6b7280', margin: '0 0 4px' }}>Certified Physical Copy — $150</p>
+            <p style={{ fontSize: '10px', color: '#9ca3af', lineHeight: '1.6', margin: 0 }}>
               Bound report with professional cover page, wet signature certification, and priority shipping (2–3 business days).
-              Contact <span className="font-semibold">orders@binchecknyc.com</span> with Report ID: <span className="font-mono font-semibold">{reportId}</span>
+              Contact <span style={{ fontWeight: 600 }}>orders@binchecknyc.com</span> with Report ID: <span className="font-mono" style={{ fontWeight: 600 }}>{reportId}</span>
             </p>
           </div>
         </div>
