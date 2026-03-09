@@ -1361,7 +1361,18 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
         }))}
       />
 
-      {/* Batch Edit Panel */}
+      {/* Closeout Request Dialog */}
+      <CloseoutRequestDialog
+        open={closeoutDialogOpen}
+        onOpenChange={setCloseoutDialogOpen}
+        reportId={report.id}
+        propertyAddress={report.address}
+        taggedApplications={closeoutTaggedApplications.map((a: any) => ({
+          application_number: a.application_number || a.job_number || '',
+          description: (a.job_description || a.application_type || 'Unknown').slice(0, 100),
+        }))}
+      />
+
       {bulkMode && selectedItems.size > 0 && (
         <BatchEditPanel
           selectedItems={getSelectedItemData()}
