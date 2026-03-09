@@ -117,6 +117,12 @@ const AGENCY_SCHEMAS: Record<string, z.ZodType> = {
   'DOB-BIS': DOBJobSchema,
   'DOB-NOW': DOBJobSchema,
   'DOB-COMPLAINTS': DOBComplaintSchema,
+  // OATH hearings (queried per agency via OATH endpoint)
+  'DEP': OATHHearingSchema,
+  'DOT': OATHHearingSchema,
+  'DSNY': OATHHearingSchema,
+  'LPC': OATHHearingSchema,
+  'DOF': OATHHearingSchema,
 };
 
 // Validates an array of API records, filtering out malformed entries and logging issues
