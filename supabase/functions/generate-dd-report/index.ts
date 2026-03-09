@@ -1608,6 +1608,7 @@ serve(async (req) => {
       violations_data: violations, applications_data: applications, orders_data: orders,
       complaints_data: complaints,
       acris_data: acrisData,
+      tax_lien_data: taxLienData,
       agencies_queried: agenciesQueried,
       ai_analysis: aiAnalysis,
       line_item_notes: lineItemNotes,
