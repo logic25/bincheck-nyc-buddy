@@ -1269,29 +1269,41 @@ async function fetchACRISData(bbl: string): Promise<any> {
   const lot = clean.slice(6, 10);
 
   try {
-    // Fetch master records
-    const masterRecords = await fetchNYCData(NYC_ENDPOINTS.ACRIS_MASTER, {
-      "$where": `borough='${borough}' AND block='${block}' AND lot='${lot}'`,
-      "$limit": "20",
-      "$order": "document_date DESC",
+    // Step 1: Query ACRIS Legals to find document_ids for this BBL
+    const legalRecords = await fetchNYCData(NYC_ENDPOINTS.ACRIS_LEGALS, {
+      "$where": `borough='${borough}' AND block=${parseInt(block)} AND lot=${parseInt(lot)}`,
+      "$limit": "30",
+      "$order": "document_id DESC",
     });
 
-    if (masterRecords.length === 0) return { documents: [], deeds: [], mortgages: [], liens: [] };
+    console.log(`ACRIS Legals: ${legalRecords.length} records for BBL ${borough}-${block}-${lot}`);
+    if (legalRecords.length === 0) return { documents: [], deeds: [], mortgages: [], liens: [] };
 
-    // Fetch parties for these documents
-    const docIds = masterRecords.map((r: any) => r.document_id).filter(Boolean);
-    const partiesMap: Record<string, any[]> = {};
+    // Step 2: Get unique document IDs and fetch master records
+    const docIds = [...new Set(legalRecords.map((r: any) => r.document_id).filter(Boolean))];
+    if (docIds.length === 0) return { documents: [], deeds: [], mortgages: [], liens: [] };
 
-    if (docIds.length > 0) {
-      const idList = docIds.map((id: string) => `'${id}'`).join(',');
-      const parties = await fetchNYCData(NYC_ENDPOINTS.ACRIS_PARTIES, {
+    const idList = docIds.map((id: string) => `'${id}'`).join(',');
+    
+    // Fetch master records and parties in parallel
+    const [masterRecords, parties] = await Promise.all([
+      fetchNYCData(NYC_ENDPOINTS.ACRIS_MASTER, {
+        "$where": `document_id in(${idList})`,
+        "$limit": "30",
+        "$order": "document_date DESC",
+      }),
+      fetchNYCData(NYC_ENDPOINTS.ACRIS_PARTIES, {
         "$where": `document_id in(${idList})`,
         "$limit": "200",
-      });
-      for (const p of parties) {
-        if (!partiesMap[p.document_id]) partiesMap[p.document_id] = [];
-        partiesMap[p.document_id].push(p);
-      }
+      }),
+    ]);
+
+    console.log(`ACRIS Master: ${masterRecords.length} records, Parties: ${parties.length}`);
+
+    const partiesMap: Record<string, any[]> = {};
+    for (const p of parties) {
+      if (!partiesMap[p.document_id]) partiesMap[p.document_id] = [];
+      partiesMap[p.document_id].push(p);
     }
 
     const documents = masterRecords.map((r: any) => {
