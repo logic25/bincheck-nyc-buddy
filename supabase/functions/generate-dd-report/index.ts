@@ -1378,7 +1378,7 @@ async function fetchTaxLienData(bbl: string): Promise<any[]> {
 }
 
 async function generateAIAnalysis(reportData: any, customerConcern: string | null, LOVABLE_API_KEY: string): Promise<string> {
-  const { building, violations, applications, orders } = reportData;
+  const { building, violations, applications, orders, taxLienData } = reportData;
   const openViolations = violations.filter((v: any) => v.status === 'open');
   const dobV = openViolations.filter((v: any) => v.agency === 'DOB');
   const ecbV = openViolations.filter((v: any) => v.agency === 'ECB');
