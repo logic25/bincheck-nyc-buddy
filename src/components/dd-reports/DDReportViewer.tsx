@@ -86,6 +86,7 @@ interface DDReportViewerProps {
     applications_data: any;
     orders_data: any;
     complaints_data?: any;
+    acris_data?: any;
     line_item_notes: any[];
     general_notes: string | null;
     ai_analysis: string | null;
