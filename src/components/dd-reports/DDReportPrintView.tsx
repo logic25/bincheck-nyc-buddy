@@ -125,6 +125,7 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
   const sectionHeaderStyle = "text-[13px] font-bold uppercase tracking-[0.08em] text-gray-900 border-b-2 border-gray-900 pb-1.5 mb-4";
   const tableCellStyle = "border border-gray-200 px-2 py-1.5 text-[11px]";
   const tableHeaderStyle = "border border-gray-200 px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-gray-600 bg-gray-50";
+  const sectionBreakStyle: React.CSSProperties = { pageBreakInside: 'avoid' as const };
 
   // Check if violation likely needs architect
   const isArchitectLikelyNeeded = (v: any): boolean => {
