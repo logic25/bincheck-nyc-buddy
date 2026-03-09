@@ -411,12 +411,11 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
 
       {/* Tax Lien Sale Alert */}
       {(report.tax_lien_data || []).length > 0 && (
-        <section className="mb-4 p-3 bg-red-50 rounded-lg border border-red-300" style={{ pageBreakInside: 'avoid' }}>
-          <h3 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-red-700 mb-1">⚠ Tax Lien Sale List — Property Flagged</h3>
-          <p className="text-[10px] leading-relaxed text-red-800">
-            This property appears on the NYC Department of Finance Tax Lien Sale List with {(report.tax_lien_data || []).length} record{(report.tax_lien_data || []).length !== 1 ? 's' : ''}.
-            This indicates delinquent property taxes, water/sewer charges, or other municipal debt eligible for sale to a third-party lien purchaser.
-            Buyers should verify current status directly with DOF before proceeding.
+        <section className="mb-3 p-2 bg-red-50 rounded border border-red-300" style={{ pageBreakInside: 'avoid' }}>
+          <h3 className="text-[10px] font-semibold uppercase tracking-[0.1em] text-red-700 mb-0.5">⚠ Tax Lien Sale — Property Flagged</h3>
+          <p className="text-[9px] leading-[1.4] text-red-800">
+            This property appears on the NYC DOF Tax Lien Sale List with {(report.tax_lien_data || []).length} record{(report.tax_lien_data || []).length !== 1 ? 's' : ''}.
+            Verify current status directly with DOF before proceeding.
           </p>
         </section>
       )}
