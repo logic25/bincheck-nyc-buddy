@@ -102,13 +102,8 @@ const Settings = () => {
           </div>
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard')}>
-              <ArrowLeft className="h-4 w-4 mr-1" /> Dashboard
+              <ArrowLeft className="h-4 w-4 mr-1" /> Home
             </Button>
-            {isAdmin && (
-              <Button variant="ghost" size="sm" onClick={() => navigate('/dd-reports')}>
-                <FileText className="h-4 w-4 mr-1" /> Report Manager
-              </Button>
-            )}
           </div>
         </div>
       </header>

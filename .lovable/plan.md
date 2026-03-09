@@ -1,54 +1,124 @@
+# BinCheckNYC Production Readiness Plan
 
+## Executive Summary
+5-phase plan to take BinCheckNYC from MVP (3/10 readiness) to production-ready (8/10) for commercial sale to attorneys and title companies.
 
-## Analysis
+---
 
-Looking at the two pages, here's what each contains:
+## Phase 1: Foundation & Mobile (Week 1) ✅ IN PROGRESS
 
-**Dashboard (`/dashboard`)** — "Welcome [Name]"
-- Stat cards (Total, Needs Review, Generating, Approved)
-- Admin "Needs Attention" queue (top 5 reports, links to Report Manager)
-- Client "Pending Orders" section
-- "My Reports" tab (client view of their DD reports with status timeline)
-- "Quick Searches" tab (BIN lookup history)
+### Mobile Responsiveness
+- [x] Index.tsx - hamburger menu for mobile nav
+- [x] Dashboard.tsx - hamburger menu for mobile nav  
+- [x] DDReports.tsx - hamburger menu + responsive tabs
+- [ ] Order.tsx - verify form layouts on mobile
+- [ ] Settings.tsx - verify mobile layout
+- [ ] Admin.tsx - verify mobile layout
 
-**Report Manager (`/dd-reports`)** — admin only
-- Orders tab (incoming order leads)
-- Queue tab (full report list with status filters, create/view/delete)
-- Edit Review, Architect Letters, AI Learning tabs
+### Global Error Handling
+- [ ] Create ErrorBoundary component with user-friendly fallback UI
+- [ ] Wrap App.tsx with ErrorBoundary
+- [ ] Add error recovery actions (reload, go home)
 
-The overlap: for admins, Dashboard shows a trimmed "Needs Attention" queue that just links to Report Manager. It's essentially a pass-through. For clients, Dashboard is the only page they use.
+### Security Headers
+- [ ] Add Content Security Policy meta tag to index.html
+- [ ] Add X-Content-Type-Options, X-Frame-Options headers
 
-## Plan: Merge into a single `/dashboard` page
+---
 
-Make `/dashboard` the single hub for both roles. Remove `/dd-reports` as a separate page.
+## Phase 2: Real Payment Processing (Week 2-3) — HARD BLOCKER
 
-### For admins, Dashboard becomes:
-- "Welcome [Name]" header + stat cards (keep)
-- Tabs: **Queue** (current DD Reports queue), **Orders** (incoming leads), **Edit Review**, **Architect Letters**, **AI Learning**
-- Remove the redundant "Needs Attention" preview section (it's now inline)
-- Remove "My Reports" / "Quick Searches" tabs for admins (not relevant)
+### Stripe Integration
+- [ ] Enable Stripe connector in Lovable
+- [ ] Create checkout edge function for $199 one-time
+- [ ] Create subscription edge function for $599/mo professional
+- [ ] Handle payment webhooks (payment_intent.succeeded, subscription events)
+- [ ] Update Order.tsx to use real Stripe checkout
+- [ ] Add payment status tracking to dd_reports table
+- [ ] Email confirmation on successful payment
 
-### For clients, Dashboard stays the same:
-- Welcome + stat cards
-- Pending Orders
-- My Reports / Quick Searches tabs
+### Order Fulfillment
+- [ ] Link paid orders to report generation queue
+- [ ] Track order → report → delivery lifecycle
+- [ ] Add payment receipts/invoices
 
-### Navigation changes:
-- Remove "Report Manager" from nav; admins land on `/dashboard` which has everything
-- `/dd-reports` redirects to `/dashboard`
-- "Home" link points to `/dashboard` for authenticated users
+---
 
-### File changes:
-1. **`src/pages/Dashboard.tsx`** — Import and render the admin tabs (Queue, Orders, Edit Review, Architect Letters, AI Learning) from DDReports components when `isAdmin`. Remove the "Needs Attention" preview section. Move the relevant query logic and components from DDReports into Dashboard (or import them as sub-components).
+## Phase 3: Security & Reliability (Week 4)
 
-2. **`src/pages/DDReports.tsx`** — Simplify to a redirect to `/dashboard`.
+### Database-Backed Rate Limiting
+- [ ] Create rate_limits table (ip, endpoint, count, window_start)
+- [ ] Replace in-memory rate limiter in search-property
+- [ ] Add rate limiting to generate-dd-report
+- [ ] Add rate limiting to all other edge functions
 
-3. **`src/pages/Index.tsx`**, **`src/pages/Settings.tsx`**, **`src/pages/Help.tsx`** — Remove "Report Manager" nav link. Keep "Home" pointing to `/dashboard`.
+### API Response Validation
+- [ ] Add Zod schemas for NYC Open Data responses (DOB, HPD, ECB, OATH, ACRIS)
+- [ ] Validate and sanitize all external API data before processing
+- [ ] Log validation failures for monitoring
 
-4. **Nav bars across pages** — Simplify: Home (dashboard), Settings, Help Center, Sign Out. No separate Report Manager link needed.
+### Error Monitoring
+- [ ] Add Sentry integration (or similar)
+- [ ] Capture frontend errors with context
+- [ ] Capture edge function errors
+- [ ] Set up alerts for error spikes
 
-### Technical notes:
-- The DDReports page has ~600 lines of logic (report queries, mutations, order lead queries, create dialog, batch edit). Rather than dumping all that into Dashboard, we'll extract the admin content into a new component like `src/components/admin/AdminReportManager.tsx` that Dashboard conditionally renders.
-- Client view stays untouched inside Dashboard.
-- The `CreateDDReportDialog`, `DDReportViewer`, and status filter logic all move into the extracted component.
+---
 
+## Phase 4: Testing & CI/CD (Week 5-6)
+
+### Test Coverage
+- [ ] Unit tests for scoring.ts (risk calculation)
+- [ ] Unit tests for violation-utils.ts
+- [ ] Integration tests for generate-dd-report edge function
+- [ ] E2E tests for critical flows (order → report → download)
+
+### CI/CD Pipeline
+- [ ] GitHub Actions for build/test on PR
+- [ ] Automated deployment to staging
+- [ ] Dependency scanning (npm audit, Snyk)
+- [ ] Type checking in CI
+
+---
+
+## Phase 5: Scale & Polish (Week 7-8)
+
+### Performance
+- [ ] Add report caching for repeat queries
+- [ ] Optimize large building queries (1000+ violations)
+- [ ] Add loading skeletons throughout
+
+### Monitoring & Observability
+- [ ] Structured logging in edge functions
+- [ ] Uptime monitoring
+- [ ] Performance metrics dashboard
+
+### Documentation
+- [ ] API documentation for edge functions
+- [ ] User-facing help center content
+- [ ] Internal architecture docs
+
+---
+
+## Current Blockers for Commercial Sale
+
+| Blocker | Phase | Status |
+|---------|-------|--------|
+| Real payment processing | 2 | Not started |
+| Global error boundary | 1 | Not started |
+| Rate limiting on report generation | 3 | Not started |
+| Basic test coverage | 4 | Not started |
+
+---
+
+## Estimated Timeline
+
+| Phase | Duration | Cumulative |
+|-------|----------|------------|
+| Phase 1 | 1 week | Week 1 |
+| Phase 2 | 2 weeks | Week 3 |
+| Phase 3 | 1 week | Week 4 |
+| Phase 4 | 2 weeks | Week 6 |
+| Phase 5 | 2 weeks | Week 8 |
+
+**Total: 8 weeks to production-ready**
