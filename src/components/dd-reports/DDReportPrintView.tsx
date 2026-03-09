@@ -70,8 +70,8 @@ const formatBBL = (bbl: string | null | undefined): string => {
 };
 
 const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
-  const violations = report.violations_data || [];
-  const applications = report.applications_data || [];
+  const violations = (report.violations_data || []).filter((v: any) => !v.hidden);
+  const applications = (report.applications_data || []).filter((a: any) => !a.hidden);
   const orders = report.orders_data || { stop_work: [], vacate: [] };
   const building = report.building_data || {};
   const complaints = report.complaints_data || [];
