@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import {
   Shield, LogOut, Loader2, Trash2, FileText, Settings,
-  ArrowRight, Download, ClipboardList, Clock, CheckCircle2, Search, MapPin, Package, BookOpen, Menu,
+  ArrowRight, Download, ClipboardList, Clock, CheckCircle2, Search, MapPin, Package, BookOpen, Menu, Eye,
 } from "lucide-react";
 import { getScoreColor } from "@/lib/scoring";
 import { toast } from "sonner";
