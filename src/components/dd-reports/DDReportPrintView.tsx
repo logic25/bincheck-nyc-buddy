@@ -125,6 +125,7 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
   const sectionHeaderStyle = "text-[13px] font-bold uppercase tracking-[0.08em] text-gray-900 border-b-2 border-gray-900 pb-1.5 mb-4";
   const tableCellStyle = "border border-gray-200 px-2 py-1.5 text-[11px]";
   const tableHeaderStyle = "border border-gray-200 px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-gray-600 bg-gray-50";
+  const sectionBreakStyle: React.CSSProperties = { pageBreakInside: 'avoid' as const };
 
   // Check if violation likely needs architect
   const isArchitectLikelyNeeded = (v: any): boolean => {
@@ -342,7 +343,7 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
       )}
 
       {/* Building Information */}
-      <section className="mb-6">
+      <section className="mb-6" style={sectionBreakStyle}>
         <h3 className={sectionHeaderStyle}>Building Information</h3>
         <div className="grid grid-cols-4 gap-x-6 gap-y-2 text-[11px]">
           {[
@@ -402,7 +403,7 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
       )}
 
       {/* Violations by Agency */}
-      <section className="mb-6">
+      <section className="mb-6" style={sectionBreakStyle}>
         <h3 className={sectionHeaderStyle}>Open Violations ({violations.length})</h3>
         {violations.length === 0 ? (
           <p className="text-[11px] text-gray-500 italic">No open violations found.</p>
@@ -429,7 +430,7 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
       {renderComplaintsTable()}
 
       {/* Applications */}
-      <section className="mb-6">
+      <section className="mb-6" style={sectionBreakStyle}>
         <h3 className={sectionHeaderStyle}>Permit Applications ({applications.length})</h3>
         {applications.length === 0 ? (
           <p className="text-[11px] text-gray-500 italic">No applications found.</p>
@@ -442,7 +443,7 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
       </section>
 
       {/* ACRIS - Property Transfer & Lien History */}
-      <section className="mb-6">
+      <section className="mb-6" style={sectionBreakStyle}>
         <h3 className={sectionHeaderStyle}>Property Transfer & Lien History (ACRIS)</h3>
         {acrisDocuments.length === 0 ? (
           <p className="text-[11px] text-gray-500 italic">

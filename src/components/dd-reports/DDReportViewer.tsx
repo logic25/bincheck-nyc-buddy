@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import {
   ArrowLeft, Building2, AlertTriangle, FileStack, FileWarning, Download, Trash2,
-  Save, StickyNote, Calendar, User, Loader2, RefreshCw, CheckCircle2, Shield, MapPin, Hash, Pencil, Eye, MessageSquareWarning, ListChecks, Scale
+  Save, StickyNote, Calendar, User, Loader2, RefreshCw, CheckCircle2, Shield, MapPin, Hash, Pencil, Eye, MessageSquareWarning, ListChecks, Scale, Landmark
 } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { format } from 'date-fns';
@@ -86,6 +86,7 @@ interface DDReportViewerProps {
     applications_data: any;
     orders_data: any;
     complaints_data?: any;
+    acris_data?: any;
     line_item_notes: any[];
     general_notes: string | null;
     ai_analysis: string | null;
@@ -122,7 +123,7 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
   );
   const [applicationFilter, setApplicationFilter] = useState<string>('all');
   const [violationFilter, setViolationFilter] = useState<string>('all');
-  const [activeSection, setActiveSection] = useState<'violations' | 'applications' | 'complaints' | 'analysis' | 'notes'>('violations');
+  const [activeSection, setActiveSection] = useState<'violations' | 'applications' | 'complaints' | 'acris' | 'analysis' | 'notes'>('violations');
   const [architectDialogOpen, setArchitectDialogOpen] = useState(false);
 
   // Track edit statuses for line items
@@ -232,10 +233,11 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
       const element = printRef.current;
       const opt = {
         margin: 0.5,
-        filename: `DD-Report-${report.address.replace(/[^a-zA-Z0-9]/g, '-')}.pdf`,
+        filename: `BinCheckNYC Report - ${report.address}.pdf`,
         image: { type: 'jpeg' as const, quality: 0.98 },
-        html2canvas: { scale: 2 },
-        jsPDF: { unit: 'in' as const, format: 'letter' as const, orientation: 'portrait' as const }
+        html2canvas: { scale: 2, useCORS: true, scrollY: 0 },
+        jsPDF: { unit: 'in' as const, format: 'letter' as const, orientation: 'portrait' as const },
+        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
       };
       await html2pdf().set(opt).from(element).save();
       toast.success('PDF exported successfully');
@@ -255,8 +257,9 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
       const opt = {
         margin: 0.5,
         image: { type: 'jpeg' as const, quality: 0.98 },
-        html2canvas: { scale: 2 },
-        jsPDF: { unit: 'in' as const, format: 'letter' as const, orientation: 'portrait' as const }
+        html2canvas: { scale: 2, useCORS: true, scrollY: 0 },
+        jsPDF: { unit: 'in' as const, format: 'letter' as const, orientation: 'portrait' as const },
+        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
       };
       const pdfBlob = await html2pdf().set(opt).from(element).outputPdf('blob');
       const url = URL.createObjectURL(pdfBlob);
@@ -420,10 +423,14 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
 
   const statusLabel = report.status === 'approved' ? 'Approved' : report.status === 'pending_review' ? 'Pending Review' : report.status === 'generating' ? (isStaleGenerating ? 'Stale — Retry' : 'Generating') : report.status;
 
+  const acris = (report as any).acris_data || { documents: [], deeds: [], mortgages: [], liens: [] };
+  const acrisDocuments = acris.documents || [];
+
   const sectionNav = [
     { key: 'violations' as const, label: 'Violations', count: violations.length, icon: AlertTriangle },
     { key: 'applications' as const, label: 'Applications', count: applications.length, icon: FileStack },
     ...(complaints.length > 0 ? [{ key: 'complaints' as const, label: 'Complaints', count: complaints.length, icon: MessageSquareWarning }] : []),
+    { key: 'acris' as const, label: 'ACRIS', count: acrisDocuments.length, icon: Landmark },
     { key: 'analysis' as const, label: 'AI Analysis', icon: Shield },
     { key: 'notes' as const, label: 'Notes', icon: StickyNote },
   ];
@@ -1083,6 +1090,79 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
         </div>
       )}
 
+
+      {/* ACRIS Section */}
+      {activeSection === 'acris' && (
+        <div className="border border-border rounded-xl bg-card">
+          <div className="p-4 border-b border-border">
+            <h3 className="text-base font-semibold">Property Transfer & Lien History (ACRIS)</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {acrisDocuments.length} recorded document{acrisDocuments.length !== 1 ? 's' : ''} found via NYC ACRIS
+            </p>
+          </div>
+          {acrisDocuments.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground text-sm">
+              No ACRIS records found for this BBL. This may indicate a cooperative or property with records filed under a different lot identifier.
+            </div>
+          ) : (
+            <div className="w-full">
+              {/* Mobile */}
+              <div className="sm:hidden divide-y divide-border">
+                {acrisDocuments.map((doc: any, idx: number) => (
+                  <div key={idx} className="px-3 py-3 space-y-1.5">
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="text-sm font-medium">{doc.document_type || 'Unknown'}</p>
+                      <span className="text-xs text-muted-foreground whitespace-nowrap">{safeFormatDate(doc.document_date)}</span>
+                    </div>
+                    {doc.party1 && (
+                      <p className="text-xs text-muted-foreground"><span className="font-medium text-foreground/70">Grantor:</span> {doc.party1}</p>
+                    )}
+                    {doc.party2 && (
+                      <p className="text-xs text-muted-foreground"><span className="font-medium text-foreground/70">Grantee:</span> {doc.party2}</p>
+                    )}
+                    {doc.document_amount && (
+                      <p className="text-xs font-medium">${Number(doc.document_amount).toLocaleString()}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* Desktop */}
+              <div className="hidden sm:block">
+                <Table className="text-sm w-full">
+                  <TableHeader>
+                    <TableRow className="bg-muted/30 hover:bg-muted/30">
+                      <TableHead className="text-xs font-semibold uppercase tracking-wider">Date</TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wider">Document Type</TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wider">Grantor / Lender</TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wider">Grantee / Borrower</TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wider">Amount</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {acrisDocuments.map((doc: any, idx: number) => (
+                      <TableRow key={idx}>
+                        <TableCell className="whitespace-nowrap font-mono text-xs">{safeFormatDate(doc.document_date)}</TableCell>
+                        <TableCell>{doc.document_type || '—'}</TableCell>
+                        <TableCell className="max-w-[180px] truncate">{doc.party1 || '—'}</TableCell>
+                        <TableCell className="max-w-[180px] truncate">{doc.party2 || '—'}</TableCell>
+                        <TableCell className="whitespace-nowrap">
+                          {doc.document_amount ? `$${Number(doc.document_amount).toLocaleString()}` : '—'}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+          )}
+          <div className="p-3 border-t border-border">
+            <p className="text-[10px] text-muted-foreground italic">
+              Source: NYC ACRIS — recorded documents only. Unrecorded agreements not included.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* AI Analysis Section */}
       {activeSection === 'analysis' && (
