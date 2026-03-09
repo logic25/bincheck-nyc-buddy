@@ -103,9 +103,9 @@ async function lookupByAddress(address: string): Promise<{ bin: string; bbl: str
 
 // Resolve BBL from BIN via PLUTO
 async function lookupBBLByBIN(bin: string): Promise<string> {
-  const data = await fetchJSON(`${NYC_DATA_BASE}/${PLUTO}.json?bin=${bin}&$limit=1`);
-  if (data.length > 0) {
-    const bbl = data[0].bbl || "";
+  const result = await fetchJSON(`${NYC_DATA_BASE}/${PLUTO}.json?bin=${bin}&$limit=1`);
+  if (result.data.length > 0) {
+    const bbl = result.data[0].bbl || "";
     return bbl.toString();
   }
   return "";
