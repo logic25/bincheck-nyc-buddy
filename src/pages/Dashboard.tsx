@@ -73,18 +73,37 @@ const Dashboard = () => {
   const searchWrapperRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
-    const check = async () => {
-      const { data } = await supabase.auth.getSession();
-      if (!data.session) {
-        navigate("/auth");
+    let mounted = true;
+
+    const syncSession = async (session: Awaited<ReturnType<typeof supabase.auth.getSession>>['data']['session']) => {
+      if (!mounted) return;
+
+      if (!session) {
+        setUserId(null);
+        setUserEmail(null);
+        setSavedReports([]);
+        navigate("/auth", { replace: true });
         return;
       }
-      setUserId(data.session.user.id);
-      setUserEmail(data.session.user.email || null);
+
+      setUserId(session.user.id);
+      setUserEmail(session.user.email || null);
       fetchSavedReports();
     };
-    check();
-  }, []);
+
+    supabase.auth.getSession().then(({ data }) => {
+      syncSession(data.session);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      syncSession(session);
+    });
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, [navigate]);
 
   // Geo search autocomplete
   const fetchSearchSuggestions = useCallback(async (text: string) => {
