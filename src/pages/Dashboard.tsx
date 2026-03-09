@@ -334,14 +334,15 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background overflow-x-hidden">
       <header className="border-b border-border/40 sticky top-0 z-50 bg-background/90 backdrop-blur-md">
-        <div className="container flex items-center justify-between h-16">
+        <div className="container flex items-center justify-between h-16 px-4">
           <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate("/")}>
             <Shield className="h-6 w-6 text-primary" />
             <span className="font-display text-xl tracking-tight">BinCheck<span className="text-primary">NYC</span></span>
           </div>
-          <div className="flex items-center gap-3">
+          {/* Desktop nav */}
+          <div className="hidden md:flex items-center gap-3">
             <Button size="sm" onClick={() => navigate("/order")}>
               Order a Report <ArrowRight className="h-3.5 w-3.5 ml-1" />
             </Button>
@@ -365,10 +366,46 @@ const Dashboard = () => {
               <LogOut className="h-4 w-4 mr-1" /> Sign Out
             </Button>
           </div>
+          {/* Mobile nav */}
+          <div className="flex md:hidden items-center gap-2">
+            <Button size="sm" onClick={() => navigate("/order")}>
+              Order <ArrowRight className="h-3.5 w-3.5 ml-1" />
+            </Button>
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon">
+                  <Menu className="h-5 w-5" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-64">
+                <nav className="flex flex-col gap-2 mt-8">
+                  <Button variant="ghost" className="justify-start" onClick={() => navigate("/settings")}>
+                    <Settings className="h-4 w-4 mr-2" /> Settings
+                  </Button>
+                  {isAdmin && (
+                    <>
+                      <Button variant="ghost" className="justify-start" onClick={() => navigate("/dd-reports")}>
+                        <FileText className="h-4 w-4 mr-2" /> DD Reports
+                      </Button>
+                      <Button variant="ghost" className="justify-start" onClick={() => navigate("/admin")}>
+                        <Shield className="h-4 w-4 mr-2" /> Admin
+                      </Button>
+                      <Button variant="ghost" className="justify-start" onClick={() => navigate("/help")}>
+                        <BookOpen className="h-4 w-4 mr-2" /> Help Center
+                      </Button>
+                    </>
+                  )}
+                  <Button variant="ghost" className="justify-start text-destructive" onClick={handleLogout}>
+                    <LogOut className="h-4 w-4 mr-2" /> Sign Out
+                  </Button>
+                </nav>
+              </SheetContent>
+            </Sheet>
+          </div>
         </div>
       </header>
 
-      <main className="container py-8 max-w-5xl space-y-8">
+      <main className="container py-6 sm:py-8 px-4 max-w-5xl space-y-6 sm:space-y-8">
         {/* Page title */}
         <div>
           <h1 className="font-display text-3xl font-bold">{isAdmin ? 'Admin Dashboard' : 'My Portal'}</h1>
