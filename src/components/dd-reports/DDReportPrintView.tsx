@@ -539,6 +539,14 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
             {renderApplicationsTable(dobNowApplications, 'DOB NOW Build Applications')}
           </>
         )}
+        {closeoutTaggedCount > 0 && (
+          <div className="mt-4 p-3 border border-emerald-200 bg-emerald-50/50 rounded" style={{ pageBreakInside: 'avoid' }}>
+            <p className="text-[11px] font-semibold text-emerald-900 mb-1">Permit Closeout May Be Required</p>
+            <p className="text-[10px] text-gray-700 leading-relaxed">
+              {closeoutTaggedCount} application{closeoutTaggedCount !== 1 ? 's' : ''} (marked <span className="font-bold text-emerald-700 bg-emerald-100 px-1 rounded text-[9px]">CO</span>) {closeoutTaggedCount !== 1 ? 'are' : 'is'} still open and may need to be formally closed out with DOB. Open permits can affect property transfers and new filings. Green Light Expediting can manage the closeout process on your behalf.
+            </p>
+          </div>
+        )}
       </section>
 
       {/* ACRIS - Property Transfer & Lien History */}
