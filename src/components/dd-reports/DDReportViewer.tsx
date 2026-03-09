@@ -580,7 +580,7 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
             <Badge variant="outline" className="text-[10px] px-2 py-0.5">ECB: {ecbViolations.length}</Badge>
             <Badge variant="outline" className="text-[10px] px-2 py-0.5">HPD: {hpdViolations.length}</Badge>
             <Badge variant="outline" className="text-[10px] px-2 py-0.5">Applications: {applications.length}</Badge>
-            {complaints.length > 0 && <Badge variant="outline" className="text-[10px] px-2 py-0.5">Complaints: {complaints.length}</Badge>}
+            {openComplaints.length > 0 && <Badge variant="outline" className="text-[10px] px-2 py-0.5">Open Complaints: {openComplaints.length}</Badge>}
           </div>
           <p className="text-sm leading-relaxed text-foreground/85 whitespace-pre-line">{(report as any).property_status_summary}</p>
           <p className="text-[10px] text-muted-foreground mt-3 pt-2 border-t border-border/40 italic">
