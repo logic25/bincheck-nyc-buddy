@@ -282,7 +282,7 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
           </thead>
           <tbody>
             {complaints.map((c: any, idx: number) => (
-              <tr key={idx} className={idx % 2 === 0 ? '' : 'bg-gray-50/50'} style={{ pageBreakInside: 'avoid' }}>
+              <tr key={idx} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'} style={{ pageBreakInside: 'avoid' }}>
                 <td className={`${tableCellStyle} font-mono text-[10px]`}>{c.complaint_number || '—'}</td>
                 <td className={`${tableCellStyle} whitespace-nowrap`}>{formatShortDate(c.date_entered)}</td>
                 <td className={tableCellStyle}>{c.status || '—'}</td>
