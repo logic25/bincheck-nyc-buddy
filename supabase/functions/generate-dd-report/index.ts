@@ -1527,9 +1527,15 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: "Property not found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
+    // Determine if property is residential based on PLUTO landuse codes
+    // 01 = One & Two Family, 02 = Multi-Family Walk-Up, 03 = Multi-Family Elevator
+    const landuse = building?.land_use || '';
+    const isResidentialProperty = ['01', '02', '03'].includes(landuse);
+    console.log(`Property type: landuse=${landuse}, isResidential=${isResidentialProperty}`);
+
     // Fetch violations, applications, complaints, ACRIS, and tax liens in parallel
     const [allViolations, rawApplications, complaints, acrisData, taxLienData] = await Promise.all([
-      fetchViolations(bin, bbl),
+      fetchViolations(bin, bbl, isResidentialProperty),
       fetchApplications(bin),
       fetchDOBComplaints(bin),
       fetchACRISData(bbl),
