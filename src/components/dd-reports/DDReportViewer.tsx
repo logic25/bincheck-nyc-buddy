@@ -233,7 +233,7 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
       const element = printRef.current;
       const opt = {
         margin: 0.5,
-        filename: `DD-Report-${report.address.replace(/[^a-zA-Z0-9]/g, '-')}.pdf`,
+        filename: `BinCheckNYC Report - ${report.address}.pdf`,
         image: { type: 'jpeg' as const, quality: 0.98 },
         html2canvas: { scale: 2 },
         jsPDF: { unit: 'in' as const, format: 'letter' as const, orientation: 'portrait' as const }
