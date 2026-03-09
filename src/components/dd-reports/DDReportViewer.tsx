@@ -29,6 +29,7 @@ import MobileApplicationCard from './mobile/MobileApplicationCard';
 import MobileComplaintCard from './mobile/MobileComplaintCard';
 import BatchEditPanel, { type SelectedItem } from './BatchEditPanel';
 import ArchitectRequestDialog from './ArchitectRequestDialog';
+import CloseoutRequestDialog from './CloseoutRequestDialog';
 import html2pdf from 'html2pdf.js';
 import { getAgencyColor } from '@/lib/violation-utils';
 import ReactMarkdown from 'react-markdown';
