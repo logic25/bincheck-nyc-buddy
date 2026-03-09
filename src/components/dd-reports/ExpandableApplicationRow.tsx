@@ -77,7 +77,7 @@ const ExpandableApplicationRow = ({ application, index, note, onNoteChange, read
   return (
     <Fragment>
       <TableRow
-        className="cursor-pointer hover:bg-muted/50 transition-colors"
+        className={`cursor-pointer hover:bg-muted/50 transition-colors ${isHidden ? 'opacity-40 line-through' : ''}`}
         onClick={() => setIsOpen(!isOpen)}
       >
         <TableCell className="w-8">
