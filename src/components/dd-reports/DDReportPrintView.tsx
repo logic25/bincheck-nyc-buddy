@@ -139,8 +139,8 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
   };
 
   const sectionHeaderStyle = "text-[13px] font-bold uppercase tracking-[0.08em] text-gray-900 border-b-2 border-gray-900 pb-1.5 mb-4";
-  const tableCellStyle = "border border-gray-200 px-2 py-1.5 text-[11px] align-top";
-  const tableHeaderStyle = "border border-gray-200 px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-gray-600 bg-gray-50";
+  const tableCellStyle = "border border-gray-400 px-2.5 py-2 text-[11px] align-top text-gray-900";
+  const tableHeaderStyle = "border border-gray-400 px-2.5 py-2 text-[10px] font-bold uppercase tracking-wider text-gray-800 bg-gray-100";
 
   const isArchitectLikelyNeeded = (v: any): boolean => {
     const desc = (v.description_raw || v.violation_type || '').toLowerCase();
@@ -182,7 +182,7 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
           </thead>
           <tbody>
             {agencyViolations.map((v: any, idx: number) => (
-              <tr key={idx} className={idx % 2 === 0 ? '' : 'bg-gray-50/50'} style={{ pageBreakInside: 'avoid' }}>
+              <tr key={idx} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'} style={{ pageBreakInside: 'avoid' }}>
                 <td className={`${tableCellStyle} font-mono text-[10px]`}>
                   {v.violation_number}
                   {isArchitectLikelyNeeded(v) && (
@@ -195,7 +195,7 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
                 <td className={tableCellStyle}>{v.severity || v.violation_class || '—'}</td>
                 <td className={`${tableCellStyle} whitespace-nowrap`}>{formatShortDate(v.issued_date)}</td>
                 <td className={tableCellStyle}>{v.status}</td>
-                <td className={`${tableCellStyle} text-gray-600`}>
+                <td className={`${tableCellStyle} text-gray-700`}>
                   <div className="break-words leading-[1.4]">{getNote('violation', v.id || v.violation_number)}</div>
                 </td>
               </tr>
@@ -234,7 +234,7 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
                 ? (app.filing_professional_name || '—')
                 : (app.applicant_name || [app.applicant_first_name, app.applicant_last_name].filter(Boolean).join(' ') || '—');
               return (
-                <tr key={idx} className={idx % 2 === 0 ? '' : 'bg-gray-50/50'} style={{ pageBreakInside: 'avoid' }}>
+                <tr key={idx} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'} style={{ pageBreakInside: 'avoid' }}>
                   <td className={`${tableCellStyle} font-mono text-[10px]`}>
                     {app.application_number || app.job_number}
                     {(() => {
@@ -253,7 +253,7 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
                   <td className={`${tableCellStyle}`}>
                     <div className="break-words">{(app.job_description || '—').slice(0, 120)}</div>
                   </td>
-                  <td className={`${tableCellStyle} text-gray-600`}>
+                  <td className={`${tableCellStyle} text-gray-700`}>
                     <div className="break-words leading-[1.4]">{getNote('application', appKey)}</div>
                   </td>
                 </tr>
@@ -282,7 +282,7 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
           </thead>
           <tbody>
             {complaints.map((c: any, idx: number) => (
-              <tr key={idx} className={idx % 2 === 0 ? '' : 'bg-gray-50/50'} style={{ pageBreakInside: 'avoid' }}>
+              <tr key={idx} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'} style={{ pageBreakInside: 'avoid' }}>
                 <td className={`${tableCellStyle} font-mono text-[10px]`}>{c.complaint_number || '—'}</td>
                 <td className={`${tableCellStyle} whitespace-nowrap`}>{formatShortDate(c.date_entered)}</td>
                 <td className={tableCellStyle}>{c.status || '—'}</td>
@@ -571,7 +571,7 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
               </thead>
               <tbody>
                 {acrisDocuments.slice(0, 20).map((doc: any, idx: number) => (
-                  <tr key={idx} className={idx % 2 === 0 ? '' : 'bg-gray-50/50'} style={{ pageBreakInside: 'avoid' }}>
+                  <tr key={idx} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'} style={{ pageBreakInside: 'avoid' }}>
                     <td className={`${tableCellStyle} whitespace-nowrap`}>{formatShortDate(doc.document_date || doc.recorded_datetime)}</td>
                     <td className={tableCellStyle}>{doc.document_type || doc.doc_type || '—'}</td>
                     <td className={`${tableCellStyle}`}>
@@ -627,6 +627,21 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
           </p>
         </section>
       )}
+
+      {/* Physical Document Upsell */}
+      <section className="mb-6 p-5 rounded border-2 border-gray-300 bg-gray-50" style={{ pageBreakInside: 'avoid' }}>
+        <h3 className="text-[13px] font-bold text-gray-900 mb-2">Need a Certified Physical Copy?</h3>
+        <p className="text-[11px] text-gray-700 leading-relaxed mb-2">
+          A printed, signed, and sealed physical copy of this Due Diligence Report is available for an additional <span className="font-bold">$75</span>. 
+          Physical copies are ideal for closing binders, legal filings, or lender requirements where a certified hard copy is expected.
+        </p>
+        <p className="text-[11px] text-gray-700 leading-relaxed">
+          <span className="font-semibold">Includes:</span> Bound report with professional cover page, wet signature certification, and priority shipping (2–3 business days).
+        </p>
+        <p className="text-[11px] text-gray-600 mt-2">
+          To order, contact <span className="font-semibold">orders@binchecknyc.com</span> with your Report ID: <span className="font-mono font-semibold">{reportId}</span>
+        </p>
+      </section>
 
       {/* Footer */}
       <footer className="mt-10 pt-4 border-t-2 border-gray-900" style={{ pageBreakInside: 'avoid' }}>
