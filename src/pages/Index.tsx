@@ -159,7 +159,7 @@ const Index = () => {
                   <span className="text-primary">delivered.</span>
                 </h1>
                 <p className="text-lg text-muted-foreground max-w-xl mx-auto leading-relaxed">
-                  Transaction-ready NYC property risk reports for attorneys, investors, and deal teams. Open violations, stop work orders, and AI-powered risk analysis across 8 city agencies.
+                  Transaction-ready NYC property compliance reports for attorneys, investors, and deal teams. Open violations, stop work orders, and comprehensive analysis across city agencies.
                 </p>
                 <div className="flex items-center justify-center gap-3 flex-wrap">
                   <Button size="lg" onClick={() => navigate("/order")} className="font-semibold">
