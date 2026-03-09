@@ -72,16 +72,24 @@ const CreateDDReportDialog = ({ open, onOpenChange, onSuccess }: CreateDDReportD
 
       if (insertError) throw insertError;
 
-      const { error: genError } = await supabase.functions.invoke('generate-dd-report', {
+      const { data: genData, error: genError } = await supabase.functions.invoke('generate-dd-report', {
         body: { reportId: (report as any).id, address: address.trim(), customerConcern: customerConcern.trim() || null }
       });
 
       if (genError) {
+        // Try to extract the actual error message from the response
+        let errorMessage = genError.message;
+        try {
+          if (genData && typeof genData === 'object' && genData.error) {
+            errorMessage = genData.error;
+          }
+        } catch {}
+        console.error('Edge function error details:', genData, genError);
         await supabase
           .from('dd_reports')
           .update({ status: 'error' } as any)
           .eq('id', (report as any).id);
-        throw genError;
+        throw new Error(errorMessage || 'Failed to generate report');
       }
 
       const { data: updatedReport, error: fetchError } = await supabase
