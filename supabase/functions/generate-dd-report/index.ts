@@ -1503,12 +1503,13 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: "Property not found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // Fetch violations, applications, complaints, and ACRIS in parallel
-    const [allViolations, rawApplications, complaints, acrisData] = await Promise.all([
+    // Fetch violations, applications, complaints, ACRIS, and tax liens in parallel
+    const [allViolations, rawApplications, complaints, acrisData, taxLienData] = await Promise.all([
       fetchViolations(bin, bbl),
       fetchApplications(bin),
       fetchDOBComplaints(bin),
       fetchACRISData(bbl),
+      fetchTaxLienData(bbl),
     ]);
 
     // Build agencies_queried tracking
