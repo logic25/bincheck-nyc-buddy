@@ -488,7 +488,7 @@ async function fetchViolations(bin: string, bbl: string, isResidentialProperty: 
 
     const ecbViolations = await fetchNYCData(NYC_ENDPOINTS.ECB_VIOLATIONS, {
       "bin": bin, "$where": "ecb_violation_status != 'RESOLVE'", "$limit": "200", "$order": "issue_date DESC",
-    });
+    }, 'ECB');
     violations.push(...ecbViolations.map((v: any) => {
       const imposed = v.penality_imposed ? parseFloat(v.penality_imposed) : null;
       const paid = v.amount_paid ? parseFloat(v.amount_paid) : 0;
