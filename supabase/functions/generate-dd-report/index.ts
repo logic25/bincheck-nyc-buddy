@@ -1565,22 +1565,23 @@ serve(async (req) => {
     const acrisDocs = acrisData?.documents?.length || 0;
 
     const agenciesQueried = [
-      { agency: 'DOB', label: 'Dept of Buildings', queried: true, results: dobViolationsFromAll.length, category: 'violations' },
-      { agency: 'ECB', label: 'ECB/OATH', queried: true, results: ecbViolationsFromAll.length, category: 'violations' },
-      { agency: 'HPD', label: 'Housing Preservation', queried: isResidentialProperty && !!bbl, results: hpdViolationsFromAll.length, category: 'violations', ...((!isResidentialProperty) ? { note: 'Skipped — commercial property' } : {}) },
-      { agency: 'FDNY', label: 'Fire Department', queried: true, results: fdnyViolationsFromAll.length, category: 'violations' },
-      { agency: 'DEP', label: 'Environmental Protection', queried: !!bbl, results: depViolationsFromAll.length, category: 'violations' },
-      { agency: 'DOT', label: 'Transportation', queried: !!bbl, results: dotViolationsFromAll.length, category: 'violations' },
-      { agency: 'DSNY', label: 'Sanitation', queried: !!bbl, results: dsnyViolationsFromAll.length, category: 'violations' },
-      { agency: 'LPC', label: 'Landmarks', queried: !!bbl, results: lpcViolationsFromAll.length, category: 'violations' },
-      { agency: 'DOF', label: 'Dept of Finance', queried: !!bbl, results: dofViolationsFromAll.length, category: 'violations' },
-      { agency: 'DOB-BIS', label: 'DOB BIS Applications', queried: !!bin, results: bisAppsCount, category: 'applications' },
-      { agency: 'DOB-NOW', label: 'DOB NOW Applications', queried: !!bin, results: dobNowAppsCount, category: 'applications' },
-      { agency: 'DOB-COMPLAINTS', label: 'DOB Complaints', queried: !!bin, results: complaints.length, category: 'complaints' },
-      { agency: 'ACRIS', label: 'ACRIS Property Records', queried: !!bbl, results: acrisDocs, category: 'transfers' },
-      { agency: 'DOF-LIEN', label: 'Tax Lien Sale List', queried: !!bbl, results: taxLienData.length, category: 'tax_liens' },
+      { agency: 'DOB', label: 'Dept of Buildings', queried: true, results: dobViolationsFromAll.length, category: 'violations', error: agencyErrors.has('DOB') },
+      { agency: 'ECB', label: 'ECB/OATH', queried: true, results: ecbViolationsFromAll.length, category: 'violations', error: agencyErrors.has('ECB') },
+      { agency: 'HPD', label: 'Housing Preservation', queried: isResidentialProperty && !!bbl, results: hpdViolationsFromAll.length, category: 'violations', error: agencyErrors.has('HPD'), ...((!isResidentialProperty) ? { note: 'Skipped — commercial property' } : {}) },
+      { agency: 'FDNY', label: 'Fire Department', queried: true, results: fdnyViolationsFromAll.length, category: 'violations', error: agencyErrors.has('FDNY') },
+      { agency: 'DEP', label: 'Environmental Protection', queried: !!bbl, results: depViolationsFromAll.length, category: 'violations', error: agencyErrors.has('DEP') },
+      { agency: 'DOT', label: 'Transportation', queried: !!bbl, results: dotViolationsFromAll.length, category: 'violations', error: agencyErrors.has('DOT') },
+      { agency: 'DSNY', label: 'Sanitation', queried: !!bbl, results: dsnyViolationsFromAll.length, category: 'violations', error: agencyErrors.has('DSNY') },
+      { agency: 'LPC', label: 'Landmarks', queried: !!bbl, results: lpcViolationsFromAll.length, category: 'violations', error: agencyErrors.has('LPC') },
+      { agency: 'DOF', label: 'Dept of Finance', queried: !!bbl, results: dofViolationsFromAll.length, category: 'violations', error: agencyErrors.has('DOF') },
+      { agency: 'DOB-BIS', label: 'DOB BIS Applications', queried: !!bin, results: bisAppsCount, category: 'applications', error: agencyErrors.has('DOB-BIS') },
+      { agency: 'DOB-NOW', label: 'DOB NOW Applications', queried: !!bin, results: dobNowAppsCount, category: 'applications', error: agencyErrors.has('DOB-NOW') },
+      { agency: 'DOB-COMPLAINTS', label: 'DOB Complaints', queried: !!bin, results: complaints.length, category: 'complaints', error: agencyErrors.has('DOB-COMPLAINTS') },
+      { agency: 'ACRIS', label: 'ACRIS Property Records', queried: !!bbl, results: acrisDocs, category: 'transfers', error: agencyErrors.has('ACRIS') },
+      { agency: 'DOF-LIEN', label: 'Tax Lien Sale List', queried: !!bbl, results: taxLienData.length, category: 'tax_liens', error: agencyErrors.has('DOF-LIEN') },
     ];
-    console.log(`Agencies queried: ${agenciesQueried.filter(a => a.queried).length}, with data: ${agenciesQueried.filter(a => a.results > 0).length}`);
+    const errorAgencies = agenciesQueried.filter(a => a.error);
+    console.log(`Agencies queried: ${agenciesQueried.filter(a => a.queried).length}, with data: ${agenciesQueried.filter(a => a.results > 0).length}, with errors: ${errorAgencies.length} (${errorAgencies.map(a => a.agency).join(', ')})`);
 
     // CRITICAL: Filter out closed/resolved/dismissed violations — report must only contain open items
     const CLOSED_STATUSES = ['closed', 'resolved', 'dismissed', 'paid', 'complied', 'certified closed'];
