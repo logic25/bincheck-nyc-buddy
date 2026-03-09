@@ -326,7 +326,8 @@ const DDReports = () => {
             <Shield className="h-6 w-6 text-primary" />
             <span className="font-display text-xl tracking-tight">BinCheck<span className="text-primary">NYC</span></span>
           </div>
-          <div className="flex items-center gap-2">
+          {/* Desktop nav */}
+          <div className="hidden md:flex items-center gap-2">
             <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard')}>
               <ArrowLeft className="h-4 w-4 mr-1" /> Dashboard
             </Button>
@@ -347,6 +348,37 @@ const DDReports = () => {
               <LogOut className="h-4 w-4 mr-1" /> Sign Out
             </Button>
           </div>
+          {/* Mobile nav */}
+          <Sheet>
+            <SheetTrigger asChild className="md:hidden">
+              <Button variant="ghost" size="icon">
+                <Menu className="h-5 w-5" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right" className="w-64">
+              <nav className="flex flex-col gap-2 mt-8">
+                <Button variant="ghost" className="justify-start" onClick={() => navigate('/dashboard')}>
+                  <ArrowLeft className="h-4 w-4 mr-2" /> Dashboard
+                </Button>
+                <Button variant="ghost" className="justify-start" onClick={() => navigate('/settings')}>
+                  <Settings className="h-4 w-4 mr-2" /> Settings
+                </Button>
+                {isAdmin && (
+                  <>
+                    <Button variant="ghost" className="justify-start" onClick={() => navigate('/admin')}>
+                      <Shield className="h-4 w-4 mr-2" /> Admin
+                    </Button>
+                    <Button variant="ghost" className="justify-start" onClick={() => navigate('/help')}>
+                      <BookOpen className="h-4 w-4 mr-2" /> Help Center
+                    </Button>
+                  </>
+                )}
+                <Button variant="ghost" className="justify-start text-destructive" onClick={handleLogout}>
+                  <LogOut className="h-4 w-4 mr-2" /> Sign Out
+                </Button>
+              </nav>
+            </SheetContent>
+          </Sheet>
         </div>
       </header>
 
