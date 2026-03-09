@@ -310,6 +310,9 @@ const AdminReportManager = ({ userId, userEmail, userProfile }: AdminReportManag
           <TabsTrigger value="ai-learning" className="gap-1.5 flex-1 sm:flex-none">
             <Brain className="h-4 w-4" /> AI Learning
           </TabsTrigger>
+          <TabsTrigger value="invite-codes" className="gap-1.5 flex-1 sm:flex-none">
+            <Ticket className="h-4 w-4" /> Invites
+          </TabsTrigger>
         </TabsList>
 
         {/* ── INCOMING ORDERS TAB ── */}
