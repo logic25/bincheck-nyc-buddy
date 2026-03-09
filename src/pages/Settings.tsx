@@ -105,8 +105,8 @@ const Settings = () => {
               <ArrowLeft className="h-4 w-4 mr-1" /> Dashboard
             </Button>
             {isAdmin && (
-              <Button variant="ghost" size="sm" onClick={() => navigate('/admin')}>
-                <Shield className="h-4 w-4 mr-1" /> Admin
+              <Button variant="ghost" size="sm" onClick={() => navigate('/dd-reports')}>
+                <FileText className="h-4 w-4 mr-1" /> Report Manager
               </Button>
             )}
           </div>

@@ -545,10 +545,7 @@ const Help = () => {
               <ArrowLeft className="h-4 w-4 mr-1" /> Dashboard
             </Button>
             <Button variant="ghost" size="sm" onClick={() => navigate('/dd-reports')}>
-              DD Reports
-            </Button>
-            <Button variant="ghost" size="sm" onClick={() => navigate('/admin')}>
-              <Shield className="h-4 w-4 mr-1" /> Admin
+              <FileText className="h-4 w-4 mr-1" /> Report Manager
             </Button>
           </div>
         </div>
