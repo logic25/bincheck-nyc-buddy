@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import {
   ArrowLeft, Building2, AlertTriangle, FileStack, FileWarning, Download, Trash2,
-  Save, StickyNote, Calendar, User, Loader2, RefreshCw, CheckCircle2, Shield, MapPin, Hash, Pencil, Eye, MessageSquareWarning, ListChecks, Scale
+  Save, StickyNote, Calendar, User, Loader2, RefreshCw, CheckCircle2, Shield, MapPin, Hash, Pencil, Eye, MessageSquareWarning, ListChecks, Scale, Landmark
 } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { format } from 'date-fns';
