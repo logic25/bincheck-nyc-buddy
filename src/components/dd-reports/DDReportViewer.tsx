@@ -724,8 +724,8 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
           {violations.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground text-sm">No open violations found.</div>
           ) : (
-            <ScrollArea className="h-[520px]">
-              <Table className="text-sm">
+            <div className="overflow-x-auto">
+              <Table className="text-sm min-w-[600px]">
                 <TableHeader>
                   <TableRow className="bg-muted/30 hover:bg-muted/30">
                     <TableHead className="w-8">
@@ -745,11 +745,11 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
                     </TableHead>
                     <TableHead className="text-xs font-semibold uppercase tracking-wider">Violation #</TableHead>
                     <TableHead className="text-xs font-semibold uppercase tracking-wider">Agency</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider">Type</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider">Severity</TableHead>
+                    <TableHead className="text-xs font-semibold uppercase tracking-wider hidden sm:table-cell">Type</TableHead>
+                    <TableHead className="text-xs font-semibold uppercase tracking-wider hidden sm:table-cell">Severity</TableHead>
                     <TableHead className="text-xs font-semibold uppercase tracking-wider">Issued</TableHead>
                     <TableHead className="text-xs font-semibold uppercase tracking-wider">Status</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider">Notes</TableHead>
+                    <TableHead className="text-xs font-semibold uppercase tracking-wider hidden md:table-cell">Notes</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
