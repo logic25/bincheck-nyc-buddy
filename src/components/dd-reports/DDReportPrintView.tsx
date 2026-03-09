@@ -229,7 +229,15 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
                 : (app.applicant_name || [app.applicant_first_name, app.applicant_last_name].filter(Boolean).join(' ') || '—');
               return (
                 <tr key={idx} className={idx % 2 === 0 ? '' : 'bg-gray-50/50'} style={{ pageBreakInside: 'avoid' }}>
-                  <td className={`${tableCellStyle} font-mono text-[10px]`}>{app.application_number || app.job_number}</td>
+                  <td className={`${tableCellStyle} font-mono text-[10px]`}>
+                    {app.application_number || app.job_number}
+                    {(() => {
+                      const status = (app.status || app.status_description || app.permit_status || '').toUpperCase();
+                      const closedStatuses = ['SIGNED OFF', 'SIGN-OFF', 'SIGNOFF', 'CLOSED', 'COMPLETED', 'COMPLETE', 'X', 'WITHDRAWN', 'DISAPPROVED'];
+                      const isOpen = !closedStatuses.some(cs => status.includes(cs));
+                      return isOpen ? <span className="ml-1 text-[8px] font-bold text-emerald-700 bg-emerald-50 px-1 py-0 rounded">CO</span> : null;
+                    })()}
+                  </td>
                   <td className={tableCellStyle}>{app.application_type || app.work_type || '—'}</td>
                   <td className={`${tableCellStyle} whitespace-nowrap`}>{formatShortDate(app.filing_date || app.issued_date)}</td>
                   <td className={tableCellStyle}>
