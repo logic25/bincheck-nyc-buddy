@@ -445,7 +445,7 @@ function deduplicateByKey(records: any[], keyFn: (r: any) => string): any[] {
   return Array.from(seen.values());
 }
 
-async function fetchViolations(bin: string, bbl: string): Promise<any[]> {
+async function fetchViolations(bin: string, bbl: string, isResidentialProperty: boolean = true): Promise<any[]> {
   const violations: any[] = [];
 
   if (bin) {
@@ -505,25 +505,32 @@ async function fetchViolations(bin: string, bbl: string): Promise<any[]> {
     }));
   }
 
-  if (bbl && bbl.length >= 10) {
+    if (bbl && bbl.length >= 10) {
     const borough = bbl.slice(0, 1);
     const block = bbl.slice(1, 6).replace(/^0+/, '') || '0';
     const lot = bbl.slice(6, 10).replace(/^0+/, '') || '0';
-    const hpdViolations = await fetchNYCData(NYC_ENDPOINTS.HPD_VIOLATIONS, {
-      "boroid": borough, "block": block, "lot": lot,
-      "$where": "violationstatus = 'Open'", "$limit": "1000", "$order": "inspectiondate DESC",
-    });
-    violations.push(...hpdViolations.map((v: any) => {
-      const desc = (v.novdescription || '').toLowerCase();
-      return {
-        id: v.violationid, agency: "HPD",
-        violation_number: v.violationid?.toString() || null, violation_type: v.novdescription?.slice(0, 50) || null,
-        violation_class: v.class || null, description_raw: v.novdescription || null,
-        issued_date: v.inspectiondate || v.novissueddate || null, severity: v.class || null, status: "open",
-        apartment: v.apartment || null, story: v.story || null,
-        is_vacate_order: desc.includes('vacate'), is_stop_work_order: false, is_partial_stop_work: false,
-      };
-    }));
+
+    // Only fetch HPD violations for residential/mixed-use properties (PLUTO landuse 01-03)
+    // HPD has jurisdiction over housing only — skip for commercial/industrial buildings
+    if (isResidentialProperty) {
+      const hpdViolations = await fetchNYCData(NYC_ENDPOINTS.HPD_VIOLATIONS, {
+        "boroid": borough, "block": block, "lot": lot,
+        "$where": "violationstatus = 'Open'", "$limit": "1000", "$order": "inspectiondate DESC",
+      });
+      violations.push(...hpdViolations.map((v: any) => {
+        const desc = (v.novdescription || '').toLowerCase();
+        return {
+          id: v.violationid, agency: "HPD",
+          violation_number: v.violationid?.toString() || null, violation_type: v.novdescription?.slice(0, 50) || null,
+          violation_class: v.class || null, description_raw: v.novdescription || null,
+          issued_date: v.inspectiondate || v.novissueddate || null, severity: v.class || null, status: "open",
+          apartment: v.apartment || null, story: v.story || null,
+          is_vacate_order: desc.includes('vacate'), is_stop_work_order: false, is_partial_stop_work: false,
+        };
+      }));
+    } else {
+      console.log('HPD: Skipped — commercial/industrial property (landuse not 01-03)');
+    }
 
     // Fetch OATH violations for all 6 agencies in parallel
     const oathResults = await Promise.all(
@@ -1520,9 +1527,15 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: "Property not found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
+    // Determine if property is residential based on PLUTO landuse codes
+    // 01 = One & Two Family, 02 = Multi-Family Walk-Up, 03 = Multi-Family Elevator
+    const landuse = building?.land_use || '';
+    const isResidentialProperty = ['01', '02', '03'].includes(landuse);
+    console.log(`Property type: landuse=${landuse}, isResidential=${isResidentialProperty}`);
+
     // Fetch violations, applications, complaints, ACRIS, and tax liens in parallel
     const [allViolations, rawApplications, complaints, acrisData, taxLienData] = await Promise.all([
-      fetchViolations(bin, bbl),
+      fetchViolations(bin, bbl, isResidentialProperty),
       fetchApplications(bin),
       fetchDOBComplaints(bin),
       fetchACRISData(bbl),
@@ -1547,7 +1560,7 @@ serve(async (req) => {
     const agenciesQueried = [
       { agency: 'DOB', label: 'Dept of Buildings', queried: true, results: dobViolationsFromAll.length, category: 'violations' },
       { agency: 'ECB', label: 'ECB/OATH', queried: true, results: ecbViolationsFromAll.length, category: 'violations' },
-      { agency: 'HPD', label: 'Housing Preservation', queried: !!bbl, results: hpdViolationsFromAll.length, category: 'violations' },
+      { agency: 'HPD', label: 'Housing Preservation', queried: isResidentialProperty && !!bbl, results: hpdViolationsFromAll.length, category: 'violations', ...((!isResidentialProperty) ? { note: 'Skipped — commercial property' } : {}) },
       { agency: 'FDNY', label: 'Fire Department', queried: true, results: fdnyViolationsFromAll.length, category: 'violations' },
       { agency: 'DEP', label: 'Environmental Protection', queried: !!bbl, results: depViolationsFromAll.length, category: 'violations' },
       { agency: 'DOT', label: 'Transportation', queried: !!bbl, results: dotViolationsFromAll.length, category: 'violations' },
@@ -1595,13 +1608,8 @@ serve(async (req) => {
     const learningContext = await fetchLearningExamples(supabaseUrl, supabaseServiceKey, agencies);
     console.log(`Learning context: ${learningContext.few_shot_examples.length} few-shot categories, ${learningContext.knowledge_context.length} knowledge entries, ${learningContext.confidence_flags.length} flags`);
 
-    // Generate AI analysis, line-item notes, and property status summary in parallel
-    const [aiAnalysis, lineItemNotes, propertyStatusSummary] = await Promise.all([
-      generateAIAnalysis(
-        { building: building || { address: resolvedAddress, bin, bbl }, violations, applications, orders, acrisData, taxLienData },
-        customerConcern || null,
-        LOVABLE_API_KEY
-      ),
+    // Generate line-item notes and property status summary in parallel (AI analysis removed)
+    const [lineItemNotes, propertyStatusSummary] = await Promise.all([
       generateLineItemNotes(violations, applications, resolvedAddress, customerConcern || null, LOVABLE_API_KEY, learningContext),
       generatePropertyStatusSummary(
         building || { address: resolvedAddress, bin, bbl },
@@ -1627,7 +1635,7 @@ serve(async (req) => {
       acris_data: acrisData,
       tax_lien_data: taxLienData,
       agencies_queried: agenciesQueried,
-      ai_analysis: aiAnalysis,
+      ai_analysis: null,
       line_item_notes: lineItemNotes,
       property_status_summary: propertyStatusSummary || null,
       citisignal_recommended: citisignalRecommended,

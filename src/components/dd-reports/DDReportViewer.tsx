@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import {
   ArrowLeft, Building2, AlertTriangle, FileStack, FileWarning, Download, Trash2,
-  Save, StickyNote, Calendar, User, Loader2, RefreshCw, CheckCircle2, Shield, MapPin, Hash, Pencil, Eye, MessageSquareWarning, ListChecks, Scale, Landmark
+  Save, StickyNote, Calendar, User, Loader2, RefreshCw, CheckCircle2, MapPin, Hash, Pencil, Eye, MessageSquareWarning, ListChecks, Scale, Landmark
 } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { format } from 'date-fns';
@@ -113,8 +113,6 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
   const [isPreviewing, setIsPreviewing] = useState(false);
   const [previewBlobUrl, setPreviewBlobUrl] = useState<string | null>(null);
   const [generalNotes, setGeneralNotes] = useState(report.general_notes || '');
-  const [aiAnalysis, setAiAnalysis] = useState(report.ai_analysis || '');
-  const [isEditingAI, setIsEditingAI] = useState(false);
   const [lineItemNotes, setLineItemNotes] = useState<Record<string, string>>(
     (report.line_item_notes || []).reduce((acc: Record<string, string>, item: any) => {
       acc[`${item.item_type}-${item.item_id}`] = item.note;
@@ -123,7 +121,7 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
   );
   const [applicationFilter, setApplicationFilter] = useState<string>('all');
   const [violationFilter, setViolationFilter] = useState<string>('all');
-  const [activeSection, setActiveSection] = useState<'violations' | 'applications' | 'complaints' | 'acris' | 'analysis' | 'notes'>('violations');
+  const [activeSection, setActiveSection] = useState<'violations' | 'applications' | 'complaints' | 'acris' | 'notes'>('violations');
   const [architectDialogOpen, setArchitectDialogOpen] = useState(false);
 
   // Track edit statuses for line items
@@ -292,7 +290,6 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
         .update({
           general_notes: generalNotes.trim() || null,
           line_item_notes: formattedNotes,
-          ai_analysis: aiAnalysis.trim() || null,
         } as any)
         .eq('id', report.id);
 
@@ -436,7 +433,6 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
     { key: 'applications' as const, label: 'Applications', count: applications.length, icon: FileStack },
     ...(openComplaints.length > 0 ? [{ key: 'complaints' as const, label: 'Complaints', count: openComplaints.length, icon: MessageSquareWarning }] : []),
     { key: 'acris' as const, label: 'ACRIS', count: acrisDocuments.length, icon: Landmark },
-    { key: 'analysis' as const, label: 'AI Analysis', icon: Shield },
     { key: 'notes' as const, label: 'Notes', icon: StickyNote },
   ];
 
@@ -1294,48 +1290,6 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
         </div>
       )}
 
-      {/* AI Analysis Section */}
-      {activeSection === 'analysis' && (
-        <div className="border border-border rounded-xl p-6 bg-card">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-base font-semibold">AI Risk Assessment</h3>
-            {!isReadOnly && aiAnalysis && (
-              <Button variant="outline" size="sm" onClick={() => setIsEditingAI(!isEditingAI)}>
-                {isEditingAI ? <><Eye className="w-3 h-3 mr-1.5" /> Preview</> : <><Pencil className="w-3 h-3 mr-1.5" /> Edit</>}
-              </Button>
-            )}
-          </div>
-          {isEditingAI && !isReadOnly ? (
-            <Textarea
-              value={aiAnalysis}
-              onChange={(e) => setAiAnalysis(e.target.value)}
-              rows={16}
-              className="resize-none font-mono text-sm"
-              placeholder="Edit AI risk assessment (Markdown supported)..."
-            />
-          ) : aiAnalysis ? (
-            <div className="prose prose-sm max-w-none dark:prose-invert">
-              <ReactMarkdown
-                components={{
-                  h1: ({ children }) => <h1 className="text-lg font-bold mt-6 mb-2 text-foreground">{children}</h1>,
-                  h2: ({ children }) => <h2 className="text-base font-bold mt-4 mb-2 text-foreground">{children}</h2>,
-                  h3: ({ children }) => <h3 className="text-sm font-bold mt-3 mb-1 text-foreground">{children}</h3>,
-                  p: ({ children }) => <p className="mb-3 text-foreground/90 leading-relaxed">{children}</p>,
-                  ul: ({ children }) => <ul className="list-disc ml-4 mb-3 space-y-1">{children}</ul>,
-                  ol: ({ children }) => <ol className="list-decimal ml-4 mb-3 space-y-1">{children}</ol>,
-                  li: ({ children }) => <li className="text-foreground/90">{children}</li>,
-                  strong: ({ children }) => <strong className="font-semibold text-foreground">{children}</strong>,
-                }}
-              >
-                {aiAnalysis}
-              </ReactMarkdown>
-            </div>
-          ) : (
-            <div className="text-center py-12 text-muted-foreground text-sm">AI analysis not available for this report.</div>
-          )}
-        </div>
-      )}
-
       {/* Notes Section */}
       {activeSection === 'notes' && (
         <div className="border border-border rounded-xl p-6 bg-card">
@@ -1357,7 +1311,6 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
           <DDReportPrintView report={{
             ...report,
             general_notes: generalNotes || report.general_notes,
-            ai_analysis: aiAnalysis || report.ai_analysis,
             line_item_notes: Object.entries(lineItemNotes).map(([key, note]) => {
               const [item_type, ...rest] = key.split('-');
               return { item_type, item_id: rest.join('-'), note };
