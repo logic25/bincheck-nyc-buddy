@@ -739,37 +739,56 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
             <div className="text-center py-12 text-muted-foreground text-sm">No open violations found.</div>
           ) : (
             <div className="w-full">
-              <Table className="text-sm w-full">
-                <TableHeader>
-                  <TableRow className="bg-muted/30 hover:bg-muted/30">
-                    <TableHead className="w-8">
-                      {bulkMode && (() => {
-                        const visibleKeys = violations
-                          .filter((v: any) => violationFilter === 'all' || v.agency === violationFilter)
-                          .map((v: any, idx: number) => `violation:${v.violation_number || v.id || idx}:${v.agency || 'DOB'}`);
-                        const allSelected = visibleKeys.length > 0 && visibleKeys.every((k: string) => selectedItems.has(k));
-                        return (
-                          <Checkbox
-                            checked={allSelected}
-                            onCheckedChange={() => selectAllVisible(visibleKeys)}
-                            className="ml-1"
-                          />
-                        );
-                      })()}
-                    </TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider">Violation #</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider">Agency</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider hidden sm:table-cell">Type</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider hidden sm:table-cell">Severity</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider">Issued</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider">Status</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider hidden md:table-cell">Notes</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {violations
-                    .filter((v: any) => violationFilter === 'all' || v.agency === violationFilter)
-                    .map((v: any, idx: number) => (
+              {/* Mobile: readable card list */}
+              <div className="sm:hidden divide-y divide-border">
+                {filteredViolations.map((v: any, idx: number) => (
+                  <MobileViolationCard
+                    key={v.id || idx}
+                    violation={v}
+                    index={idx}
+                    note={lineItemNotes[`violation-${v.id || idx}`] || ''}
+                    onNoteChange={(note) => updateLineItemNote('violation', v.id || String(idx), note)}
+                    bbl={report.bbl || building.bbl}
+                    readOnly={isReadOnly}
+                    reportId={report.id}
+                    editStatus={editStatuses[`violation-${v.violation_number || v.id || idx}`] || null}
+                    onEditSaved={(editId) => handleEditSaved('violation', v.violation_number || v.id || String(idx), editId)}
+                    bulkMode={bulkMode}
+                    isSelected={selectedItems.has(`violation:${v.violation_number || v.id || idx}:${v.agency || 'DOB'}`)}
+                    onToggleSelect={() => toggleItemSelection(`violation:${v.violation_number || v.id || idx}:${v.agency || 'DOB'}`)}
+                  />
+                ))}
+              </div>
+
+              {/* Desktop: table */}
+              <div className="hidden sm:block">
+                <Table className="text-sm w-full">
+                  <TableHeader>
+                    <TableRow className="bg-muted/30 hover:bg-muted/30">
+                      <TableHead className="w-8">
+                        {bulkMode && (() => {
+                          const visibleKeys = filteredViolations.map((v: any, idx: number) => `violation:${v.violation_number || v.id || idx}:${v.agency || 'DOB'}`);
+                          const allSelected = visibleKeys.length > 0 && visibleKeys.every((k: string) => selectedItems.has(k));
+                          return (
+                            <Checkbox
+                              checked={allSelected}
+                              onCheckedChange={() => selectAllVisible(visibleKeys)}
+                              className="ml-1"
+                            />
+                          );
+                        })()}
+                      </TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wider">Violation #</TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wider">Agency</TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wider hidden sm:table-cell">Type</TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wider hidden sm:table-cell">Severity</TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wider">Issued</TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wider">Status</TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wider hidden md:table-cell">Notes</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredViolations.map((v: any, idx: number) => (
                       <ExpandableViolationRow
                         key={v.id || idx}
                         violation={v}
@@ -786,8 +805,9 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
                         onToggleSelect={() => toggleItemSelection(`violation:${v.violation_number || v.id || idx}:${v.agency || 'DOB'}`)}
                       />
                     ))}
-                </TableBody>
-              </Table>
+                  </TableBody>
+                </Table>
+              </div>
             </div>
           )}
         </div>
