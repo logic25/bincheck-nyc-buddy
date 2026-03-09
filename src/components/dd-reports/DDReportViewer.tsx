@@ -674,21 +674,22 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
       )}
 
       {/* Section Navigation */}
-      <div className="flex items-center border-b border-border mb-6">
+      <div className="flex items-center border-b border-border mb-6 overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
         {sectionNav.map(({ key, label, count, icon: Icon }) => (
           <button
             key={key}
             onClick={() => setActiveSection(key)}
-            className={`flex items-center gap-1.5 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+            className={`flex items-center gap-1 sm:gap-1.5 px-3 sm:px-4 py-3 text-xs sm:text-sm font-medium border-b-2 transition-colors whitespace-nowrap shrink-0 ${
               activeSection === key
                 ? 'border-primary text-foreground'
                 : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
             }`}
           >
             <Icon className="w-3.5 h-3.5" />
-            {label}
+            <span className="hidden sm:inline">{label}</span>
+            <span className="sm:hidden">{label.split(' ')[0]}</span>
             {count !== undefined && (
-              <span className="ml-1 text-xs bg-muted px-1.5 py-0.5 rounded-full">{count}</span>
+              <span className="ml-0.5 sm:ml-1 text-[10px] sm:text-xs bg-muted px-1 sm:px-1.5 py-0.5 rounded-full">{count}</span>
             )}
           </button>
         ))}
