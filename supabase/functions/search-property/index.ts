@@ -92,8 +92,8 @@ async function lookupByAddress(address: string): Promise<{ bin: string; bbl: str
     // Fallback: try DOB violations dataset
     const encoded = encodeURIComponent(address.toUpperCase());
     const url = `${NYC_DATA_BASE}/${DOB_VIOLATIONS}.json?$where=upper(house__||' '||street) like '%25${encoded}%25'&$limit=1&$select=bin`;
-    const data = await fetchJSON(url);
-    if (data.length > 0 && data[0].bin) return { bin: data[0].bin, bbl: "" };
+    const fallback = await fetchJSON(url);
+    if (fallback.data.length > 0 && fallback.data[0].bin) return { bin: fallback.data[0].bin, bbl: "" };
     return null;
   } catch (e) {
     console.error('Address lookup error:', e);
