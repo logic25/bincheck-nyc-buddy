@@ -973,53 +973,79 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
             <div className="text-center py-12 text-muted-foreground text-sm">No DOB complaints found.</div>
           ) : (
             <div className="w-full">
-              <Table className="text-sm w-full">
-                <TableHeader>
-                  <TableRow className="bg-muted/30 hover:bg-muted/30">
-                    <TableHead className="w-8">
-                      {bulkMode && (() => {
-                        const visibleKeys = complaints.map((c: any, idx: number) => `complaint:${c.complaint_number || idx}:DOB`);
-                        const allSelected = visibleKeys.length > 0 && visibleKeys.every((k: string) => selectedItems.has(k));
-                        return (
-                          <Checkbox
-                            checked={allSelected}
-                            onCheckedChange={() => selectAllVisible(visibleKeys)}
-                            className="ml-1"
-                          />
-                        );
-                      })()}
-                    </TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider">Complaint #</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider">Date</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider hidden sm:table-cell">Category</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider hidden md:table-cell">Unit</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider">Status</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider hidden md:table-cell">Disposition</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider hidden lg:table-cell">Notes</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {complaints.map((c: any, idx: number) => {
-                    const complaintId = c.complaint_number || String(idx);
-                    return (
-                      <ExpandableComplaintRow
-                        key={complaintId}
-                        complaint={c}
-                        index={idx}
-                        note={lineItemNotes[`complaint-${complaintId}`] || ''}
-                        onNoteChange={(n) => updateLineItemNote('complaint', complaintId, n)}
-                        readOnly={isReadOnly}
-                        reportId={report.id}
-                        editStatus={editStatuses[`complaint-${complaintId}`] || null}
-                        onEditSaved={(editId) => handleEditSaved('complaint', complaintId, editId)}
-                        bulkMode={bulkMode}
-                        isSelected={selectedItems.has(`complaint:${complaintId}:DOB`)}
-                        onToggleSelect={() => toggleItemSelection(`complaint:${complaintId}:DOB`)}
-                      />
-                    );
-                  })}
-                </TableBody>
-              </Table>
+              {/* Mobile */}
+              <div className="sm:hidden divide-y divide-border">
+                {filteredComplaints.map((c: any, idx: number) => {
+                  const complaintId = c.complaint_number || String(idx);
+                  return (
+                    <MobileComplaintCard
+                      key={complaintId}
+                      complaint={c}
+                      index={idx}
+                      note={lineItemNotes[`complaint-${complaintId}`] || ''}
+                      onNoteChange={(n) => updateLineItemNote('complaint', complaintId, n)}
+                      readOnly={isReadOnly}
+                      reportId={report.id}
+                      editStatus={editStatuses[`complaint-${complaintId}`] || null}
+                      onEditSaved={(editId) => handleEditSaved('complaint', complaintId, editId)}
+                      bulkMode={bulkMode}
+                      isSelected={selectedItems.has(`complaint:${complaintId}:DOB`)}
+                      onToggleSelect={() => toggleItemSelection(`complaint:${complaintId}:DOB`)}
+                    />
+                  );
+                })}
+              </div>
+
+              {/* Desktop */}
+              <div className="hidden sm:block">
+                <Table className="text-sm w-full">
+                  <TableHeader>
+                    <TableRow className="bg-muted/30 hover:bg-muted/30">
+                      <TableHead className="w-8">
+                        {bulkMode && (() => {
+                          const visibleKeys = filteredComplaints.map((c: any, idx: number) => `complaint:${c.complaint_number || idx}:DOB`);
+                          const allSelected = visibleKeys.length > 0 && visibleKeys.every((k: string) => selectedItems.has(k));
+                          return (
+                            <Checkbox
+                              checked={allSelected}
+                              onCheckedChange={() => selectAllVisible(visibleKeys)}
+                              className="ml-1"
+                            />
+                          );
+                        })()}
+                      </TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wider">Complaint #</TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wider">Date</TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wider hidden sm:table-cell">Category</TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wider hidden md:table-cell">Unit</TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wider">Status</TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wider hidden md:table-cell">Disposition</TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wider hidden lg:table-cell">Notes</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredComplaints.map((c: any, idx: number) => {
+                      const complaintId = c.complaint_number || String(idx);
+                      return (
+                        <ExpandableComplaintRow
+                          key={complaintId}
+                          complaint={c}
+                          index={idx}
+                          note={lineItemNotes[`complaint-${complaintId}`] || ''}
+                          onNoteChange={(n) => updateLineItemNote('complaint', complaintId, n)}
+                          readOnly={isReadOnly}
+                          reportId={report.id}
+                          editStatus={editStatuses[`complaint-${complaintId}`] || null}
+                          onEditSaved={(editId) => handleEditSaved('complaint', complaintId, editId)}
+                          bulkMode={bulkMode}
+                          isSelected={selectedItems.has(`complaint:${complaintId}:DOB`)}
+                          onToggleSelect={() => toggleItemSelection(`complaint:${complaintId}:DOB`)}
+                        />
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
             </div>
           )}
         </div>
