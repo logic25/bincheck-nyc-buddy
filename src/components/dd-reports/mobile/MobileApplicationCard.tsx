@@ -95,7 +95,7 @@ export default function MobileApplicationCard({
   }, [application]);
 
   return (
-    <div className="bg-card">
+    <div className={`bg-card ${isHidden ? 'opacity-40' : ''}`}>
       <div
         className="px-3 py-3"
         role="button"
