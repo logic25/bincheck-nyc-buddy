@@ -154,6 +154,68 @@ export type Database = {
           },
         ]
       }
+      closeout_requests: {
+        Row: {
+          application_numbers: Json
+          assigned_expediter: string | null
+          contact_email: string
+          contact_name: string
+          contact_phone: string | null
+          created_at: string
+          id: string
+          price_quoted: number
+          property_address: string
+          report_id: string
+          request_description: string | null
+          status: string
+          updated_at: string
+          urgency: string
+          user_id: string
+        }
+        Insert: {
+          application_numbers?: Json
+          assigned_expediter?: string | null
+          contact_email: string
+          contact_name: string
+          contact_phone?: string | null
+          created_at?: string
+          id?: string
+          price_quoted?: number
+          property_address: string
+          report_id: string
+          request_description?: string | null
+          status?: string
+          updated_at?: string
+          urgency?: string
+          user_id: string
+        }
+        Update: {
+          application_numbers?: Json
+          assigned_expediter?: string | null
+          contact_email?: string
+          contact_name?: string
+          contact_phone?: string | null
+          created_at?: string
+          id?: string
+          price_quoted?: number
+          property_address?: string
+          report_id?: string
+          request_description?: string | null
+          status?: string
+          updated_at?: string
+          urgency?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "closeout_requests_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "dd_reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dd_reports: {
         Row: {
           acris_data: Json | null
