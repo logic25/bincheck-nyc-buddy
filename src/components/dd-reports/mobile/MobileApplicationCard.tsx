@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ExternalLink, ChevronDown, ChevronRight } from "lucide-react";
+import { ExternalLink, ChevronDown, ChevronRight, EyeOff, Eye } from "lucide-react";
 import InlineNoteEditor from "../InlineNoteEditor";
 
 interface EditStatus {
