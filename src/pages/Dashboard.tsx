@@ -7,9 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import {
   Shield, LogOut, Loader2, Trash2, FileText, Settings, RefreshCw,
-  ArrowRight, Download, ClipboardList, Clock, CheckCircle2, Search, MapPin, Package, BookOpen,
+  ArrowRight, Download, ClipboardList, Clock, CheckCircle2, Search, MapPin, Package, BookOpen, Menu,
 } from "lucide-react";
 import { getScoreColor } from "@/lib/scoring";
 import { toast } from "sonner";
