@@ -1089,6 +1089,79 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
       )}
 
 
+      {/* ACRIS Section */}
+      {activeSection === 'acris' && (
+        <div className="border border-border rounded-xl bg-card">
+          <div className="p-4 border-b border-border">
+            <h3 className="text-base font-semibold">Property Transfer & Lien History (ACRIS)</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {acrisDocuments.length} recorded document{acrisDocuments.length !== 1 ? 's' : ''} found via NYC ACRIS
+            </p>
+          </div>
+          {acrisDocuments.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground text-sm">
+              No ACRIS records found for this BBL. This may indicate a cooperative or property with records filed under a different lot identifier.
+            </div>
+          ) : (
+            <div className="w-full">
+              {/* Mobile */}
+              <div className="sm:hidden divide-y divide-border">
+                {acrisDocuments.map((doc: any, idx: number) => (
+                  <div key={idx} className="px-3 py-3 space-y-1.5">
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="text-sm font-medium">{doc.document_type || 'Unknown'}</p>
+                      <span className="text-xs text-muted-foreground whitespace-nowrap">{safeFormatDate(doc.document_date)}</span>
+                    </div>
+                    {doc.party1 && (
+                      <p className="text-xs text-muted-foreground"><span className="font-medium text-foreground/70">Grantor:</span> {doc.party1}</p>
+                    )}
+                    {doc.party2 && (
+                      <p className="text-xs text-muted-foreground"><span className="font-medium text-foreground/70">Grantee:</span> {doc.party2}</p>
+                    )}
+                    {doc.document_amount && (
+                      <p className="text-xs font-medium">${Number(doc.document_amount).toLocaleString()}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* Desktop */}
+              <div className="hidden sm:block">
+                <Table className="text-sm w-full">
+                  <TableHeader>
+                    <TableRow className="bg-muted/30 hover:bg-muted/30">
+                      <TableHead className="text-xs font-semibold uppercase tracking-wider">Date</TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wider">Document Type</TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wider">Grantor / Lender</TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wider">Grantee / Borrower</TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wider">Amount</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {acrisDocuments.map((doc: any, idx: number) => (
+                      <TableRow key={idx}>
+                        <TableCell className="whitespace-nowrap font-mono text-xs">{safeFormatDate(doc.document_date)}</TableCell>
+                        <TableCell>{doc.document_type || '—'}</TableCell>
+                        <TableCell className="max-w-[180px] truncate">{doc.party1 || '—'}</TableCell>
+                        <TableCell className="max-w-[180px] truncate">{doc.party2 || '—'}</TableCell>
+                        <TableCell className="whitespace-nowrap">
+                          {doc.document_amount ? `$${Number(doc.document_amount).toLocaleString()}` : '—'}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+          )}
+          <div className="p-3 border-t border-border">
+            <p className="text-[10px] text-muted-foreground italic">
+              Source: NYC ACRIS — recorded documents only. Unrecorded agreements not included.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* AI Analysis Section */}
       {activeSection === 'analysis' && (
         <div className="border border-border rounded-xl p-6 bg-card">
