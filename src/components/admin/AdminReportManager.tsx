@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import {
   FileText, Plus, Search, AlertTriangle, Loader2, Eye, Trash2, Clock, RefreshCw,
-  Zap, Inbox, Phone, Mail, Building2, Pencil, Scale, Brain,
+  Zap, Inbox, Phone, Mail, Building2, Pencil, Scale, Brain, Ticket,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import DDReportViewer from '@/components/dd-reports/DDReportViewer';
@@ -22,6 +22,7 @@ import CreateDDReportDialog from '@/components/dd-reports/CreateDDReportDialog';
 import EditReviewTab from '@/components/admin/EditReviewTab';
 import AILearningTab from '@/components/admin/AILearningTab';
 import ArchitectLettersTab from '@/components/admin/ArchitectLettersTab';
+import InviteCodesTab from '@/components/admin/InviteCodesTab';
 
 interface DDReport {
   id: string;
@@ -309,6 +310,9 @@ const AdminReportManager = ({ userId, userEmail, userProfile }: AdminReportManag
           <TabsTrigger value="ai-learning" className="gap-1.5 flex-1 sm:flex-none">
             <Brain className="h-4 w-4" /> AI Learning
           </TabsTrigger>
+          <TabsTrigger value="invite-codes" className="gap-1.5 flex-1 sm:flex-none">
+            <Ticket className="h-4 w-4" /> Invites
+          </TabsTrigger>
         </TabsList>
 
         {/* ── INCOMING ORDERS TAB ── */}
@@ -541,6 +545,9 @@ const AdminReportManager = ({ userId, userEmail, userProfile }: AdminReportManag
         </TabsContent>
         <TabsContent value="ai-learning" className="mt-4">
           <AILearningTab />
+        </TabsContent>
+        <TabsContent value="invite-codes" className="mt-4">
+          <InviteCodesTab />
         </TabsContent>
       </Tabs>
 
