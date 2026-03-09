@@ -257,8 +257,9 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
       const opt = {
         margin: 0.5,
         image: { type: 'jpeg' as const, quality: 0.98 },
-        html2canvas: { scale: 2 },
-        jsPDF: { unit: 'in' as const, format: 'letter' as const, orientation: 'portrait' as const }
+        html2canvas: { scale: 2, useCORS: true, scrollY: 0 },
+        jsPDF: { unit: 'in' as const, format: 'letter' as const, orientation: 'portrait' as const },
+        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
       };
       const pdfBlob = await html2pdf().set(opt).from(element).outputPdf('blob');
       const url = URL.createObjectURL(pdfBlob);
