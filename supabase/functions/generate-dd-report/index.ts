@@ -1595,13 +1595,8 @@ serve(async (req) => {
     const learningContext = await fetchLearningExamples(supabaseUrl, supabaseServiceKey, agencies);
     console.log(`Learning context: ${learningContext.few_shot_examples.length} few-shot categories, ${learningContext.knowledge_context.length} knowledge entries, ${learningContext.confidence_flags.length} flags`);
 
-    // Generate AI analysis, line-item notes, and property status summary in parallel
-    const [aiAnalysis, lineItemNotes, propertyStatusSummary] = await Promise.all([
-      generateAIAnalysis(
-        { building: building || { address: resolvedAddress, bin, bbl }, violations, applications, orders, acrisData, taxLienData },
-        customerConcern || null,
-        LOVABLE_API_KEY
-      ),
+    // Generate line-item notes and property status summary in parallel (AI analysis removed)
+    const [lineItemNotes, propertyStatusSummary] = await Promise.all([
       generateLineItemNotes(violations, applications, resolvedAddress, customerConcern || null, LOVABLE_API_KEY, learningContext),
       generatePropertyStatusSummary(
         building || { address: resolvedAddress, bin, bbl },
