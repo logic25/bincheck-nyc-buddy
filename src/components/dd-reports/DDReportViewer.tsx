@@ -546,11 +546,13 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
         {(() => {
           const agenciesQueried: any[] = (report as any).agencies_queried || [];
           if (agenciesQueried.length === 0) return null;
+          const queried = agenciesQueried.filter((a: any) => a.queried);
+          const notQueried = agenciesQueried.filter((a: any) => !a.queried);
           return (
             <div className="mt-4 pt-4 border-t border-border">
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Data Sources Queried</p>
               <div className="flex flex-wrap gap-1.5">
-                {agenciesQueried.filter((a: any) => a.queried).map((a: any) => (
+                {queried.map((a: any) => (
                   <Badge
                     key={a.agency}
                     variant={a.results > 0 ? 'default' : 'outline'}
@@ -562,12 +564,24 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
                   >
                     {a.agency}
                     {a.results > 0 && <span className="ml-1 font-bold">{a.results}</span>}
-                    {a.results === 0 && <span className="ml-1 opacity-60">✓</span>}
+                    {a.results === 0 && <span className="ml-1 opacity-60">✓ clear</span>}
                   </Badge>
                 ))}
               </div>
+              {notQueried.length > 0 && (
+                <div className="mt-2">
+                  <p className="text-[10px] text-muted-foreground mb-1">Not queried:</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {notQueried.map((a: any) => (
+                      <Badge key={a.agency} variant="outline" className="text-[10px] px-2 py-0.5 text-muted-foreground/50 border-border/50">
+                        {a.agency} {a.note ? `— ${a.note}` : '— N/A'}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
               <p className="text-[10px] text-muted-foreground mt-1.5">
-                {agenciesQueried.filter((a: any) => a.results > 0).length} of {agenciesQueried.filter((a: any) => a.queried).length} sources returned records
+                {queried.filter((a: any) => a.results > 0).length} of {queried.length} sources returned records
               </p>
             </div>
           );
