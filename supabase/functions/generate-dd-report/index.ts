@@ -521,7 +521,7 @@ async function fetchViolations(bin: string, bbl: string, isResidentialProperty: 
       const hpdViolations = await fetchNYCData(NYC_ENDPOINTS.HPD_VIOLATIONS, {
         "boroid": borough, "block": block, "lot": lot,
         "$where": "violationstatus = 'Open'", "$limit": "1000", "$order": "inspectiondate DESC",
-      });
+      }, 'HPD');
       violations.push(...hpdViolations.map((v: any) => {
         const desc = (v.novdescription || '').toLowerCase();
         return {
