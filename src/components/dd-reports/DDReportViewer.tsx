@@ -122,7 +122,7 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
   );
   const [applicationFilter, setApplicationFilter] = useState<string>('all');
   const [violationFilter, setViolationFilter] = useState<string>('all');
-  const [activeSection, setActiveSection] = useState<'violations' | 'applications' | 'complaints' | 'analysis' | 'notes'>('violations');
+  const [activeSection, setActiveSection] = useState<'violations' | 'applications' | 'complaints' | 'acris' | 'analysis' | 'notes'>('violations');
   const [architectDialogOpen, setArchitectDialogOpen] = useState(false);
 
   // Track edit statuses for line items
