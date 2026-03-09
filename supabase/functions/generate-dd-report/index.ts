@@ -1427,7 +1427,9 @@ CRITICAL RULES:
 - No risk levels, risk ratings, or risk characterizations.
 - No recommendations, next steps, or action items.
 - No advisory language whatsoever.
-- If data is missing or unavailable, state "Not available" — do not speculate.`;
+- If data is missing or unavailable, state "Not available" — do not speculate.
+- TERMINOLOGY: Certificate of Occupancy must be abbreviated as "CO" or "TCO" (Temporary CO). Never use "COI."
+- MORTGAGE/FINANCIAL DATA: State only the recorded amounts, dates, and parties. Do NOT interpret mortgage amounts relative to purchase price. Do NOT speculate about equity, financial position, loan balances, or whether the property is "free and clear." ACRIS records show only what was recorded at the time of filing — they do not reflect current balances, payoffs, or refinancing.`;
 
   try {
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
