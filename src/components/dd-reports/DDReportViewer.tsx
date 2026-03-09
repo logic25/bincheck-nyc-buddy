@@ -548,25 +548,39 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
           if (agenciesQueried.length === 0) return null;
           const queried = agenciesQueried.filter((a: any) => a.queried);
           const notQueried = agenciesQueried.filter((a: any) => !a.queried);
+          const hasErrors = queried.some((a: any) => a.error && a.results === 0);
           return (
             <div className="mt-4 pt-4 border-t border-border">
+              {hasErrors && (
+                <div className="mb-3 p-2.5 rounded-md bg-amber-500/10 border border-amber-500/30">
+                  <p className="text-xs font-medium text-amber-700 dark:text-amber-400">
+                    ⚠ Some agency data sources were unavailable at the time of this report. Results may be incomplete.
+                  </p>
+                </div>
+              )}
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Data Sources Queried</p>
               <div className="flex flex-wrap gap-1.5">
-                {queried.map((a: any) => (
-                  <Badge
-                    key={a.agency}
-                    variant={a.results > 0 ? 'default' : 'outline'}
-                    className={`text-[10px] px-2 py-0.5 ${
-                      a.results > 0
-                        ? 'bg-primary/90 text-primary-foreground'
-                        : 'text-muted-foreground border-border'
-                    }`}
-                  >
-                    {a.agency}
-                    {a.results > 0 && <span className="ml-1 font-bold">{a.results}</span>}
-                    {a.results === 0 && <span className="ml-1 opacity-60">✓ clear</span>}
-                  </Badge>
-                ))}
+                {queried.map((a: any) => {
+                  const isError = a.error && a.results === 0;
+                  return (
+                    <Badge
+                      key={a.agency}
+                      variant={a.results > 0 ? 'default' : 'outline'}
+                      className={`text-[10px] px-2 py-0.5 ${
+                        a.results > 0
+                          ? 'bg-primary/90 text-primary-foreground'
+                          : isError
+                            ? 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30'
+                            : 'text-muted-foreground border-border'
+                      }`}
+                    >
+                      {a.agency}
+                      {a.results > 0 && <span className="ml-1 font-bold">{a.results}</span>}
+                      {a.results === 0 && !isError && <span className="ml-1 opacity-60">✓ clear</span>}
+                      {isError && <span className="ml-1">⚠ unavailable</span>}
+                    </Badge>
+                  );
+                })}
               </div>
               {notQueried.length > 0 && (
                 <div className="mt-2">
@@ -582,6 +596,7 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
               )}
               <p className="text-[10px] text-muted-foreground mt-1.5">
                 {queried.filter((a: any) => a.results > 0).length} of {queried.length} sources returned records
+                {hasErrors && <span className="text-amber-600 dark:text-amber-400"> · {queried.filter((a: any) => a.error && a.results === 0).length} unavailable</span>}
               </p>
             </div>
           );
