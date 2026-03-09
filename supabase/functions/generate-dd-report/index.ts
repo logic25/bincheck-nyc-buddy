@@ -205,7 +205,14 @@ async function fetchNYCData(endpoint: string, params: Record<string, string>, ag
     }
     const data = await response.json();
     console.log(`Got ${Array.isArray(data) ? data.length : 'non-array'} results`);
-    return Array.isArray(data) ? data : [];
+    if (!Array.isArray(data)) return [];
+    
+    // Validate response shape if a schema exists for this agency
+    const schema = agencyTag ? AGENCY_SCHEMAS[agencyTag] : null;
+    if (schema && data.length > 0) {
+      return validateAPIResponse(data, schema, agencyTag!);
+    }
+    return data;
   } catch (error) {
     console.error(`Error fetching from ${endpoint}:`, error);
     if (agencyTag) agencyErrors.add(agencyTag);
