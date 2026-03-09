@@ -567,7 +567,7 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
           <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4 flex items-center gap-2">
             <FileStack className="w-3.5 h-3.5" /> Compliance Summary
           </h3>
-          <div className={`grid ${complaints.length > 0 ? 'grid-cols-3' : 'grid-cols-2'} gap-3`}>
+          <div className={`grid grid-cols-1 sm:grid-cols-2 ${complaints.length > 0 ? 'lg:grid-cols-3' : ''} gap-3`}>
             <div className="p-3 rounded-lg bg-muted/40 border border-border">
               <p className="text-2xl font-bold tracking-tight">{violations.length}</p>
               <p className="text-xs text-muted-foreground font-medium">Open Violations</p>
