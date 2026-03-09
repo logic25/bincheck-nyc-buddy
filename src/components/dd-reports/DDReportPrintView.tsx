@@ -343,7 +343,7 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
       )}
 
       {/* Building Information */}
-      <section className="mb-6">
+      <section className="mb-6" style={sectionBreakStyle}>
         <h3 className={sectionHeaderStyle}>Building Information</h3>
         <div className="grid grid-cols-4 gap-x-6 gap-y-2 text-[11px]">
           {[
