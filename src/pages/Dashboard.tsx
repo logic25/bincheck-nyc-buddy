@@ -406,7 +406,7 @@ const Dashboard = () => {
         {/* Page title */}
         <div>
           <h1 className="font-display text-2xl sm:text-3xl font-bold">
-            Welcome{userProfile?.display_name ? `, ${userProfile.display_name}` : ''}
+            Welcome{userProfile?.display_name ? `, ${userProfile.display_name}` : userEmail ? `, ${userEmail.split('@')[0].charAt(0).toUpperCase() + userEmail.split('@')[0].slice(1)}` : ''}
           </h1>
           <p className="text-muted-foreground text-sm sm:text-base mt-1">
             {isAdmin
