@@ -253,7 +253,7 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
                   <td className={`${tableCellStyle}`}>
                     <div className="break-words">{(app.job_description || '—').slice(0, 120)}</div>
                   </td>
-                  <td className={`${tableCellStyle} text-gray-600`}>
+                  <td className={`${tableCellStyle} text-gray-700`}>
                     <div className="break-words leading-[1.4]">{getNote('application', appKey)}</div>
                   </td>
                 </tr>
