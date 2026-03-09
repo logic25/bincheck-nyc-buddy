@@ -74,8 +74,11 @@ export default function MobileApplicationCard({
   bulkMode = false,
   isSelected = false,
   onToggleSelect,
+  isAdmin = false,
+  onToggleHidden,
 }: MobileApplicationCardProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const isHidden = !!application?.hidden;
 
   const appKey = useMemo(
     () => `${application?.source || "BIS"}-${application?.id || application?.application_number || index}`,
