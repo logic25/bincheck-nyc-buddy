@@ -567,7 +567,7 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
           <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4 flex items-center gap-2">
             <FileStack className="w-3.5 h-3.5" /> Compliance Summary
           </h3>
-          <div className={`grid ${complaints.length > 0 ? 'grid-cols-3' : 'grid-cols-2'} gap-3`}>
+          <div className={`grid grid-cols-1 sm:grid-cols-2 ${complaints.length > 0 ? 'lg:grid-cols-3' : ''} gap-3`}>
             <div className="p-3 rounded-lg bg-muted/40 border border-border">
               <p className="text-2xl font-bold tracking-tight">{violations.length}</p>
               <p className="text-xs text-muted-foreground font-medium">Open Violations</p>
@@ -602,7 +602,7 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
               </div>
             )}
             {hasCriticalOrders && (
-              <div className="col-span-2 p-3 rounded-lg bg-destructive/10 border border-destructive/30">
+              <div className="col-span-1 sm:col-span-2 lg:col-span-3 p-3 rounded-lg bg-destructive/10 border border-destructive/30">
                 <div className="flex items-center gap-2 mb-1">
                   <FileWarning className="w-4 h-4 text-destructive" />
                   <span className="text-sm font-semibold text-destructive">Critical Orders</span>
@@ -615,7 +615,7 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
               </div>
             )}
             {!hasCriticalOrders && (
-              <div className="col-span-2 p-3 rounded-lg bg-emerald-500/5 border border-emerald-500/20">
+              <div className="col-span-1 sm:col-span-2 lg:col-span-3 p-3 rounded-lg bg-emerald-500/5 border border-emerald-500/20">
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-500" />
                   <span className="text-sm font-medium text-emerald-500">No Critical Orders</span>
@@ -674,21 +674,22 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
       )}
 
       {/* Section Navigation */}
-      <div className="flex items-center border-b border-border mb-6">
+      <div className="flex items-center border-b border-border mb-6 overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
         {sectionNav.map(({ key, label, count, icon: Icon }) => (
           <button
             key={key}
             onClick={() => setActiveSection(key)}
-            className={`flex items-center gap-1.5 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+            className={`flex items-center gap-1 sm:gap-1.5 px-3 sm:px-4 py-3 text-xs sm:text-sm font-medium border-b-2 transition-colors whitespace-nowrap shrink-0 ${
               activeSection === key
                 ? 'border-primary text-foreground'
                 : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
             }`}
           >
             <Icon className="w-3.5 h-3.5" />
-            {label}
+            <span className="hidden sm:inline">{label}</span>
+            <span className="sm:hidden">{label.split(' ')[0]}</span>
             {count !== undefined && (
-              <span className="ml-1 text-xs bg-muted px-1.5 py-0.5 rounded-full">{count}</span>
+              <span className="ml-0.5 sm:ml-1 text-[10px] sm:text-xs bg-muted px-1 sm:px-1.5 py-0.5 rounded-full">{count}</span>
             )}
           </button>
         ))}
@@ -723,8 +724,8 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
           {violations.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground text-sm">No open violations found.</div>
           ) : (
-            <ScrollArea className="h-[520px]">
-              <Table className="text-sm">
+            <div className="overflow-x-auto">
+              <Table className="text-sm min-w-[600px]">
                 <TableHeader>
                   <TableRow className="bg-muted/30 hover:bg-muted/30">
                     <TableHead className="w-8">
@@ -744,11 +745,11 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
                     </TableHead>
                     <TableHead className="text-xs font-semibold uppercase tracking-wider">Violation #</TableHead>
                     <TableHead className="text-xs font-semibold uppercase tracking-wider">Agency</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider">Type</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider">Severity</TableHead>
+                    <TableHead className="text-xs font-semibold uppercase tracking-wider hidden sm:table-cell">Type</TableHead>
+                    <TableHead className="text-xs font-semibold uppercase tracking-wider hidden sm:table-cell">Severity</TableHead>
                     <TableHead className="text-xs font-semibold uppercase tracking-wider">Issued</TableHead>
                     <TableHead className="text-xs font-semibold uppercase tracking-wider">Status</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider">Notes</TableHead>
+                    <TableHead className="text-xs font-semibold uppercase tracking-wider hidden md:table-cell">Notes</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -773,7 +774,7 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
                     ))}
                 </TableBody>
               </Table>
-            </ScrollArea>
+            </div>
           )}
         </div>
       )}
