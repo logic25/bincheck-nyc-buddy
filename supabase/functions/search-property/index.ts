@@ -56,18 +56,24 @@ function appendToken(url: string): string {
   return `${url}${sep}$$app_token=${NYC_APP_TOKEN}`;
 }
 
-async function fetchJSON(url: string) {
+interface FetchResult {
+  data: any[];
+  error: boolean;
+}
+
+async function fetchJSON(url: string): Promise<FetchResult> {
   try {
     const res = await fetch(appendToken(url));
     if (!res.ok) {
       console.error(`Failed to fetch ${url}: ${res.status}`);
       await res.text();
-      return [];
+      return { data: [], error: true };
     }
-    return await res.json();
+    const json = await res.json();
+    return { data: Array.isArray(json) ? json : [], error: false };
   } catch (e) {
     console.error(`Error fetching ${url}:`, e);
-    return [];
+    return { data: [], error: true };
   }
 }
 
