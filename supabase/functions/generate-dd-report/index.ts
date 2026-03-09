@@ -1287,7 +1287,7 @@ async function fetchACRISData(bbl: string): Promise<any> {
       "$where": `borough='${borough}' AND block=${parseInt(block)} AND lot=${parseInt(lot)}`,
       "$limit": "30",
       "$order": "document_id DESC",
-    });
+    }, 'ACRIS');
 
     console.log(`ACRIS Legals: ${legalRecords.length} records for BBL ${borough}-${block}-${lot}`);
     if (legalRecords.length === 0) return { documents: [], deeds: [], mortgages: [], liens: [] };
