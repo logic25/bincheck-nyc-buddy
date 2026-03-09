@@ -479,16 +479,25 @@ async function fetchViolations(bin: string, bbl: string): Promise<any[]> {
     const ecbViolations = await fetchNYCData(NYC_ENDPOINTS.ECB_VIOLATIONS, {
       "bin": bin, "$where": "ecb_violation_status != 'RESOLVE'", "$limit": "200", "$order": "issue_date DESC",
     });
-    violations.push(...ecbViolations.map((v: any) => ({
-      id: v.ecb_violation_number, agency: "ECB",
-      violation_number: v.ecb_violation_number, violation_type: v.infraction_code1 || null,
-      violation_class: v.violation_type || null, description_raw: v.violation_description || null,
-      issued_date: v.issue_date || null, severity: v.severity || null,
-      status: (v.ecb_violation_status || 'open').toLowerCase(),
-      penalty_amount: v.penality_imposed ? parseFloat(v.penality_imposed) : null,
-      hearing_date: v.hearing_date || null,
-      hearing_result: v.hearing_result || null,
-    })));
+    violations.push(...ecbViolations.map((v: any) => {
+      const imposed = v.penality_imposed ? parseFloat(v.penality_imposed) : null;
+      const paid = v.amount_paid ? parseFloat(v.amount_paid) : 0;
+      const balanceDue = v.penalty_balance_due ? parseFloat(v.penalty_balance_due) : null;
+      // Use balance_due if available, otherwise calculate from imposed - paid
+      const effectivePenalty = balanceDue !== null ? balanceDue : (imposed !== null ? Math.max(0, imposed - paid) : null);
+      return {
+        id: v.ecb_violation_number, agency: "ECB",
+        violation_number: v.ecb_violation_number, violation_type: v.infraction_code1 || null,
+        violation_class: v.violation_type || null, description_raw: v.violation_description || null,
+        issued_date: v.issue_date || null, severity: v.severity || null,
+        status: (v.ecb_violation_status || 'open').toLowerCase(),
+        penalty_amount: effectivePenalty,
+        penalty_imposed: imposed,
+        amount_paid: paid,
+        hearing_date: v.hearing_date || null,
+        hearing_result: v.hearing_result || null,
+      };
+    }));
   }
 
   if (bbl && bbl.length >= 10) {
