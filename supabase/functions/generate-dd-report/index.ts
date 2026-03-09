@@ -184,7 +184,7 @@ async function fetchOATHViolations(bbl: string, agencyCode: string, oathAgencyNa
     "$order": "violation_date DESC",
   };
 
-  const records = await fetchNYCData(NYC_ENDPOINTS.OATH_HEARINGS, params);
+  const records = await fetchNYCData(NYC_ENDPOINTS.OATH_HEARINGS, params, agencyCode);
   return records.map((r: any) => {
     const hearingStatus = (r.hearing_status || '').toLowerCase();
     const hearingResult = (r.hearing_result || '').toLowerCase();
