@@ -475,8 +475,8 @@ const Dashboard = () => {
                 <Badge variant="destructive" className="text-xs">{adminActionItems.length}</Badge>
               </div>
               <Button variant="ghost" size="sm" onClick={() => navigate("/dd-reports")}>
-                View All <ArrowRight className="h-3.5 w-3.5 ml-1" />
-              </Button>
+                 View All in Report Manager <ArrowRight className="h-3.5 w-3.5 ml-1" />
+               </Button>
             </div>
             {adminActionItems.slice(0, 5).map((r) => {
               const si = statusInfo(r.status);
