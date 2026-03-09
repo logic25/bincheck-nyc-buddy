@@ -109,10 +109,10 @@ const ExpandableViolationRow = ({ violation, index, note, onNoteChange, bbl, rea
             })()}
           </div>
         </TableCell>
-        <TableCell className="max-w-[200px] truncate">
+        <TableCell className="max-w-[200px] truncate hidden sm:table-cell">
           {violation.violation_type || violation.description_raw?.slice(0, 50) || '—'}
         </TableCell>
-        <TableCell>
+        <TableCell className="hidden sm:table-cell">
           <Badge variant={getSeverityVariant(violation.severity || violation.violation_class)}>
             {violation.severity || violation.violation_class || 'Unknown'}
           </Badge>
