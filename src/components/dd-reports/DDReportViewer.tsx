@@ -961,6 +961,7 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
             </div>
           )}
 
+          {applications.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground text-sm">No applications found.</div>
           ) : (
             <div className="w-full">
