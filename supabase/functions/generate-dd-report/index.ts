@@ -1541,6 +1541,7 @@ serve(async (req) => {
       { agency: 'DOB-NOW', label: 'DOB NOW Applications', queried: !!bin, results: dobNowAppsCount, category: 'applications' },
       { agency: 'DOB-COMPLAINTS', label: 'DOB Complaints', queried: !!bin, results: complaints.length, category: 'complaints' },
       { agency: 'ACRIS', label: 'ACRIS Property Records', queried: !!bbl, results: acrisDocs, category: 'transfers' },
+      { agency: 'DOF-LIEN', label: 'Tax Lien Sale List', queried: !!bbl, results: taxLienData.length, category: 'tax_liens' },
     ];
     console.log(`Agencies queried: ${agenciesQueried.filter(a => a.queried).length}, with data: ${agenciesQueried.filter(a => a.results > 0).length}`);
 
