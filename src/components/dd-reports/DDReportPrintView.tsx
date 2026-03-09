@@ -137,10 +137,10 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
     return parts.join(' / ') || '—';
   };
 
-  // Print-optimized styles — high contrast for paper
-  const sectionHeaderStyle = "text-[13px] font-bold uppercase tracking-[0.08em] text-black border-b-2 border-black pb-1 mb-3";
-  const tableCellStyle = "border border-gray-500 px-2 py-1.5 text-[10px] align-top text-gray-900";
-  const tableHeaderStyle = "border border-gray-500 px-2 py-1.5 text-[9px] font-bold uppercase tracking-wider text-black bg-gray-200";
+  // Print-optimized styles — modern, clean, high contrast
+  const sectionHeaderStyle = "text-[11px] font-semibold uppercase tracking-[0.12em] text-gray-500 border-b border-gray-300 pb-1.5 mb-3";
+  const tableCellStyle = "border border-gray-300 px-2 py-1.5 text-[10px] align-top text-gray-900";
+  const tableHeaderStyle = "border border-gray-300 px-2 py-1.5 text-[9px] font-semibold uppercase tracking-wider text-gray-600 bg-gray-50";
 
   const isArchitectLikelyNeeded = (v: any): boolean => {
     const desc = (v.description_raw || v.violation_type || '').toLowerCase();
