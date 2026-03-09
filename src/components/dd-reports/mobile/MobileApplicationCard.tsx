@@ -205,7 +205,7 @@ export default function MobileApplicationCard({
               onEditSaved={onEditSaved}
             />
 
-            <div>
+            <div className="flex flex-col gap-2">
               <Button
                 variant="outline"
                 size="sm"
@@ -222,6 +222,19 @@ export default function MobileApplicationCard({
                 <ExternalLink className="w-4 h-4 mr-2" />
                 {application?.source === "DOB_NOW" ? "Search on DOB NOW Build" : "View on DOB BIS"}
               </Button>
+              {isAdmin && onToggleHidden && (
+                <Button
+                  variant={isHidden ? 'default' : 'outline'}
+                  size="sm"
+                  className={`w-full ${isHidden ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : 'text-destructive border-destructive/30 hover:bg-destructive/10'}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onToggleHidden();
+                  }}
+                >
+                  {isHidden ? <><Eye className="w-4 h-4 mr-2" /> Restore</> : <><EyeOff className="w-4 h-4 mr-2" /> Exclude from Report</>}
+                </Button>
+              )}
             </div>
           </div>
         )}
