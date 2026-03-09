@@ -249,7 +249,7 @@ async function fetchDOBSafetyViolations(bin: string): Promise<any[]> {
   if (!bin) return [];
   const records = await fetchNYCData(NYC_ENDPOINTS.DOB_SAFETY_VIOLATIONS, {
     "bin": bin, "$limit": "500",
-  });
+  }, 'DOB');
   return records.map((v: any) => {
     const vt = (v.violation_type || '').toLowerCase();
     const desc = (v.description || v.violation_type_description || '').toLowerCase();
