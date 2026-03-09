@@ -234,7 +234,7 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
                 ? (app.filing_professional_name || '—')
                 : (app.applicant_name || [app.applicant_first_name, app.applicant_last_name].filter(Boolean).join(' ') || '—');
               return (
-                <tr key={idx} className={idx % 2 === 0 ? '' : 'bg-gray-50/50'} style={{ pageBreakInside: 'avoid' }}>
+                <tr key={idx} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'} style={{ pageBreakInside: 'avoid' }}>
                   <td className={`${tableCellStyle} font-mono text-[10px]`}>
                     {app.application_number || app.job_number}
                     {(() => {
