@@ -373,18 +373,18 @@ const DDReports = () => {
       </header>
 
       <main className="container py-8 max-w-5xl space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-display font-bold">Due Diligence Reports</h1>
-            <p className="text-muted-foreground text-sm sm:text-base mt-1">Transaction-ready property risk reports — work queue</p>
-          </div>
-          <Button onClick={() => setCreateDialogOpen(true)} className="w-full sm:w-auto">
-            <Plus className="w-4 h-4 mr-2" /> New Report
-          </Button>
-        </div>
+         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+           <div>
+             <h1 className="text-2xl sm:text-3xl font-display font-bold">Report Manager</h1>
+             <p className="text-muted-foreground text-sm sm:text-base mt-1">Manage orders, review reports, and admin tools</p>
+           </div>
+           <Button onClick={() => setCreateDialogOpen(true)} className="w-full sm:w-auto">
+             <Plus className="w-4 h-4 mr-2" /> New Report
+           </Button>
+         </div>
 
-        {/* Main tabs: Incoming Orders vs Reports */}
-        <Tabs value={mainTab} onValueChange={(v) => setMainTab(v as 'incoming' | 'reports')}>
+         {/* Main tabs: Incoming Orders / Reports / Admin sections */}
+         <Tabs value={mainTab} onValueChange={(v) => setMainTab(v as any)}>
           <TabsList className="h-auto w-full sm:w-auto flex-wrap">
             <TabsTrigger value="incoming" className="gap-1.5 flex-1 sm:flex-none">
               <Inbox className="h-4 w-4" />
