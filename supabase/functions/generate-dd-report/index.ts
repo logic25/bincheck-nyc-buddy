@@ -1474,6 +1474,8 @@ serve(async (req) => {
   }
 
   try {
+    // Clear error tracker for this request
+    agencyErrors.clear();
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
