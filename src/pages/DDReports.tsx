@@ -383,12 +383,12 @@ const DDReports = () => {
       </header>
 
       <main className="container py-8 max-w-5xl space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-display font-bold">Due Diligence Reports</h1>
-            <p className="text-muted-foreground mt-1">Transaction-ready property risk reports — work queue</p>
+            <h1 className="text-2xl sm:text-3xl font-display font-bold">Due Diligence Reports</h1>
+            <p className="text-muted-foreground text-sm sm:text-base mt-1">Transaction-ready property risk reports — work queue</p>
           </div>
-          <Button onClick={() => setCreateDialogOpen(true)}>
+          <Button onClick={() => setCreateDialogOpen(true)} className="w-full sm:w-auto">
             <Plus className="w-4 h-4 mr-2" /> New Report
           </Button>
         </div>
