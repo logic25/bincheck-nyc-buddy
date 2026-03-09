@@ -571,7 +571,7 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
               </thead>
               <tbody>
                 {acrisDocuments.slice(0, 20).map((doc: any, idx: number) => (
-                  <tr key={idx} className={idx % 2 === 0 ? '' : 'bg-gray-50/50'} style={{ pageBreakInside: 'avoid' }}>
+                  <tr key={idx} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'} style={{ pageBreakInside: 'avoid' }}>
                     <td className={`${tableCellStyle} whitespace-nowrap`}>{formatShortDate(doc.document_date || doc.recorded_datetime)}</td>
                     <td className={tableCellStyle}>{doc.document_type || doc.doc_type || '—'}</td>
                     <td className={`${tableCellStyle}`}>
