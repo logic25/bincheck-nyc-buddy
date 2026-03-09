@@ -36,28 +36,28 @@ Deno.serve(async (req) => {
     if (codeError || !code) {
       return new Response(
         JSON.stringify({ error: 'Invalid invite code. Please check the code and try again.' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     if (!code.is_active) {
       return new Response(
         JSON.stringify({ error: 'This invite code has been deactivated.' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     if (code.expires_at && new Date(code.expires_at) < new Date()) {
       return new Response(
         JSON.stringify({ error: 'This invite code has expired.' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     if (code.use_count >= code.max_uses) {
       return new Response(
         JSON.stringify({ error: 'This invite code has already been fully redeemed.' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -73,7 +73,7 @@ Deno.serve(async (req) => {
     if (updateErr || !updatedCode) {
       return new Response(
         JSON.stringify({ error: 'This invite code has already been fully redeemed.' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -94,12 +94,12 @@ Deno.serve(async (req) => {
       if (authError.message.includes('already registered') || authError.message.includes('already been registered')) {
         return new Response(
           JSON.stringify({ error: 'This email is already registered. Please sign in instead.' }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
       return new Response(
         JSON.stringify({ error: authError.message }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
