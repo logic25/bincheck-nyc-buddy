@@ -98,8 +98,8 @@ const Dashboard = () => {
       syncSession(data.session);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      syncSession(session);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      syncSession(session, event);
     });
 
     return () => {
