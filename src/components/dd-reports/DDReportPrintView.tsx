@@ -388,23 +388,23 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
 
       {/* Property Status Summary */}
       {report.property_status_summary && (
-        <section className="mb-4 p-3 bg-gray-100 rounded border border-gray-500" style={{ pageBreakInside: 'avoid' }}>
-          <h3 className="text-[12px] font-bold uppercase tracking-[0.08em] text-black mb-2">Property Status Summary</h3>
-          <div className="flex flex-wrap gap-1.5 mb-2 pb-2 border-b border-gray-400">
-            <span className="text-[9px] font-bold text-gray-800 bg-gray-200 px-1.5 py-0.5 rounded border border-gray-400">DOB: {dobViolations.length}</span>
-            <span className="text-[9px] font-bold text-gray-800 bg-gray-200 px-1.5 py-0.5 rounded border border-gray-400">ECB: {ecbViolations.length}</span>
-            <span className="text-[9px] font-bold text-gray-800 bg-gray-200 px-1.5 py-0.5 rounded border border-gray-400">HPD: {hpdViolations.length}</span>
-            {fdnyViolations.length > 0 && <span className="text-[9px] font-bold text-gray-800 bg-gray-200 px-1.5 py-0.5 rounded border border-gray-400">FDNY: {fdnyViolations.length}</span>}
-            {otherOathViolations.length > 0 && <span className="text-[9px] font-bold text-gray-800 bg-gray-200 px-1.5 py-0.5 rounded border border-gray-400">Other: {otherOathViolations.length}</span>}
-            <span className="text-[9px] font-bold text-gray-800 bg-gray-200 px-1.5 py-0.5 rounded border border-gray-400">Applications: {applications.length}</span>
-            {complaints.length > 0 && <span className="text-[9px] font-bold text-gray-800 bg-gray-200 px-1.5 py-0.5 rounded border border-gray-400">Open Complaints: {complaints.length}</span>}
+        <section className="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200" style={{ pageBreakInside: 'avoid' }}>
+          <h3 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-gray-500 mb-2">Property Status Summary</h3>
+          <div className="flex flex-wrap gap-1.5 mb-2 pb-2 border-b border-gray-200">
+            <span className="text-[9px] font-semibold text-gray-700 bg-white px-1.5 py-0.5 rounded-md border border-gray-200">DOB: {dobViolations.length}</span>
+            <span className="text-[9px] font-semibold text-gray-700 bg-white px-1.5 py-0.5 rounded-md border border-gray-200">ECB: {ecbViolations.length}</span>
+            <span className="text-[9px] font-semibold text-gray-700 bg-white px-1.5 py-0.5 rounded-md border border-gray-200">HPD: {hpdViolations.length}</span>
+            {fdnyViolations.length > 0 && <span className="text-[9px] font-semibold text-gray-700 bg-white px-1.5 py-0.5 rounded-md border border-gray-200">FDNY: {fdnyViolations.length}</span>}
+            {otherOathViolations.length > 0 && <span className="text-[9px] font-semibold text-gray-700 bg-white px-1.5 py-0.5 rounded-md border border-gray-200">Other: {otherOathViolations.length}</span>}
+            <span className="text-[9px] font-semibold text-gray-700 bg-white px-1.5 py-0.5 rounded-md border border-gray-200">Applications: {applications.length}</span>
+            {complaints.length > 0 && <span className="text-[9px] font-semibold text-gray-700 bg-white px-1.5 py-0.5 rounded-md border border-gray-200">Open Complaints: {complaints.length}</span>}
             {totalEcbPenalties > 0 && (
-              <span className="text-[9px] font-bold text-red-800 bg-red-100 px-1.5 py-0.5 rounded border border-red-400">
+              <span className="text-[9px] font-semibold text-red-700 bg-red-50 px-1.5 py-0.5 rounded-md border border-red-200">
                 ECB Penalties Due: {formatCurrency(totalEcbPenalties)}
               </span>
             )}
           </div>
-          <p className="text-[11px] leading-relaxed text-gray-900 whitespace-pre-line">{report.property_status_summary}</p>
+          <p className="text-[10px] leading-relaxed text-gray-800 whitespace-pre-line">{report.property_status_summary}</p>
         </section>
       )}
 
