@@ -443,7 +443,7 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
       </section>
 
       {/* ACRIS - Property Transfer & Lien History */}
-      <section className="mb-6">
+      <section className="mb-6" style={sectionBreakStyle}>
         <h3 className={sectionHeaderStyle}>Property Transfer & Lien History (ACRIS)</h3>
         {acrisDocuments.length === 0 ? (
           <p className="text-[11px] text-gray-500 italic">
