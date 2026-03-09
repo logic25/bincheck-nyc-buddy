@@ -413,7 +413,8 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
   };
 
   const filteredApplications = applications.filter(matchesApplicationFilter);
-  const filteredComplaints = complaints;
+  const openComplaints = complaints.filter((c: any) => (c.status || '').toLowerCase() !== 'closed');
+  const filteredComplaints = openComplaints;
 
   // Check if report is stale (generating for >5 minutes)
   const isStaleGenerating = report.status === 'generating' && (() => {
