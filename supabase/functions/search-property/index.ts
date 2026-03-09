@@ -232,11 +232,11 @@ serve(async (req) => {
     // Fetch all sources in parallel
     const hpdQuery = hpdBorough
       ? fetchJSON(`${NYC_DATA_BASE}/${HPD_VIOLATIONS}.json?boroid=${hpdBorough}&block=${hpdBlock}&lot=${hpdLot}&$limit=500`)
-      : Promise.resolve([]);
+      : Promise.resolve({ data: [], error: false } as FetchResult);
 
-    const oathQuery = resolvedBbl ? fetchOATH(resolvedBbl) : Promise.resolve([]);
+    const oathQuery = resolvedBbl ? fetchOATH(resolvedBbl) : Promise.resolve({ data: [], error: false });
 
-    const [dobViolations, dobSafetyViolations, ecbViolations, hpdViolations, permits, dobComplaints, oathViolations, fdnyViolations] = await Promise.all([
+    const [dobResult, dobSafetyResult, ecbResult, hpdResult, permitsResult, complaintsResult, oathResult, fdnyResult] = await Promise.all([
       fetchJSON(`${NYC_DATA_BASE}/${DOB_VIOLATIONS}.json?bin=${resolvedBin}&$limit=500`),
       fetchJSON(`${NYC_DATA_BASE}/${DOB_SAFETY_VIOLATIONS}.json?bin=${resolvedBin}&$limit=500`),
       fetchJSON(`${NYC_DATA_BASE}/${DOB_ECB_VIOLATIONS}.json?bin=${resolvedBin}&$limit=500`),
@@ -246,6 +246,15 @@ serve(async (req) => {
       oathQuery,
       fetchJSON(`${NYC_DATA_BASE}/${FDNY_VIOLATIONS}.json?bin=${resolvedBin}&$limit=200&$order=inspection_date DESC`),
     ]);
+
+    const dobViolations = dobResult.data;
+    const dobSafetyViolations = dobSafetyResult.data;
+    const ecbViolations = ecbResult.data;
+    const hpdViolations = hpdResult.data;
+    const permits = permitsResult.data;
+    const dobComplaints = complaintsResult.data;
+    const oathViolations = oathResult.data;
+    const fdnyViolations = fdnyResult.data;
 
     // Merge and deduplicate DOB violations from both datasets
     const allDobMapped = [
