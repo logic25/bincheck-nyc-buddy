@@ -618,7 +618,7 @@ async function fetchApplications(bin: string): Promise<any[]> {
 
   applications.push(...bisApps);
 
-  const dobNowApps = await fetchNYCData(NYC_ENDPOINTS.DOB_NOW, { "bin": bin, "$limit": "200" });
+  const dobNowApps = await fetchNYCData(NYC_ENDPOINTS.DOB_NOW, { "bin": bin, "$limit": "200" }, 'DOB-NOW');
   const nowApps = dobNowApps.map((a: any) => ({
     id: a.job_filing_number || a.filing_number, source: "DOB_NOW",
     application_number: a.job_filing_number || a.filing_number,
