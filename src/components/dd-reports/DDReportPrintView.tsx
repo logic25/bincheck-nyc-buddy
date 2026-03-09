@@ -403,7 +403,7 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
       )}
 
       {/* Violations by Agency */}
-      <section className="mb-6">
+      <section className="mb-6" style={sectionBreakStyle}>
         <h3 className={sectionHeaderStyle}>Open Violations ({violations.length})</h3>
         {violations.length === 0 ? (
           <p className="text-[11px] text-gray-500 italic">No open violations found.</p>
