@@ -602,7 +602,7 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
               </div>
             )}
             {hasCriticalOrders && (
-              <div className="col-span-2 p-3 rounded-lg bg-destructive/10 border border-destructive/30">
+              <div className="col-span-1 sm:col-span-2 lg:col-span-3 p-3 rounded-lg bg-destructive/10 border border-destructive/30">
                 <div className="flex items-center gap-2 mb-1">
                   <FileWarning className="w-4 h-4 text-destructive" />
                   <span className="text-sm font-semibold text-destructive">Critical Orders</span>
