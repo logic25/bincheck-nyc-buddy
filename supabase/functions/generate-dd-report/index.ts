@@ -445,7 +445,7 @@ function deduplicateByKey(records: any[], keyFn: (r: any) => string): any[] {
   return Array.from(seen.values());
 }
 
-async function fetchViolations(bin: string, bbl: string): Promise<any[]> {
+async function fetchViolations(bin: string, bbl: string, isResidentialProperty: boolean = true): Promise<any[]> {
   const violations: any[] = [];
 
   if (bin) {
