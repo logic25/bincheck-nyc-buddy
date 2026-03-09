@@ -497,6 +497,19 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
         </div>
       </div>
 
+      {/* Generating Banner */}
+      {report.status === 'generating' && (
+        <div className="border border-primary/30 rounded-xl p-4 bg-primary/5 mb-6 animate-pulse">
+          <div className="flex items-center gap-3">
+            <Loader2 className="w-5 h-5 text-primary animate-spin shrink-0" />
+            <div className="flex-1">
+              <p className="font-semibold text-foreground">Report is being generated...</p>
+              <p className="text-sm text-muted-foreground">Fetching data from city agencies. This typically takes 30-60 seconds.</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Report Title Block */}
       <div className="border border-border rounded-xl p-4 sm:p-6 bg-card mb-6">
         <div className="space-y-2">
