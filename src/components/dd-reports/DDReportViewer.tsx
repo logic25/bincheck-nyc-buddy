@@ -539,6 +539,9 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
             {complaints.length > 0 && <Badge variant="outline" className="text-[10px] px-2 py-0.5">Complaints: {complaints.length}</Badge>}
           </div>
           <p className="text-sm leading-relaxed text-foreground/85 whitespace-pre-line">{(report as any).property_status_summary}</p>
+          <p className="text-[10px] text-muted-foreground mt-3 pt-2 border-t border-border/40 italic">
+            This summary and all notes in this report are for informational purposes only and do not constitute legal, financial, or professional advice. All findings are derived from publicly available records and should be independently verified by qualified professionals.
+          </p>
         </div>
       )}
 
