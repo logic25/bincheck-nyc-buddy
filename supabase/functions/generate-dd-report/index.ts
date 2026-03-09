@@ -275,7 +275,7 @@ async function fetchDOBComplaints(bin: string): Promise<any[]> {
   if (!bin) return [];
   const records = await fetchNYCData(NYC_ENDPOINTS.DOB_COMPLAINTS, {
     "bin": bin, "$limit": "200", "$order": "date_entered DESC",
-  });
+  }, 'DOB-COMPLAINTS');
   // Official DOB Complaint Category codes — source: nyc.gov/assets/buildings/pdf/complaint_category.pdf (Rev. 09/21)
   const COMPLAINT_CATEGORIES: Record<string, string> = {
     "01": "Accident — Construction/Plumbing", "02": "Accident — To Public",
