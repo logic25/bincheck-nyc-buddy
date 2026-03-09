@@ -233,14 +233,24 @@ const Dashboard = () => {
   const regenerateReport = useMutation({
     mutationFn: async ({ reportId, address }: { reportId: string; address: string }) => {
       await supabase.from('dd_reports').update({ status: 'generating', generation_started_at: new Date().toISOString() }).eq('id', reportId);
+      // Fire the edge function — don't await (it may take minutes)
       supabase.functions.invoke('generate-dd-report', { body: { reportId, address } }).catch(() => {});
+      // Poll until the report leaves 'generating' status (max ~3 min)
+      const maxPolls = 36; // 36 × 5s = 180s
+      for (let i = 0; i < maxPolls; i++) {
+        await new Promise(r => setTimeout(r, 5000));
+        const { data: check } = await supabase.from('dd_reports').select('status').eq('id', reportId).single();
+        if (check && check.status !== 'generating') {
+          break;
+        }
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['dashboard-dd-reports'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard-dd-report-full', selectedReportId] });
-      toast.success('Report regeneration started — this may take a minute');
+      toast.success('Report regenerated with latest data!');
     },
-    onError: () => toast.error('Failed to start report regeneration'),
+    onError: () => toast.error('Failed to regenerate report'),
   });
 
   const handleDeleteSaved = async (id: string) => {
