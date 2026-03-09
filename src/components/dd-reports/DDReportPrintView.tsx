@@ -625,39 +625,39 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
       )}
 
       {/* Footer — Disclaimer + Copyright */}
-      <footer className="mt-6 pt-3 border-t-2 border-black" style={{ pageBreakInside: 'avoid' }}>
-        <p className="text-[10px] font-bold uppercase tracking-widest text-gray-800 mb-1.5 text-center">Disclaimer</p>
-        <p className="text-[10px] text-gray-700 text-justify leading-[1.5]">
+      <footer className="mt-8 pt-4 border-t border-gray-200" style={{ pageBreakInside: 'avoid' }}>
+        <p className="text-[8px] font-semibold uppercase tracking-[0.15em] text-gray-400 mb-1.5 text-center">Disclaimer</p>
+        <p className="text-[9px] text-gray-500 text-justify leading-[1.6]">
           This report is prepared in connection with real estate due diligence using information derived from
           publicly available municipal records which may contain errors, omissions, or delays.
           BinCheckNYC{userProfile?.company_name ? ` and ${userProfile.company_name}` : ''} make no warranties
           regarding the accuracy or completeness of underlying government data. All findings should be
           independently verified with the relevant city agencies prior to reliance in any transaction.
         </p>
-        <div className="text-center mt-3 pt-2 border-t border-gray-400">
-          <p className="text-[10px] font-bold text-gray-800">
+        <div className="text-center mt-3 pt-2 border-t border-gray-100">
+          <p className="text-[9px] font-semibold text-gray-400">
             © {new Date().getFullYear()} BinCheckNYC{userProfile?.company_name ? ` · ${userProfile.company_name}` : ''}
           </p>
-          <p className="text-[9px] text-gray-600 mt-0.5">Proprietary analysis · All rights reserved</p>
+          <p className="text-[8px] text-gray-400 mt-0.5">Proprietary analysis · All rights reserved</p>
         </div>
 
-        {/* Additional Services — appendix after disclaimer */}
-        <div className="mt-4 pt-3 border-t border-gray-300">
-          <p className="text-[9px] font-bold uppercase tracking-wider text-gray-600 mb-2 text-center">Additional Services</p>
+        {/* Additional Services */}
+        <div className="mt-4 pt-3 border-t border-gray-100">
+          <p className="text-[8px] font-medium uppercase tracking-[0.15em] text-gray-400 mb-2 text-center">Additional Services</p>
           
           {report.citisignal_recommended && (
-            <div className="mb-2 p-2 rounded border border-gray-300" style={{ pageBreakInside: 'avoid' }}>
-              <p className="text-[10px] font-semibold text-gray-600 mb-0.5">Ongoing Compliance Monitoring</p>
-              <p className="text-[9px] text-gray-600 leading-relaxed">
+            <div className="mb-2 p-2.5 rounded-lg border border-gray-200" style={{ pageBreakInside: 'avoid' }}>
+              <p className="text-[9px] font-semibold text-gray-500 mb-0.5">Ongoing Compliance Monitoring</p>
+              <p className="text-[8px] text-gray-400 leading-relaxed">
                 This property has {violations.length} active violation{violations.length !== 1 ? 's' : ''} and {applications.length} open application{applications.length !== 1 ? 's' : ''} across multiple agencies. CitiSignal by BinCheckNYC provides real-time monitoring, AI-powered compliance scoring, and alerts for new filings.
                 Learn more at <span className="font-semibold">citisignal.com</span>
               </p>
             </div>
           )}
 
-          <div className="p-2 rounded border border-gray-300" style={{ pageBreakInside: 'avoid' }}>
-            <p className="text-[10px] font-semibold text-gray-600 mb-0.5">Certified Physical Copy — $150</p>
-            <p className="text-[9px] text-gray-600 leading-relaxed">
+          <div className="p-2.5 rounded-lg border border-gray-200" style={{ pageBreakInside: 'avoid' }}>
+            <p className="text-[9px] font-semibold text-gray-500 mb-0.5">Certified Physical Copy — $150</p>
+            <p className="text-[8px] text-gray-400 leading-relaxed">
               Bound report with professional cover page, wet signature certification, and priority shipping (2–3 business days).
               Contact <span className="font-semibold">orders@binchecknyc.com</span> with Report ID: <span className="font-mono font-semibold">{reportId}</span>
             </p>
