@@ -774,7 +774,6 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
                     ))}
                 </TableBody>
               </Table>
-              </Table>
             </div>
           )}
         </div>
