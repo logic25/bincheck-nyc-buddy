@@ -871,52 +871,61 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
             <div className="text-center py-12 text-muted-foreground text-sm">No applications found.</div>
           ) : (
             <div className="w-full">
-              <Table className="text-sm w-full">
-                <TableHeader>
-                  <TableRow className="bg-muted/30 hover:bg-muted/30">
-                    <TableHead className="w-8">
-                      {bulkMode && (() => {
-                        const visibleKeys = applications
-                          .filter((app: any) => {
-                            if (applicationFilter === 'all') return true;
-                            const s = (app.status || '').toUpperCase();
-                            if (applicationFilter === 'R') return s === 'R' || s.includes('PERMIT ENTIRE');
-                            if (applicationFilter === 'in_process') return ['A','B','C','D','E','F','G','H','K','L','M'].includes(s) || s.includes('FILED') || s.includes('PLAN EXAM');
-                            return true;
-                          })
-                          .map((app: any, idx: number) => {
+              {/* Mobile */}
+              <div className="sm:hidden divide-y divide-border">
+                {filteredApplications.map((app: any, idx: number) => {
+                  const appKey = `${app.source || 'BIS'}-${app.id || app.application_number || idx}`;
+                  return (
+                    <MobileApplicationCard
+                      key={appKey}
+                      application={app}
+                      index={idx}
+                      note={lineItemNotes[`application-${appKey}`] || ''}
+                      onNoteChange={(note) => updateLineItemNote('application', appKey, note)}
+                      readOnly={isReadOnly}
+                      reportId={report.id}
+                      editStatus={editStatuses[`application-${appKey}`] || null}
+                      onEditSaved={(editId) => handleEditSaved('application', appKey, editId)}
+                      bulkMode={bulkMode}
+                      isSelected={selectedItems.has(`application:${appKey}:DOB`)}
+                      onToggleSelect={() => toggleItemSelection(`application:${appKey}:DOB`)}
+                    />
+                  );
+                })}
+              </div>
+
+              {/* Desktop */}
+              <div className="hidden sm:block">
+                <Table className="text-sm w-full">
+                  <TableHeader>
+                    <TableRow className="bg-muted/30 hover:bg-muted/30">
+                      <TableHead className="w-8">
+                        {bulkMode && (() => {
+                          const visibleKeys = filteredApplications.map((app: any, idx: number) => {
                             const appKey = `${app.source || 'BIS'}-${app.id || app.application_number || idx}`;
                             return `application:${appKey}:DOB`;
                           });
-                        const allSelected = visibleKeys.length > 0 && visibleKeys.every((k: string) => selectedItems.has(k));
-                        return (
-                          <Checkbox
-                            checked={allSelected}
-                            onCheckedChange={() => selectAllVisible(visibleKeys)}
-                            className="ml-1"
-                          />
-                        );
-                      })()}
-                    </TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider">Job #</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider hidden sm:table-cell">Job Type</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider">Status</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider">Filed</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider hidden md:table-cell">Description</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider hidden sm:table-cell">Floor/Apt</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider hidden lg:table-cell">Notes</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {applications
-                    .filter((app: any) => {
-                      if (applicationFilter === 'all') return true;
-                      const s = (app.status || '').toUpperCase();
-                      if (applicationFilter === 'R') return s === 'R' || s.includes('PERMIT ENTIRE');
-                      if (applicationFilter === 'in_process') return ['A','B','C','D','E','F','G','H','K','L','M'].includes(s) || s.includes('FILED') || s.includes('PLAN EXAM');
-                      return true;
-                    })
-                    .map((app: any, idx: number) => {
+                          const allSelected = visibleKeys.length > 0 && visibleKeys.every((k: string) => selectedItems.has(k));
+                          return (
+                            <Checkbox
+                              checked={allSelected}
+                              onCheckedChange={() => selectAllVisible(visibleKeys)}
+                              className="ml-1"
+                            />
+                          );
+                        })()}
+                      </TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wider">Job #</TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wider hidden sm:table-cell">Job Type</TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wider">Status</TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wider">Filed</TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wider hidden md:table-cell">Description</TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wider hidden sm:table-cell">Floor/Apt</TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wider hidden lg:table-cell">Notes</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredApplications.map((app: any, idx: number) => {
                       const appKey = `${app.source || 'BIS'}-${app.id || app.application_number || idx}`;
                       return (
                         <ExpandableApplicationRow
@@ -935,8 +944,9 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
                         />
                       );
                     })}
-                </TableBody>
-              </Table>
+                  </TableBody>
+                </Table>
+              </div>
             </div>
           )}
         </div>
