@@ -446,10 +446,10 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
         </div>
       </section>
 
-      {/* Compliance Summary — compact horizontal bar, NOT full-page cards */}
+      {/* Compliance Summary — compact inline row, no page break */}
       <section className="mb-4" style={{ pageBreakInside: 'avoid' }}>
         <h3 className={sectionHeaderStyle}>Compliance Summary</h3>
-        <div className="flex gap-2">
+        <div className="flex gap-1.5">
           {[
             {
               label: 'Open Violations',
@@ -472,10 +472,10 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
               danger: (orders.vacate?.length || 0) > 0,
             },
           ].map((item, i) => (
-            <div key={i} className={`flex-1 p-2 border rounded text-center ${item.danger ? 'border-red-500 bg-red-100' : 'border-gray-500'}`}>
-              <div className={`text-[16px] font-bold ${item.danger ? 'text-red-700' : 'text-black'}`}>{item.value}</div>
-              <div className="text-[8px] font-bold text-gray-800 uppercase">{item.label}</div>
-              {item.sub && <div className="text-[7px] text-gray-700 mt-0.5">{item.sub}</div>}
+            <div key={i} className={`flex-1 py-1.5 px-2 border rounded text-center ${item.danger ? 'border-red-500 bg-red-100' : 'border-gray-500'}`}>
+              <div className={`text-[14px] font-bold ${item.danger ? 'text-red-700' : 'text-black'}`}>{item.value}</div>
+              <div className="text-[7px] font-bold text-gray-800 uppercase">{item.label}</div>
+              {item.sub && <div className="text-[6px] text-gray-700 mt-0.5">{item.sub}</div>}
             </div>
           ))}
         </div>
