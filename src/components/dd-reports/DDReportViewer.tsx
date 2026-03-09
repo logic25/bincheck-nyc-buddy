@@ -453,24 +453,22 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
       </div>
 
       {/* Report Title Block */}
-      <div className="border border-border rounded-xl p-6 bg-card mb-6">
-        <div className="flex items-start justify-between gap-4">
-          <div className="space-y-1">
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-display font-bold tracking-tight">{report.address}</h1>
-              <Badge
-                variant={report.status === 'approved' ? 'default' : report.status === 'pending_review' ? 'secondary' : 'outline'}
-                className={report.status === 'approved' ? 'bg-emerald-600 text-white' : ''}
-              >
-                {statusLabel}
-              </Badge>
-            </div>
-            <div className="flex items-center gap-5 text-sm text-muted-foreground">
-              <span className="flex items-center gap-1.5"><User className="w-3.5 h-3.5" /> {report.prepared_for}</span>
-              <span className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5" /> {format(new Date(report.report_date), 'MMMM d, yyyy')}</span>
-              {report.bin && <span className="flex items-center gap-1.5 font-mono text-xs"><Hash className="w-3.5 h-3.5" /> BIN {report.bin}</span>}
-              {report.bbl && <span className="font-mono text-xs">BBL {formatBBL(report.bbl)}</span>}
-            </div>
+      <div className="border border-border rounded-xl p-4 sm:p-6 bg-card mb-6">
+        <div className="space-y-2">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+            <h1 className="text-xl sm:text-2xl font-display font-bold tracking-tight break-words">{report.address}</h1>
+            <Badge
+              variant={report.status === 'approved' ? 'default' : report.status === 'pending_review' ? 'secondary' : 'outline'}
+              className={`shrink-0 w-fit ${report.status === 'approved' ? 'bg-emerald-600 text-white' : ''}`}
+            >
+              {statusLabel}
+            </Badge>
+          </div>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-5 text-sm text-muted-foreground">
+            <span className="flex items-center gap-1.5"><User className="w-3.5 h-3.5 shrink-0" /> {report.prepared_for}</span>
+            <span className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5 shrink-0" /> {format(new Date(report.report_date), 'MMMM d, yyyy')}</span>
+            {report.bin && <span className="flex items-center gap-1.5 font-mono text-xs"><Hash className="w-3.5 h-3.5 shrink-0" /> BIN {report.bin}</span>}
+            {report.bbl && <span className="font-mono text-xs">BBL {formatBBL(report.bbl)}</span>}
           </div>
         </div>
 
