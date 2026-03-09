@@ -223,7 +223,7 @@ async function fetchFDNYViolations(bin: string): Promise<any[]> {
   if (!bin) return [];
   const records = await fetchNYCData(NYC_ENDPOINTS.FDNY_VIOLATIONS, {
     "bin": bin, "$limit": "200", "$order": "inspection_date DESC",
-  });
+  }, 'FDNY');
   return records.map((r: any) => {
     const status = (r.status || r.violation_status || '').toLowerCase();
     const isResolved = status.includes('close') || status.includes('resolved') || status.includes('cured') || status.includes('complied');
