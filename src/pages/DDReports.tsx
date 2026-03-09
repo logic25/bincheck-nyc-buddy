@@ -14,8 +14,11 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import {
+  Sheet, SheetContent, SheetTrigger,
+} from '@/components/ui/sheet';
+import {
   FileText, Plus, Search, AlertTriangle, Loader2, Eye, Trash2, Clock, RefreshCw,
-  Shield, ArrowLeft, LogOut, Settings, Zap, Inbox, Phone, Mail, Building2, BookOpen,
+  Shield, ArrowLeft, LogOut, Settings, Zap, Inbox, Phone, Mail, Building2, BookOpen, Menu,
 } from 'lucide-react';
 import { useUserRole } from '@/hooks/useUserRole';
 import { format } from 'date-fns';
@@ -323,7 +326,8 @@ const DDReports = () => {
             <Shield className="h-6 w-6 text-primary" />
             <span className="font-display text-xl tracking-tight">BinCheck<span className="text-primary">NYC</span></span>
           </div>
-          <div className="flex items-center gap-2">
+          {/* Desktop nav */}
+          <div className="hidden md:flex items-center gap-2">
             <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard')}>
               <ArrowLeft className="h-4 w-4 mr-1" /> Dashboard
             </Button>
@@ -344,35 +348,66 @@ const DDReports = () => {
               <LogOut className="h-4 w-4 mr-1" /> Sign Out
             </Button>
           </div>
+          {/* Mobile nav */}
+          <Sheet>
+            <SheetTrigger asChild className="md:hidden">
+              <Button variant="ghost" size="icon">
+                <Menu className="h-5 w-5" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right" className="w-64">
+              <nav className="flex flex-col gap-2 mt-8">
+                <Button variant="ghost" className="justify-start" onClick={() => navigate('/dashboard')}>
+                  <ArrowLeft className="h-4 w-4 mr-2" /> Dashboard
+                </Button>
+                <Button variant="ghost" className="justify-start" onClick={() => navigate('/settings')}>
+                  <Settings className="h-4 w-4 mr-2" /> Settings
+                </Button>
+                {isAdmin && (
+                  <>
+                    <Button variant="ghost" className="justify-start" onClick={() => navigate('/admin')}>
+                      <Shield className="h-4 w-4 mr-2" /> Admin
+                    </Button>
+                    <Button variant="ghost" className="justify-start" onClick={() => navigate('/help')}>
+                      <BookOpen className="h-4 w-4 mr-2" /> Help Center
+                    </Button>
+                  </>
+                )}
+                <Button variant="ghost" className="justify-start text-destructive" onClick={handleLogout}>
+                  <LogOut className="h-4 w-4 mr-2" /> Sign Out
+                </Button>
+              </nav>
+            </SheetContent>
+          </Sheet>
         </div>
       </header>
 
       <main className="container py-8 max-w-5xl space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-display font-bold">Due Diligence Reports</h1>
-            <p className="text-muted-foreground mt-1">Transaction-ready property risk reports — work queue</p>
+            <h1 className="text-2xl sm:text-3xl font-display font-bold">Due Diligence Reports</h1>
+            <p className="text-muted-foreground text-sm sm:text-base mt-1">Transaction-ready property risk reports — work queue</p>
           </div>
-          <Button onClick={() => setCreateDialogOpen(true)}>
+          <Button onClick={() => setCreateDialogOpen(true)} className="w-full sm:w-auto">
             <Plus className="w-4 h-4 mr-2" /> New Report
           </Button>
         </div>
 
         {/* Main tabs: Incoming Orders vs Reports */}
         <Tabs value={mainTab} onValueChange={(v) => setMainTab(v as 'incoming' | 'reports')}>
-          <TabsList className="h-auto">
-            <TabsTrigger value="incoming" className="gap-1.5">
+          <TabsList className="h-auto w-full sm:w-auto flex-wrap">
+            <TabsTrigger value="incoming" className="gap-1.5 flex-1 sm:flex-none">
               <Inbox className="h-4 w-4" />
-              Incoming Orders
+              <span className="hidden xs:inline">Incoming</span> Orders
               {(incomingOrders?.length ?? 0) > 0 && (
                 <span className="ml-1 text-xs bg-destructive text-destructive-foreground px-1.5 py-0.5 rounded-full font-semibold">
                   {incomingOrders!.length}
                 </span>
               )}
             </TabsTrigger>
-            <TabsTrigger value="reports" className="gap-1.5">
+            <TabsTrigger value="reports" className="gap-1.5 flex-1 sm:flex-none">
               <FileText className="h-4 w-4" />
-              Reports Queue
+              <span className="hidden xs:inline">Reports</span> Queue
               {(reports?.length ?? 0) > 0 && (
                 <span className="ml-1 text-xs bg-muted px-1.5 py-0.5 rounded-full">{reports!.length}</span>
               )}
