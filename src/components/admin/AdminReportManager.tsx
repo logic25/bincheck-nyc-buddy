@@ -546,6 +546,9 @@ const AdminReportManager = ({ userId, userEmail, userProfile }: AdminReportManag
         <TabsContent value="ai-learning" className="mt-4">
           <AILearningTab />
         </TabsContent>
+        <TabsContent value="invite-codes" className="mt-4">
+          <InviteCodesTab />
+        </TabsContent>
       </Tabs>
 
       <CreateDDReportDialog
