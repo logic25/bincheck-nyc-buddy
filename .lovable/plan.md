@@ -16,13 +16,18 @@
 - [ ] Admin.tsx - verify mobile layout
 
 ### Global Error Handling
-- [ ] Create ErrorBoundary component with user-friendly fallback UI
-- [ ] Wrap App.tsx with ErrorBoundary
-- [ ] Add error recovery actions (reload, go home)
+- [x] Create ErrorBoundary component with user-friendly fallback UI
+- [x] Wrap App.tsx with ErrorBoundary
+- [x] Add error recovery actions (reload, go home)
 
 ### Security Headers
-- [ ] Add Content Security Policy meta tag to index.html
-- [ ] Add X-Content-Type-Options, X-Frame-Options headers
+- [x] Add Content Security Policy meta tag to index.html
+- [x] Add X-Content-Type-Options, X-Frame-Options headers
+
+### API Response Validation
+- [x] Add Zod validation schemas for NYC Open Data responses in generate-dd-report
+- [x] Validate DOB, ECB, HPD, FDNY, OATH, DOB Jobs, DOB Complaints responses
+- [x] Filter out malformed records with logging
 
 ---
 
