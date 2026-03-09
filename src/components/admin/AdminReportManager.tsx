@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import {
   FileText, Plus, Search, AlertTriangle, Loader2, Eye, Trash2, Clock, RefreshCw,
-  Zap, Inbox, Phone, Mail, Building2, Pencil, Scale, Brain,
+  Zap, Inbox, Phone, Mail, Building2, Pencil, Scale, Brain, Ticket,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import DDReportViewer from '@/components/dd-reports/DDReportViewer';
@@ -22,6 +22,7 @@ import CreateDDReportDialog from '@/components/dd-reports/CreateDDReportDialog';
 import EditReviewTab from '@/components/admin/EditReviewTab';
 import AILearningTab from '@/components/admin/AILearningTab';
 import ArchitectLettersTab from '@/components/admin/ArchitectLettersTab';
+import InviteCodesTab from '@/components/admin/InviteCodesTab';
 
 interface DDReport {
   id: string;
