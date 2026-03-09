@@ -1560,7 +1560,7 @@ serve(async (req) => {
     const agenciesQueried = [
       { agency: 'DOB', label: 'Dept of Buildings', queried: true, results: dobViolationsFromAll.length, category: 'violations' },
       { agency: 'ECB', label: 'ECB/OATH', queried: true, results: ecbViolationsFromAll.length, category: 'violations' },
-      { agency: 'HPD', label: 'Housing Preservation', queried: !!bbl, results: hpdViolationsFromAll.length, category: 'violations' },
+      { agency: 'HPD', label: 'Housing Preservation', queried: isResidentialProperty && !!bbl, results: hpdViolationsFromAll.length, category: 'violations', ...((!isResidentialProperty) ? { note: 'Skipped — commercial property' } : {}) },
       { agency: 'FDNY', label: 'Fire Department', queried: true, results: fdnyViolationsFromAll.length, category: 'violations' },
       { agency: 'DEP', label: 'Environmental Protection', queried: !!bbl, results: depViolationsFromAll.length, category: 'violations' },
       { agency: 'DOT', label: 'Transportation', queried: !!bbl, results: dotViolationsFromAll.length, category: 'violations' },
