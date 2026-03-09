@@ -647,7 +647,21 @@ const DDReports = () => {
               </TabsContent>
             </Tabs>
           </TabsContent>
-        </Tabs>
+           {/* ── EDIT REVIEW TAB ── */}
+           <TabsContent value="edit-review" className="mt-4">
+             <EditReviewTab />
+           </TabsContent>
+
+           {/* ── ARCHITECT LETTERS TAB ── */}
+           <TabsContent value="architect-letters" className="mt-4">
+             <ArchitectLettersTab />
+           </TabsContent>
+
+           {/* ── AI LEARNING TAB ── */}
+           <TabsContent value="ai-learning" className="mt-4">
+             <AILearningTab />
+           </TabsContent>
+         </Tabs>
 
         <CreateDDReportDialog
           open={createDialogOpen}
