@@ -139,8 +139,8 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
   };
 
   const sectionHeaderStyle = "text-[13px] font-bold uppercase tracking-[0.08em] text-gray-900 border-b-2 border-gray-900 pb-1.5 mb-4";
-  const tableCellStyle = "border border-gray-200 px-2 py-1.5 text-[11px] align-top";
-  const tableHeaderStyle = "border border-gray-200 px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-gray-600 bg-gray-50";
+  const tableCellStyle = "border border-gray-400 px-2.5 py-2 text-[11px] align-top text-gray-900";
+  const tableHeaderStyle = "border border-gray-400 px-2.5 py-2 text-[10px] font-bold uppercase tracking-wider text-gray-800 bg-gray-100";
 
   const isArchitectLikelyNeeded = (v: any): boolean => {
     const desc = (v.description_raw || v.violation_type || '').toLowerCase();
