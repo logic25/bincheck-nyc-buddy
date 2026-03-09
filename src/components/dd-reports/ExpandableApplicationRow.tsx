@@ -94,7 +94,15 @@ const ExpandableApplicationRow = ({ application, index, note, onNoteChange, read
             </Button>
           )}
         </TableCell>
-        <TableCell className="font-mono text-sm">{application.application_number || application.job_number}</TableCell>
+        <TableCell className="font-mono text-sm">
+          {application.application_number || application.job_number}
+          {(() => {
+            const status = (application.status || application.status_description || application.permit_status || '').toUpperCase();
+            const closedStatuses = ['SIGNED OFF', 'SIGN-OFF', 'SIGNOFF', 'CLOSED', 'COMPLETED', 'COMPLETE', 'X', 'WITHDRAWN', 'DISAPPROVED'];
+            const isOpen = !closedStatuses.some(cs => status.includes(cs));
+            return isOpen ? <Badge variant="outline" className="ml-1.5 text-[9px] px-1 py-0 border-emerald-500/30 text-emerald-400 bg-emerald-500/10">CO</Badge> : null;
+          })()}
+        </TableCell>
         <TableCell>
           <Badge variant="outline" className="hidden sm:inline-flex">{application.application_type || application.job_type || '—'}</Badge>
           <Badge variant="outline" className="sm:hidden">{(application.application_type || application.job_type || '—').toString().slice(0, 4)}</Badge>

@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import {
   ArrowLeft, Building2, AlertTriangle, FileStack, FileWarning, Download, Trash2,
-  Save, StickyNote, Calendar, User, Loader2, RefreshCw, CheckCircle2, MapPin, Hash, Pencil, Eye, MessageSquareWarning, ListChecks, Scale, Landmark
+  Save, StickyNote, Calendar, User, Loader2, RefreshCw, CheckCircle2, MapPin, Hash, Pencil, Eye, MessageSquareWarning, ListChecks, Scale, Landmark, FileCheck
 } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { format } from 'date-fns';
@@ -29,6 +29,7 @@ import MobileApplicationCard from './mobile/MobileApplicationCard';
 import MobileComplaintCard from './mobile/MobileComplaintCard';
 import BatchEditPanel, { type SelectedItem } from './BatchEditPanel';
 import ArchitectRequestDialog from './ArchitectRequestDialog';
+import CloseoutRequestDialog from './CloseoutRequestDialog';
 import html2pdf from 'html2pdf.js';
 import { getAgencyColor } from '@/lib/violation-utils';
 import ReactMarkdown from 'react-markdown';
@@ -123,6 +124,7 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
   const [violationFilter, setViolationFilter] = useState<string>('all');
   const [activeSection, setActiveSection] = useState<'violations' | 'applications' | 'complaints' | 'acris' | 'notes'>('violations');
   const [architectDialogOpen, setArchitectDialogOpen] = useState(false);
+  const [closeoutDialogOpen, setCloseoutDialogOpen] = useState(false);
 
   // Track edit statuses for line items
   const [editStatuses, setEditStatuses] = useState<Record<string, { status: 'pending' | 'approved' | 'rejected'; id: string }>>({});
@@ -380,6 +382,15 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
     });
   })();
   const hasArchitectNeeded = architectTaggedViolations.length > 0;
+
+  // Compute applications needing closeout (not closed/completed/signed-off)
+  const closeoutTaggedApplications = applications.filter((a: any) => {
+    if (a.hidden) return false;
+    const status = (a.status || a.status_description || a.permit_status || '').toUpperCase();
+    const closedStatuses = ['SIGNED OFF', 'SIGN-OFF', 'SIGNOFF', 'CLOSED', 'COMPLETED', 'COMPLETE', 'X', 'WITHDRAWN', 'DISAPPROVED'];
+    return !closedStatuses.some(cs => status.includes(cs));
+  });
+  const hasCloseoutNeeded = closeoutTaggedApplications.length > 0;
 
   const bisApplications = applications.filter((a: any) => a.source === 'BIS');
   const dobNowApplications = applications.filter((a: any) => a.source === 'DOB_NOW');
@@ -931,6 +942,25 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
             </div>
           )}
 
+          {/* Permit Closeout CTA */}
+          {hasCloseoutNeeded && (
+            <div className="mx-4 my-4 p-4 rounded-lg border border-emerald-500/20 bg-emerald-500/5">
+              <div className="flex items-start gap-3">
+                <FileCheck className="w-5 h-5 text-emerald-600 mt-0.5 shrink-0" />
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-foreground mb-1">Open Permits Need Closeout</p>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    {closeoutTaggedApplications.length} application{closeoutTaggedApplications.length !== 1 ? 's' : ''} on this property {closeoutTaggedApplications.length !== 1 ? 'are' : 'is'} still open and may need to be closed out with DOB. Green Light Expediting can handle the closeout process — inspections, sign-offs, and paperwork — on your behalf.
+                  </p>
+                  <Button size="sm" className="mt-3 gap-1.5" variant="outline" onClick={() => setCloseoutDialogOpen(true)}>
+                    <FileCheck className="w-3.5 h-3.5" />
+                    Request Permit Closeout
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {applications.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground text-sm">No applications found.</div>
           ) : (
@@ -1331,7 +1361,18 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
         }))}
       />
 
-      {/* Batch Edit Panel */}
+      {/* Closeout Request Dialog */}
+      <CloseoutRequestDialog
+        open={closeoutDialogOpen}
+        onOpenChange={setCloseoutDialogOpen}
+        reportId={report.id}
+        propertyAddress={report.address}
+        taggedApplications={closeoutTaggedApplications.map((a: any) => ({
+          application_number: a.application_number || a.job_number || '',
+          description: (a.job_description || a.application_type || 'Unknown').slice(0, 100),
+        }))}
+      />
+
       {bulkMode && selectedItems.size > 0 && (
         <BatchEditPanel
           selectedItems={getSelectedItemData()}

@@ -106,6 +106,12 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
   const bisApplications = applications.filter((a: any) => a.source === 'BIS');
   const dobNowApplications = applications.filter((a: any) => a.source === 'DOB_NOW');
 
+  const closeoutTaggedCount = applications.filter((a: any) => {
+    const status = (a.status || a.status_description || a.permit_status || '').toUpperCase();
+    const closedStatuses = ['SIGNED OFF', 'SIGN-OFF', 'SIGNOFF', 'CLOSED', 'COMPLETED', 'COMPLETE', 'X', 'WITHDRAWN', 'DISAPPROVED'];
+    return !closedStatuses.some(cs => status.includes(cs));
+  }).length;
+
   const buildPreparedByLine = () => {
     const parts: string[] = [];
     if (report.prepared_by) parts.push(report.prepared_by);
@@ -229,7 +235,15 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
                 : (app.applicant_name || [app.applicant_first_name, app.applicant_last_name].filter(Boolean).join(' ') || '—');
               return (
                 <tr key={idx} className={idx % 2 === 0 ? '' : 'bg-gray-50/50'} style={{ pageBreakInside: 'avoid' }}>
-                  <td className={`${tableCellStyle} font-mono text-[10px]`}>{app.application_number || app.job_number}</td>
+                  <td className={`${tableCellStyle} font-mono text-[10px]`}>
+                    {app.application_number || app.job_number}
+                    {(() => {
+                      const status = (app.status || app.status_description || app.permit_status || '').toUpperCase();
+                      const closedStatuses = ['SIGNED OFF', 'SIGN-OFF', 'SIGNOFF', 'CLOSED', 'COMPLETED', 'COMPLETE', 'X', 'WITHDRAWN', 'DISAPPROVED'];
+                      const isOpen = !closedStatuses.some(cs => status.includes(cs));
+                      return isOpen ? <span className="ml-1 text-[8px] font-bold text-emerald-700 bg-emerald-50 px-1 py-0 rounded">CO</span> : null;
+                    })()}
+                  </td>
                   <td className={tableCellStyle}>{app.application_type || app.work_type || '—'}</td>
                   <td className={`${tableCellStyle} whitespace-nowrap`}>{formatShortDate(app.filing_date || app.issued_date)}</td>
                   <td className={tableCellStyle}>
@@ -524,6 +538,14 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
             {renderApplicationsTable(bisApplications, 'BIS Applications')}
             {renderApplicationsTable(dobNowApplications, 'DOB NOW Build Applications')}
           </>
+        )}
+        {closeoutTaggedCount > 0 && (
+          <div className="mt-4 p-3 border border-emerald-200 bg-emerald-50/50 rounded" style={{ pageBreakInside: 'avoid' }}>
+            <p className="text-[11px] font-semibold text-emerald-900 mb-1">Permit Closeout May Be Required</p>
+            <p className="text-[10px] text-gray-700 leading-relaxed">
+              {closeoutTaggedCount} application{closeoutTaggedCount !== 1 ? 's' : ''} (marked <span className="font-bold text-emerald-700 bg-emerald-100 px-1 rounded text-[9px]">CO</span>) {closeoutTaggedCount !== 1 ? 'are' : 'is'} still open and may need to be formally closed out with DOB. Open permits can affect property transfers and new filings. Green Light Expediting can manage the closeout process on your behalf.
+            </p>
+          </div>
         )}
       </section>
 
