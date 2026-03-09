@@ -391,23 +391,23 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
   ];
 
   return (
-    <div className="space-y-0">
+    <div className="space-y-0 overflow-x-hidden">
       {/* Compact Header Bar */}
-      <div className="flex items-center justify-between pb-6">
-        <Button variant="ghost" size="sm" onClick={onBack} className="text-muted-foreground hover:text-foreground">
+      <div className="flex items-center justify-between pb-4 sm:pb-6 gap-2">
+        <Button variant="ghost" size="sm" onClick={onBack} className="text-muted-foreground hover:text-foreground shrink-0">
           <ArrowLeft className="w-4 h-4 mr-1" /> Back
         </Button>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap justify-end">
           {/* Client read-only: show only PDF download */}
           {clientReadOnly ? (
             <>
-              <Button variant="outline" onClick={handlePreviewPDF} disabled={isPreviewing}>
-                {isPreviewing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Eye className="w-4 h-4 mr-2" />}
-                Preview Report
+              <Button variant="outline" size="sm" onClick={handlePreviewPDF} disabled={isPreviewing}>
+                {isPreviewing ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Eye className="w-3 h-3 mr-1" />}
+                <span className="hidden sm:inline">Preview</span>
               </Button>
-              <Button onClick={handleExportPDF} disabled={isExporting} className="bg-emerald-600 hover:bg-emerald-700 text-white">
-                {isExporting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
-                Download PDF
+              <Button size="sm" onClick={handleExportPDF} disabled={isExporting} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+                {isExporting ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Download className="w-3 h-3 mr-1" />}
+                <span className="hidden sm:inline">Download</span> PDF
               </Button>
             </>
           ) : (
@@ -415,23 +415,20 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
               {isAdmin && report.status === 'pending_review' && (
                 <Button size="sm" onClick={() => approveReport.mutate()} disabled={approveReport.isPending} className="bg-emerald-600 hover:bg-emerald-700 text-white">
                   {approveReport.isPending ? <Loader2 className="w-3 h-3 mr-1.5 animate-spin" /> : <CheckCircle2 className="w-3 h-3 mr-1.5" />}
-                  Approve
+                  <span className="hidden sm:inline">Approve</span>
                 </Button>
               )}
-              <Button variant="outline" size="sm" onClick={() => saveNotes.mutate()} disabled={saveNotes.isPending || isReadOnly}>
-                <Save className="w-3 h-3 mr-1.5" /> Save
+              <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => saveNotes.mutate()} disabled={saveNotes.isPending || isReadOnly} title="Save">
+                <Save className="w-3.5 h-3.5" />
               </Button>
-              <Button variant="outline" size="sm" onClick={() => onRegenerate?.(report.id, report.address)} disabled={isRegenerating || !onRegenerate}>
-                {isRegenerating ? <Loader2 className="w-3 h-3 mr-1.5 animate-spin" /> : <RefreshCw className="w-3 h-3 mr-1.5" />}
-                Regen
+              <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => onRegenerate?.(report.id, report.address)} disabled={isRegenerating || !onRegenerate} title="Regenerate">
+                {isRegenerating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
               </Button>
-              <Button variant="outline" size="sm" onClick={handlePreviewPDF} disabled={isPreviewing}>
-                {isPreviewing ? <Loader2 className="w-3 h-3 mr-1.5 animate-spin" /> : <Eye className="w-3 h-3 mr-1.5" />}
-                Preview
+              <Button variant="outline" size="icon" className="h-8 w-8" onClick={handlePreviewPDF} disabled={isPreviewing} title="Preview">
+                {isPreviewing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Eye className="w-3.5 h-3.5" />}
               </Button>
-              <Button variant="outline" size="sm" onClick={handleExportPDF} disabled={isExporting}>
-                {isExporting ? <Loader2 className="w-3 h-3 mr-1.5 animate-spin" /> : <Download className="w-3 h-3 mr-1.5" />}
-                PDF
+              <Button variant="outline" size="icon" className="h-8 w-8" onClick={handleExportPDF} disabled={isExporting} title="Download PDF">
+                {isExporting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
               </Button>
               <AlertDialog>
                 <AlertDialogTrigger asChild>
@@ -456,24 +453,22 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
       </div>
 
       {/* Report Title Block */}
-      <div className="border border-border rounded-xl p-6 bg-card mb-6">
-        <div className="flex items-start justify-between gap-4">
-          <div className="space-y-1">
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-display font-bold tracking-tight">{report.address}</h1>
-              <Badge
-                variant={report.status === 'approved' ? 'default' : report.status === 'pending_review' ? 'secondary' : 'outline'}
-                className={report.status === 'approved' ? 'bg-emerald-600 text-white' : ''}
-              >
-                {statusLabel}
-              </Badge>
-            </div>
-            <div className="flex items-center gap-5 text-sm text-muted-foreground">
-              <span className="flex items-center gap-1.5"><User className="w-3.5 h-3.5" /> {report.prepared_for}</span>
-              <span className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5" /> {format(new Date(report.report_date), 'MMMM d, yyyy')}</span>
-              {report.bin && <span className="flex items-center gap-1.5 font-mono text-xs"><Hash className="w-3.5 h-3.5" /> BIN {report.bin}</span>}
-              {report.bbl && <span className="font-mono text-xs">BBL {formatBBL(report.bbl)}</span>}
-            </div>
+      <div className="border border-border rounded-xl p-4 sm:p-6 bg-card mb-6">
+        <div className="space-y-2">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+            <h1 className="text-xl sm:text-2xl font-display font-bold tracking-tight break-words">{report.address}</h1>
+            <Badge
+              variant={report.status === 'approved' ? 'default' : report.status === 'pending_review' ? 'secondary' : 'outline'}
+              className={`shrink-0 w-fit ${report.status === 'approved' ? 'bg-emerald-600 text-white' : ''}`}
+            >
+              {statusLabel}
+            </Badge>
+          </div>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-5 text-sm text-muted-foreground">
+            <span className="flex items-center gap-1.5"><User className="w-3.5 h-3.5 shrink-0" /> {report.prepared_for}</span>
+            <span className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5 shrink-0" /> {format(new Date(report.report_date), 'MMMM d, yyyy')}</span>
+            {report.bin && <span className="flex items-center gap-1.5 font-mono text-xs"><Hash className="w-3.5 h-3.5 shrink-0" /> BIN {report.bin}</span>}
+            {report.bbl && <span className="font-mono text-xs">BBL {formatBBL(report.bbl)}</span>}
           </div>
         </div>
 

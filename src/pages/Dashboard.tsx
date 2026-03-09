@@ -294,24 +294,27 @@ const Dashboard = () => {
     }
     if (selectedReport) {
       return (
-        <div className="min-h-screen bg-background">
+        <div className="min-h-screen bg-background overflow-x-hidden">
           <header className="border-b border-border/40 sticky top-0 z-50 bg-background/90 backdrop-blur-md">
-            <div className="container flex items-center justify-between h-16">
+            <div className="container flex items-center justify-between h-16 px-4">
               <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate("/")}>
                 <Shield className="h-6 w-6 text-primary" />
                 <span className="font-display text-xl tracking-tight">BinCheck<span className="text-primary">NYC</span></span>
               </div>
               <div className="flex items-center gap-2">
-                <Button variant="ghost" size="sm" onClick={() => navigate("/settings")}>
+                <Button variant="ghost" size="icon" className="h-8 w-8 sm:hidden" onClick={() => navigate("/settings")}>
+                  <Settings className="h-4 w-4" />
+                </Button>
+                <Button variant="ghost" size="sm" className="hidden sm:flex" onClick={() => navigate("/settings")}>
                   <Settings className="h-4 w-4 mr-1" /> Settings
                 </Button>
                 <Button variant="ghost" size="sm" onClick={handleLogout}>
-                  <LogOut className="h-4 w-4 mr-1" /> Sign Out
+                  <LogOut className="h-4 w-4 sm:mr-1" /> <span className="hidden sm:inline">Sign Out</span>
                 </Button>
               </div>
             </div>
           </header>
-          <main className="container py-8 max-w-6xl">
+          <main className="container py-4 sm:py-8 px-4 max-w-6xl">
             <DDReportViewer
               report={selectedReport}
               onBack={() => setSelectedReportId(null)}
