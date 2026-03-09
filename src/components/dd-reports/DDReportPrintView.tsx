@@ -495,23 +495,23 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
       {/* Critical Orders */}
       {(orders.stop_work?.length > 0 || orders.vacate?.length > 0 || orders.partial_stop_work?.length > 0) && (
         <section className="mb-4" style={{ pageBreakInside: 'avoid' }}>
-          <h3 className={`${sectionHeaderStyle} text-red-800 border-red-800`}>⚠ Active Orders</h3>
+          <h3 className={`${sectionHeaderStyle} text-red-600 border-red-200`}>⚠ Active Orders</h3>
           {orders.stop_work?.map((order: any, idx: number) => (
-            <div key={`swo-${idx}`} className="p-2 mb-1.5 border border-red-400 bg-red-100 rounded">
-              <p className="font-bold text-[10px] text-red-900">Stop Work Order — {formatShortDate(order.issued_date)}</p>
-              <p className="text-[10px] text-gray-900">{order.description || 'No description available'}</p>
+            <div key={`swo-${idx}`} className="p-2.5 mb-1.5 border border-red-200 bg-red-50 rounded-lg">
+              <p className="font-semibold text-[10px] text-red-700">Stop Work Order — {formatShortDate(order.issued_date)}</p>
+              <p className="text-[10px] text-gray-800 mt-0.5">{order.description || 'No description available'}</p>
             </div>
           ))}
           {orders.partial_stop_work?.map((order: any, idx: number) => (
-            <div key={`pswo-${idx}`} className="p-2 mb-1.5 border border-orange-400 bg-orange-100 rounded">
-              <p className="font-bold text-[10px] text-orange-900">Partial Stop Work Order — {formatShortDate(order.issued_date)}</p>
-              <p className="text-[10px] text-gray-900">{order.description || 'No description available'}</p>
+            <div key={`pswo-${idx}`} className="p-2.5 mb-1.5 border border-orange-200 bg-orange-50 rounded-lg">
+              <p className="font-semibold text-[10px] text-orange-700">Partial Stop Work Order — {formatShortDate(order.issued_date)}</p>
+              <p className="text-[10px] text-gray-800 mt-0.5">{order.description || 'No description available'}</p>
             </div>
           ))}
           {orders.vacate?.map((order: any, idx: number) => (
-            <div key={`vacate-${idx}`} className="p-2 mb-1.5 border border-red-400 bg-red-100 rounded">
-              <p className="font-bold text-[10px] text-red-900">Vacate Order — {formatShortDate(order.issued_date)}</p>
-              <p className="text-[10px] text-gray-900">{order.description || 'No description available'}</p>
+            <div key={`vacate-${idx}`} className="p-2.5 mb-1.5 border border-red-200 bg-red-50 rounded-lg">
+              <p className="font-semibold text-[10px] text-red-700">Vacate Order — {formatShortDate(order.issued_date)}</p>
+              <p className="text-[10px] text-gray-800 mt-0.5">{order.description || 'No description available'}</p>
             </div>
           ))}
         </section>
