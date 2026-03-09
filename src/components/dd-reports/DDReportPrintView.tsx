@@ -430,7 +430,7 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
       {renderComplaintsTable()}
 
       {/* Applications */}
-      <section className="mb-6">
+      <section className="mb-6" style={sectionBreakStyle}>
         <h3 className={sectionHeaderStyle}>Permit Applications ({applications.length})</h3>
         {applications.length === 0 ? (
           <p className="text-[11px] text-gray-500 italic">No applications found.</p>
