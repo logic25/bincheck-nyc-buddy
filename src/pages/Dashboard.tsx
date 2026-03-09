@@ -384,15 +384,28 @@ const Dashboard = () => {
           <h1 className="font-display text-2xl sm:text-3xl font-bold">
             Welcome{userProfile?.display_name ? `, ${userProfile.display_name}` : userEmail ? `, ${userEmail.split('@')[0].charAt(0).toUpperCase() + userEmail.split('@')[0].slice(1)}` : ''}
           </h1>
-          <p className="text-muted-foreground text-sm sm:text-base mt-1">
-            {isAdmin
-              ? 'Manage orders, review reports, and admin tools.'
-              : 'Your due diligence reports and property searches, all in one place.'}
-          </p>
+          <div className="flex items-center gap-3 mt-1">
+            <p className="text-muted-foreground text-sm sm:text-base">
+              {!showClientView
+                ? 'Manage orders, review reports, and admin tools.'
+                : 'Your due diligence reports and property searches, all in one place.'}
+            </p>
+            {isAdmin && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setViewAsClient(!viewAsClient)}
+                className="shrink-0 text-xs"
+              >
+                <Eye className="h-3.5 w-3.5 mr-1" />
+                {viewAsClient ? 'Back to Admin' : 'View as Client'}
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* ── ADMIN VIEW ── */}
-        {isAdmin && userId ? (
+        {!showClientView && userId ? (
           <AdminReportManager
             userId={userId}
             userEmail={userEmail}
