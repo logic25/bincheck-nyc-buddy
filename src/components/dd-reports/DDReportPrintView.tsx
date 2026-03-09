@@ -112,6 +112,7 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
     return !closedStatuses.some(cs => status.includes(cs));
   }).length;
 
+  const buildPreparedByLine = () => {
     const parts: string[] = [];
     if (report.prepared_by) parts.push(report.prepared_by);
     else if (userProfile?.display_name) parts.push(userProfile.display_name);
