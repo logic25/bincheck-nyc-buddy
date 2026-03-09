@@ -1495,8 +1495,12 @@ serve(async (req) => {
       const key = `${app.source || 'BIS'}-${app.application_number}`;
       if (seenApps.has(key)) return false;
       seenApps.add(key);
+      // Exclude terminal-state applications (signed-off, completed, old withdrawn)
+      const { tag } = classifyApplication(app);
+      if (tag === 'EXCLUDE') return false;
       return true;
     });
+    console.log(`Applications: ${rawApplications.length} total → ${applications.length} active (filtered ${rawApplications.length - applications.length} completed/signed-off)`);
 
     const orders = {
       stop_work: violations.filter(v => v.is_stop_work_order && !v.is_partial_stop_work),
