@@ -1410,9 +1410,12 @@ RECENT: ${openViolations.slice(0, 10).map((v: any) => `[${v.agency}] ${v.violati
 
 APPLICATIONS: ${applications.length} total
 ${applications.slice(0, 5).map((a: any) => `[${a.source}] ${a.application_type || 'Unknown'} - ${a.status || 'Unknown'}`).join('; ') || 'None'}
-${acrisSection}${concernSection}
+${acrisSection}
 
-Provide: 1. Risk Level (Low/Medium/High/Critical) 2. Key Findings 3. Violation Analysis 4. Permit Activity 5. Ownership & Lien History 6. Recommendations${customerConcern ? ' 7. Conclusion addressing the customer concern directly' : ''}`;
+TAX LIEN SALE STATUS: ${(taxLienData || []).length > 0 ? `⚠️ PROPERTY IS ON THE NYC TAX LIEN SALE LIST (${(taxLienData || []).length} record(s)). This means the property has delinquent taxes, water charges, or other municipal debts that are eligible for sale to a third-party lien purchaser.` : 'Not on the Tax Lien Sale List — no delinquent taxes or charges identified.'}
+${concernSection}
+
+Provide: 1. Risk Level (Low/Medium/High/Critical) 2. Key Findings 3. Violation Analysis 4. Permit Activity 5. Ownership & Lien History 6. Tax Lien Status 7. Recommendations${customerConcern ? ' 8. Conclusion addressing the customer concern directly' : ''}`;
 
   try {
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
