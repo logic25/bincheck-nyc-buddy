@@ -376,6 +376,19 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
     setLineItemNotes(prev => ({ ...prev, [`${itemType}-${itemId}`]: note }));
   };
 
+  const filteredViolations = violations.filter((v: any) => violationFilter === 'all' || v.agency === violationFilter);
+
+  const matchesApplicationFilter = (app: any) => {
+    if (applicationFilter === 'all') return true;
+    const s = (app.status || '').toUpperCase();
+    if (applicationFilter === 'R') return s === 'R' || s.includes('PERMIT ENTIRE');
+    if (applicationFilter === 'in_process') return ['A','B','C','D','E','F','G','H','K','L','M'].includes(s) || s.includes('FILED') || s.includes('PLAN EXAM');
+    return true;
+  };
+
+  const filteredApplications = applications.filter(matchesApplicationFilter);
+  const filteredComplaints = complaints;
+
   // Check if report is stale (generating for >5 minutes)
   const isStaleGenerating = report.status === 'generating' && (() => {
     const updatedAt = new Date(report.created_at).getTime();
