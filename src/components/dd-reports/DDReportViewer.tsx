@@ -383,6 +383,15 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
   })();
   const hasArchitectNeeded = architectTaggedViolations.length > 0;
 
+  // Compute applications needing closeout (not closed/completed/signed-off)
+  const closeoutTaggedApplications = applications.filter((a: any) => {
+    if (a.hidden) return false;
+    const status = (a.status || a.status_description || a.permit_status || '').toUpperCase();
+    const closedStatuses = ['SIGNED OFF', 'SIGN-OFF', 'SIGNOFF', 'CLOSED', 'COMPLETED', 'COMPLETE', 'X', 'WITHDRAWN', 'DISAPPROVED'];
+    return !closedStatuses.some(cs => status.includes(cs));
+  });
+  const hasCloseoutNeeded = closeoutTaggedApplications.length > 0;
+
   const bisApplications = applications.filter((a: any) => a.source === 'BIS');
   const dobNowApplications = applications.filter((a: any) => a.source === 'DOB_NOW');
   const dobViolations = violations.filter((v: any) => v.agency === 'DOB');
