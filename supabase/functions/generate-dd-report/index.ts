@@ -1071,9 +1071,9 @@ Each application item includes a "classification_reason" field. Use it to write 
 - "recently_withdrawn" → Withdrawn within last 2 years. Attorney should know what was planned.
 
 Examples:
-- [ACTION REQUIRED] Open ECB violation with $3,125 penalty balance due. Outstanding ECB penalties become liens on the property and must be resolved before closing.
-- [ACTION REQUIRED] BIS alteration permit approved 09/2023 with no recorded activity for 26 months. DOB likely withdrew this application; verify status on BIS NOW before closing.
-- [MONITOR] BIS alteration application for plumbing work on floors 1-3. Filing is in progress; verify completion status with DOB. Client's unit is on floor 2 — this work directly affects the subject unit.
+- [ACTION REQUIRED] Open ECB violation with $3,125 penalty balance due. Outstanding ECB penalties become liens on the property and are typically resolved prior to closing.
+- [ACTION REQUIRED] BIS alteration permit approved 09/2023 with no recorded activity for 26 months. DOB may have withdrawn this application; status can be verified on BIS NOW.
+- [MONITOR] BIS alteration application for plumbing work on floors 1-3. Filing is in progress; completion status is available through DOB. Client's unit is on floor 2 — this work directly affects the subject unit.
 
 If the item has floor/apt data, include it in the identification clause.
 Be declarative and precise. State exact dollar amounts for penalties. Reference specific NYC code sections where relevant.
