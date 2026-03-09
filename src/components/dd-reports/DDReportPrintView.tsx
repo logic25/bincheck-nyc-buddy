@@ -195,7 +195,7 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
                 <td className={tableCellStyle}>{v.severity || v.violation_class || '—'}</td>
                 <td className={`${tableCellStyle} whitespace-nowrap`}>{formatShortDate(v.issued_date)}</td>
                 <td className={tableCellStyle}>{v.status}</td>
-                <td className={`${tableCellStyle} text-gray-600`}>
+                <td className={`${tableCellStyle} text-gray-700`}>
                   <div className="break-words leading-[1.4]">{getNote('violation', v.id || v.violation_number)}</div>
                 </td>
               </tr>
