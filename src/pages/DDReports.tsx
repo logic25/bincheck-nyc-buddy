@@ -91,7 +91,7 @@ const DDReports = () => {
   const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [mainTab, setMainTab] = useState<'incoming' | 'reports'>('incoming');
+  const [mainTab, setMainTab] = useState<string>('incoming');
   const [statusTab, setStatusTab] = useState('pending_review');
   const [userId, setUserId] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
