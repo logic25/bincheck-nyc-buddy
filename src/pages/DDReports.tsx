@@ -331,27 +331,20 @@ const DDReports = () => {
             <span className="font-display text-xl tracking-tight">BinCheck<span className="text-primary">NYC</span></span>
           </div>
           {/* Desktop nav */}
-          <div className="hidden md:flex items-center gap-2">
-            <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard')}>
-              <ArrowLeft className="h-4 w-4 mr-1" /> Dashboard
-            </Button>
-            <Button variant="ghost" size="sm" onClick={() => navigate('/settings')}>
-              <Settings className="h-4 w-4 mr-1" /> Settings
-            </Button>
-            {isAdmin && (
-              <>
-                <Button variant="ghost" size="sm" onClick={() => navigate('/admin')}>
-                  <Shield className="h-4 w-4 mr-1" /> Admin
-                </Button>
-                <Button variant="ghost" size="sm" onClick={() => navigate('/help')}>
-                  <BookOpen className="h-4 w-4 mr-1" /> Help Center
-                </Button>
-              </>
-            )}
-            <Button variant="ghost" size="sm" onClick={handleLogout}>
-              <LogOut className="h-4 w-4 mr-1" /> Sign Out
-            </Button>
-          </div>
+           <div className="hidden md:flex items-center gap-2">
+             <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard')}>
+               <ArrowLeft className="h-4 w-4 mr-1" /> Home
+             </Button>
+             <Button variant="ghost" size="sm" onClick={() => navigate('/settings')}>
+               <Settings className="h-4 w-4 mr-1" /> Settings
+             </Button>
+             <Button variant="ghost" size="sm" onClick={() => navigate('/help')}>
+               <BookOpen className="h-4 w-4 mr-1" /> Help Center
+             </Button>
+             <Button variant="ghost" size="sm" onClick={handleLogout}>
+               <LogOut className="h-4 w-4 mr-1" /> Sign Out
+             </Button>
+           </div>
           {/* Mobile nav */}
           <Sheet>
             <SheetTrigger asChild className="md:hidden">
