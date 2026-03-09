@@ -210,9 +210,9 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
     const isBIS = title.includes('BIS');
     return (
       <div className="mb-3" style={{ pageBreakInside: 'avoid' }}>
-        <div className="flex items-center justify-between mb-1">
-          <h4 className="text-[11px] font-bold text-black">{title}</h4>
-          <span className="text-[9px] font-semibold text-gray-700 bg-gray-200 px-1.5 py-0.5 rounded">{apps.length} items</span>
+        <div className="flex items-center justify-between mb-1.5">
+          <h4 className="text-[11px] font-semibold text-gray-800">{title}</h4>
+          <span className="text-[8px] font-medium text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded-md">{apps.length} items</span>
         </div>
         <table className="w-full border-collapse">
           <thead>
