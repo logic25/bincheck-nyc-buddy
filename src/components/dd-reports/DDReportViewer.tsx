@@ -1099,73 +1099,168 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
 
       {/* ACRIS Section */}
       {activeSection === 'acris' && (
-        <div className="border border-border rounded-xl bg-card">
-          <div className="p-4 border-b border-border">
-            <h3 className="text-base font-semibold">Property Transfer & Lien History (ACRIS)</h3>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              {acrisDocuments.length} recorded document{acrisDocuments.length !== 1 ? 's' : ''} found via NYC ACRIS
-            </p>
-          </div>
-          {acrisDocuments.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground text-sm">
-              No ACRIS records found for this BBL. This may indicate a cooperative or property with records filed under a different lot identifier.
-            </div>
-          ) : (
-            <div className="w-full">
-              {/* Mobile */}
-              <div className="sm:hidden divide-y divide-border">
-                {acrisDocuments.map((doc: any, idx: number) => (
-                  <div key={idx} className="px-3 py-3 space-y-1.5">
-                    <div className="flex items-start justify-between gap-2">
-                      <p className="text-sm font-medium">{doc.document_type || 'Unknown'}</p>
-                      <span className="text-xs text-muted-foreground whitespace-nowrap">{safeFormatDate(doc.document_date)}</span>
-                    </div>
-                    {doc.party1 && (
-                      <p className="text-xs text-muted-foreground"><span className="font-medium text-foreground/70">Grantor:</span> {doc.party1}</p>
-                    )}
-                    {doc.party2 && (
-                      <p className="text-xs text-muted-foreground"><span className="font-medium text-foreground/70">Grantee:</span> {doc.party2}</p>
-                    )}
-                    {doc.document_amount && (
-                      <p className="text-xs font-medium">${Number(doc.document_amount).toLocaleString()}</p>
-                    )}
-                  </div>
-                ))}
-              </div>
+        <div className="space-y-4">
+          {/* ACRIS Insights Cards */}
+          {acrisDocuments.length > 0 && (() => {
+            const deeds = acrisDocuments.filter((d: any) => (d.document_type || '').toUpperCase().includes('DEED'));
+            const mortgages = acrisDocuments.filter((d: any) => {
+              const t = (d.document_type || '').toUpperCase();
+              return t.includes('MORTGAGE') || t.includes('MTGE') || t.includes('MEMO OF MORTGAGE');
+            });
+            const satisfactions = acrisDocuments.filter((d: any) => {
+              const t = (d.document_type || '').toUpperCase();
+              return t.includes('SATISFACTION') || t.includes('DISCHARGE') || t.includes('RELEASE');
+            });
+            const liens = acrisDocuments.filter((d: any) => {
+              const t = (d.document_type || '').toUpperCase();
+              return t.includes('LIEN') || t.includes('JUDGMENT') || t.includes('LIS PENDENS') || t.includes('MECHANIC');
+            });
+            const latestDeed = deeds.sort((a: any, b: any) => new Date(b.document_date || 0).getTime() - new Date(a.document_date || 0).getTime())[0];
+            const latestMortgage = mortgages.sort((a: any, b: any) => new Date(b.document_date || 0).getTime() - new Date(a.document_date || 0).getTime())[0];
 
-              {/* Desktop */}
-              <div className="hidden sm:block">
-                <Table className="text-sm w-full">
-                  <TableHeader>
-                    <TableRow className="bg-muted/30 hover:bg-muted/30">
-                      <TableHead className="text-xs font-semibold uppercase tracking-wider">Date</TableHead>
-                      <TableHead className="text-xs font-semibold uppercase tracking-wider">Document Type</TableHead>
-                      <TableHead className="text-xs font-semibold uppercase tracking-wider">Grantor / Lender</TableHead>
-                      <TableHead className="text-xs font-semibold uppercase tracking-wider">Grantee / Borrower</TableHead>
-                      <TableHead className="text-xs font-semibold uppercase tracking-wider">Amount</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {acrisDocuments.map((doc: any, idx: number) => (
-                      <TableRow key={idx}>
-                        <TableCell className="whitespace-nowrap font-mono text-xs">{safeFormatDate(doc.document_date)}</TableCell>
-                        <TableCell>{doc.document_type || '—'}</TableCell>
-                        <TableCell className="max-w-[180px] truncate">{doc.party1 || '—'}</TableCell>
-                        <TableCell className="max-w-[180px] truncate">{doc.party2 || '—'}</TableCell>
-                        <TableCell className="whitespace-nowrap">
-                          {doc.document_amount ? `$${Number(doc.document_amount).toLocaleString()}` : '—'}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+            return (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                {/* Current Owner */}
+                <div className="border border-border rounded-xl p-4 bg-card">
+                  <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Last Recorded Deed</p>
+                  {latestDeed ? (
+                    <>
+                      <p className="text-sm font-bold truncate" title={latestDeed.party2 || '—'}>{latestDeed.party2 || '—'}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{safeFormatDate(latestDeed.document_date)}</p>
+                      {latestDeed.document_amount && (
+                        <p className="text-xs font-semibold mt-1">${Number(latestDeed.document_amount).toLocaleString()}</p>
+                      )}
+                    </>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No deeds found</p>
+                  )}
+                </div>
+
+                {/* Latest Mortgage */}
+                <div className="border border-border rounded-xl p-4 bg-card">
+                  <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Latest Mortgage</p>
+                  {latestMortgage ? (
+                    <>
+                      <p className="text-sm font-bold">{latestMortgage.document_amount ? `$${Number(latestMortgage.document_amount).toLocaleString()}` : 'Amount N/A'}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5 truncate" title={latestMortgage.party1 || ''}>{latestMortgage.party1 || '—'}</p>
+                      <p className="text-xs text-muted-foreground">{safeFormatDate(latestMortgage.document_date)}</p>
+                    </>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No mortgages found</p>
+                  )}
+                </div>
+
+                {/* Liens/Judgments */}
+                <div className={`border rounded-xl p-4 ${liens.length > 0 ? 'border-destructive/40 bg-destructive/5' : 'border-border bg-card'}`}>
+                  <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Liens & Judgments</p>
+                  <p className={`text-2xl font-bold ${liens.length > 0 ? 'text-destructive' : ''}`}>{liens.length}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{liens.length === 0 ? 'None recorded' : `${liens.length} recorded`}</p>
+                </div>
+
+                {/* Document Breakdown */}
+                <div className="border border-border rounded-xl p-4 bg-card">
+                  <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Recorded Documents</p>
+                  <p className="text-2xl font-bold">{acrisDocuments.length}</p>
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {deeds.length > 0 && <Badge variant="outline" className="text-[10px] px-1.5 py-0">Deeds {deeds.length}</Badge>}
+                    {mortgages.length > 0 && <Badge variant="outline" className="text-[10px] px-1.5 py-0">Mtg {mortgages.length}</Badge>}
+                    {satisfactions.length > 0 && <Badge variant="outline" className="text-[10px] px-1.5 py-0">Sat {satisfactions.length}</Badge>}
+                  </div>
+                </div>
               </div>
+            );
+          })()}
+
+          {/* Document Table */}
+          <div className="border border-border rounded-xl bg-card">
+            <div className="p-4 border-b border-border">
+              <h3 className="text-base font-semibold">Recorded Documents</h3>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {acrisDocuments.length} document{acrisDocuments.length !== 1 ? 's' : ''} from NYC ACRIS
+              </p>
             </div>
-          )}
-          <div className="p-3 border-t border-border">
-            <p className="text-[10px] text-muted-foreground italic">
-              Source: NYC ACRIS — recorded documents only. Unrecorded agreements not included.
-            </p>
+            {acrisDocuments.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground text-sm">
+                No ACRIS records found for this BBL. This may indicate a cooperative or property with records filed under a different lot identifier.
+              </div>
+            ) : (
+              <div className="w-full">
+                {/* Mobile */}
+                <div className="sm:hidden divide-y divide-border">
+                  {acrisDocuments.map((doc: any, idx: number) => {
+                    const docType = (doc.document_type || '').toUpperCase();
+                    const isLien = docType.includes('LIEN') || docType.includes('JUDGMENT') || docType.includes('LIS PENDENS');
+                    const isDeed = docType.includes('DEED');
+                    const isMortgage = docType.includes('MORTGAGE') || docType.includes('MTGE');
+                    return (
+                      <div key={idx} className={`px-3 py-3 space-y-1.5 ${isLien ? 'bg-destructive/5' : ''}`}>
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex items-center gap-1.5">
+                            <Badge variant={isLien ? 'destructive' : isDeed ? 'default' : isMortgage ? 'secondary' : 'outline'} className="text-[10px] px-1.5 py-0">
+                              {isDeed ? 'DEED' : isMortgage ? 'MTG' : isLien ? 'LIEN' : 'DOC'}
+                            </Badge>
+                            <p className="text-sm font-medium">{doc.document_type || 'Unknown'}</p>
+                          </div>
+                          <span className="text-xs text-muted-foreground whitespace-nowrap">{safeFormatDate(doc.document_date)}</span>
+                        </div>
+                        {doc.party1 && <p className="text-xs text-muted-foreground"><span className="font-medium text-foreground/70">From:</span> {doc.party1}</p>}
+                        {doc.party2 && <p className="text-xs text-muted-foreground"><span className="font-medium text-foreground/70">To:</span> {doc.party2}</p>}
+                        {doc.document_amount && <p className="text-xs font-semibold">${Number(doc.document_amount).toLocaleString()}</p>}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Desktop */}
+                <div className="hidden sm:block">
+                  <Table className="text-sm w-full">
+                    <TableHeader>
+                      <TableRow className="bg-muted/30 hover:bg-muted/30">
+                        <TableHead className="text-xs font-semibold uppercase tracking-wider w-[60px]">Type</TableHead>
+                        <TableHead className="text-xs font-semibold uppercase tracking-wider">Date</TableHead>
+                        <TableHead className="text-xs font-semibold uppercase tracking-wider">Document</TableHead>
+                        <TableHead className="text-xs font-semibold uppercase tracking-wider">From (Grantor/Lender)</TableHead>
+                        <TableHead className="text-xs font-semibold uppercase tracking-wider">To (Grantee/Borrower)</TableHead>
+                        <TableHead className="text-xs font-semibold uppercase tracking-wider">Amount</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {acrisDocuments.map((doc: any, idx: number) => {
+                        const docType = (doc.document_type || '').toUpperCase();
+                        const isLien = docType.includes('LIEN') || docType.includes('JUDGMENT') || docType.includes('LIS PENDENS');
+                        const isDeed = docType.includes('DEED');
+                        const isMortgage = docType.includes('MORTGAGE') || docType.includes('MTGE');
+                        const isSatisfaction = docType.includes('SATISFACTION') || docType.includes('DISCHARGE') || docType.includes('RELEASE');
+                        return (
+                          <TableRow key={idx} className={isLien ? 'bg-destructive/5' : isSatisfaction ? 'bg-emerald-500/5' : ''}>
+                            <TableCell>
+                              <Badge
+                                variant={isLien ? 'destructive' : isDeed ? 'default' : isSatisfaction ? 'outline' : 'secondary'}
+                                className={`text-[10px] px-1.5 py-0 ${isSatisfaction ? 'text-emerald-600 border-emerald-300' : ''}`}
+                              >
+                                {isDeed ? 'DEED' : isMortgage ? 'MTG' : isLien ? 'LIEN' : isSatisfaction ? 'SAT' : 'DOC'}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="whitespace-nowrap font-mono text-xs">{safeFormatDate(doc.document_date)}</TableCell>
+                            <TableCell className="text-xs">{doc.document_type || '—'}</TableCell>
+                            <TableCell className="max-w-[180px] truncate text-xs" title={doc.party1 || ''}>{doc.party1 || '—'}</TableCell>
+                            <TableCell className="max-w-[180px] truncate text-xs" title={doc.party2 || ''}>{doc.party2 || '—'}</TableCell>
+                            <TableCell className="whitespace-nowrap font-medium">
+                              {doc.document_amount ? `$${Number(doc.document_amount).toLocaleString()}` : '—'}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+            )}
+            <div className="p-3 border-t border-border">
+              <p className="text-[10px] text-muted-foreground italic">
+                Source: NYC ACRIS — recorded documents only. Unrecorded agreements not included.
+              </p>
+            </div>
           </div>
         </div>
       )}
