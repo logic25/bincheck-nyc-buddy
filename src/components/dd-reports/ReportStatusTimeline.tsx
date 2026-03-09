@@ -4,13 +4,14 @@ import { cn } from '@/lib/utils';
 type Step = {
   key: string;
   label: string;
+  shortLabel: string;
 };
 
 const STEPS: Step[] = [
-  { key: 'ordered', label: 'Ordered' },
-  { key: 'generating', label: 'Being Prepared' },
-  { key: 'pending_review', label: 'Under Review' },
-  { key: 'approved', label: 'Ready' },
+  { key: 'ordered', label: 'Ordered', shortLabel: 'Ordered' },
+  { key: 'generating', label: 'Being Prepared', shortLabel: 'Preparing' },
+  { key: 'pending_review', label: 'Under Review', shortLabel: 'Review' },
+  { key: 'approved', label: 'Ready', shortLabel: 'Ready' },
 ];
 
 const statusToStep: Record<string, number> = {
@@ -30,19 +31,19 @@ const ReportStatusTimeline = ({ status, className }: ReportStatusTimelineProps) 
   const currentStep = statusToStep[status] ?? 0;
 
   return (
-    <div className={cn('flex items-center gap-0', className)}>
+    <div className={cn('flex items-center w-full', className)}>
       {STEPS.map((step, idx) => {
         const isCompleted = idx < currentStep;
         const isActive = idx === currentStep;
         const isLast = idx === STEPS.length - 1;
 
         return (
-          <div key={step.key} className="flex items-center">
+          <div key={step.key} className={cn('flex items-center', !isLast && 'flex-1')}>
             {/* Step node */}
-            <div className="flex flex-col items-center gap-1">
+            <div className="flex flex-col items-center gap-1 shrink-0">
               <div
                 className={cn(
-                  'w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0',
+                  'w-6 h-6 rounded-full flex items-center justify-center',
                   isCompleted && 'text-emerald-500',
                   isActive && status === 'approved' && 'text-emerald-500',
                   isActive && status !== 'approved' && 'text-primary',
@@ -66,14 +67,15 @@ const ReportStatusTimeline = ({ status, className }: ReportStatusTimelineProps) 
               </div>
               <span
                 className={cn(
-                  'text-[10px] font-medium whitespace-nowrap leading-none',
+                  'text-[10px] font-medium leading-none text-center',
                   isCompleted && 'text-emerald-500',
                   isActive && status === 'approved' && 'text-emerald-600 font-semibold',
                   isActive && status !== 'approved' && 'text-foreground font-semibold',
                   !isCompleted && !isActive && 'text-muted-foreground/50',
                 )}
               >
-                {step.label}
+                <span className="hidden sm:inline">{step.label}</span>
+                <span className="sm:hidden">{step.shortLabel}</span>
               </span>
             </div>
 
@@ -81,7 +83,7 @@ const ReportStatusTimeline = ({ status, className }: ReportStatusTimelineProps) 
             {!isLast && (
               <div
                 className={cn(
-                  'h-px w-8 mb-4 mx-1',
+                  'h-px flex-1 min-w-3 mb-4 mx-1',
                   idx < currentStep ? 'bg-emerald-400' : 'bg-border'
                 )}
               />
