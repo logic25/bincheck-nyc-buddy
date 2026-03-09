@@ -167,7 +167,7 @@ const Dashboard = () => {
     setLoadingSaved(false);
   };
 
-  // Client DD reports query (only for non-admin)
+  // Client DD reports query (for non-admin OR admin in client-preview mode)
   const { data: ddReports, isLoading: loadingDD } = useQuery({
     queryKey: ['dashboard-dd-reports', userId, userEmail],
     queryFn: async () => {
@@ -192,7 +192,7 @@ const Dashboard = () => {
 
       return [...(ownedReports || []), ...clientReports] as DDReportRow[];
     },
-    enabled: !!userId && !roleLoading && !isAdmin,
+    enabled: !!userId && !roleLoading,
   });
 
   const { data: selectedReport, isLoading: loadingSelectedReport } = useQuery({
