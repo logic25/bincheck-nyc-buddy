@@ -781,19 +781,25 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
       {activeSection === 'applications' && (
         <div className="border border-border rounded-xl bg-card">
           <div className="p-4 border-b border-border">
-            <div className="flex items-center justify-between mb-3">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
               <div>
                 <h3 className="text-base font-semibold">Permit Applications</h3>
                 <p className="text-xs text-muted-foreground mt-0.5">{bisApplications.length} BIS · {dobNowApplications.length} DOB NOW Build</p>
               </div>
               {!isReadOnly && applications.length > 0 && (
-                <Button variant={bulkMode && activeSection === 'applications' ? 'default' : 'outline'} size="sm" className="h-7 text-xs gap-1.5" onClick={toggleBulkMode}>
+                <Button
+                  variant={bulkMode && activeSection === 'applications' ? 'default' : 'outline'}
+                  size="sm"
+                  className="h-7 text-xs gap-1.5 w-full sm:w-auto"
+                  onClick={toggleBulkMode}
+                >
                   <ListChecks className="w-3.5 h-3.5" />
                   {bulkMode && activeSection === 'applications' ? 'Exit Bulk' : 'Bulk Edit'}
                 </Button>
               )}
             </div>
-            <div className="flex gap-1.5">
+
+            <div className="flex flex-wrap gap-1.5">
               <Button variant={applicationFilter === 'all' ? 'default' : 'outline'} size="sm" className="h-7 text-xs" onClick={() => setApplicationFilter('all')}>
                 All ({applications.length})
               </Button>
@@ -803,36 +809,33 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
               <Button variant={applicationFilter === 'in_process' ? 'default' : 'outline'} size="sm" className="h-7 text-xs" onClick={() => setApplicationFilter('in_process')}>
                 In Process ({applications.filter((a: any) => { const s = (a.status || '').toUpperCase(); return ['A','B','C','D','E','F','G','H','K','L','M'].includes(s) || s.includes('FILED') || s.includes('PLAN EXAM'); }).length})
               </Button>
-        </div>
-
-        {/* Architect Opinion Letter CTA */}
-        {hasArchitectNeeded && (
-          <div className="mx-4 mb-4 p-4 rounded-lg border border-primary/20 bg-primary/5">
-            <div className="flex items-start gap-3">
-              <Scale className="w-5 h-5 text-primary mt-0.5 shrink-0" />
-              <div className="flex-1">
-                <p className="text-sm font-medium text-foreground mb-1">Architect Certification Typically Involved</p>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  {architectTaggedViolations.length} open violation{architectTaggedViolations.length !== 1 ? 's' : ''} on this property {architectTaggedViolations.length !== 1 ? 'are' : 'is'} of a type where DOB has historically accepted or required a licensed architect's certification letter as part of the dismissal process. BinCheckNYC can coordinate architect opinion letters through our professional network.
-                </p>
-                <Button
-                  size="sm"
-                  className="mt-3 gap-1.5"
-                  onClick={() => setArchitectDialogOpen(true)}
-                >
-                  <Scale className="w-3.5 h-3.5" />
-                  Request Architect Opinion Letter
-                </Button>
-              </div>
             </div>
           </div>
-        )}
-      </div>
+
+          {/* Architect Opinion Letter CTA */}
+          {hasArchitectNeeded && (
+            <div className="mx-4 my-4 p-4 rounded-lg border border-primary/20 bg-primary/5">
+              <div className="flex items-start gap-3">
+                <Scale className="w-5 h-5 text-primary mt-0.5 shrink-0" />
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-foreground mb-1">Architect Certification Typically Involved</p>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    {architectTaggedViolations.length} open violation{architectTaggedViolations.length !== 1 ? 's' : ''} on this property {architectTaggedViolations.length !== 1 ? 'are' : 'is'} of a type where DOB has historically accepted or required a licensed architect's certification letter as part of the dismissal process. BinCheckNYC can coordinate architect opinion letters through our professional network.
+                  </p>
+                  <Button size="sm" className="mt-3 gap-1.5" onClick={() => setArchitectDialogOpen(true)}>
+                    <Scale className="w-3.5 h-3.5" />
+                    Request Architect Opinion Letter
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {applications.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground text-sm">No applications found.</div>
           ) : (
-            <ScrollArea className="h-[520px]">
-              <Table>
+            <div className="w-full">
+              <Table className="text-sm w-full">
                 <TableHeader>
                   <TableRow className="bg-muted/30 hover:bg-muted/30">
                     <TableHead className="w-8">
@@ -860,12 +863,12 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
                       })()}
                     </TableHead>
                     <TableHead className="text-xs font-semibold uppercase tracking-wider">Job #</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider">Job Type</TableHead>
+                    <TableHead className="text-xs font-semibold uppercase tracking-wider hidden sm:table-cell">Job Type</TableHead>
                     <TableHead className="text-xs font-semibold uppercase tracking-wider">Status</TableHead>
                     <TableHead className="text-xs font-semibold uppercase tracking-wider">Filed</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider">Description</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider">Floor/Apt</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider">Notes</TableHead>
+                    <TableHead className="text-xs font-semibold uppercase tracking-wider hidden md:table-cell">Description</TableHead>
+                    <TableHead className="text-xs font-semibold uppercase tracking-wider hidden sm:table-cell">Floor/Apt</TableHead>
+                    <TableHead className="text-xs font-semibold uppercase tracking-wider hidden lg:table-cell">Notes</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -898,7 +901,7 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
                     })}
                 </TableBody>
               </Table>
-            </ScrollArea>
+            </div>
           )}
         </div>
       )}
