@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import {
   Shield, LogOut, Loader2, Trash2, FileText, Settings,
-  ArrowRight, Download, ClipboardList, Clock, CheckCircle2, Search, MapPin, Package, BookOpen, Menu, Eye,
+  ArrowRight, Download, ClipboardList, Clock, CheckCircle2, Search, MapPin, Package, BookOpen, Menu, Eye, Plus,
 } from "lucide-react";
 import { getScoreColor } from "@/lib/scoring";
 import { toast } from "sonner";
@@ -19,6 +19,7 @@ import { format } from "date-fns";
 import ReportStatusTimeline from "@/components/dd-reports/ReportStatusTimeline";
 import DDReportViewer from "@/components/dd-reports/DDReportViewer";
 import AdminReportManager from "@/components/admin/AdminReportManager";
+import CreateDDReportDialog from "@/components/dd-reports/CreateDDReportDialog";
 
 interface ReportRow {
   id: string;
