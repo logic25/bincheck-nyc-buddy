@@ -1,45 +1,129 @@
+# BinCheckNYC Production Readiness Plan
 
+## Executive Summary
+5-phase plan to take BinCheckNYC from MVP (3/10 readiness) to production-ready (8/10) for commercial sale to attorneys and title companies.
 
-# Beta-Ready Hardening Plan
+---
 
-You have a solid audit. Since you're going to beta testers for workflow feedback (not commercial sale yet), here's what actually matters now vs. what can wait.
+## Phase 1: Foundation & Mobile (Week 1) ✅ IN PROGRESS
 
-## What to fix for beta (minimal effort, high impact)
+### Mobile Responsiveness
+- [x] Index.tsx - hamburger menu for mobile nav
+- [x] Dashboard.tsx - hamburger menu for mobile nav  
+- [x] DDReports.tsx - hamburger menu + responsive tabs
+- [ ] Order.tsx - verify form layouts on mobile
+- [ ] Settings.tsx - verify mobile layout
+- [ ] Admin.tsx - verify mobile layout
 
-### 1. Global Error Boundary (already built but not wired)
-You already have `src/components/ErrorBoundary.tsx`. It just needs to be wrapped around `<App />` in `main.tsx`. One line change.
+### Global Error Handling
+- [x] Create ErrorBoundary component with user-friendly fallback UI
+- [x] Wrap App.tsx with ErrorBoundary
+- [x] Add error recovery actions (reload, go home)
 
-### 2. Remove .env from Git tracking
-Add `.env` to `.gitignore` (it's already there based on the file list). The real issue is if `.env` exists in Git history — this requires a `git filter-branch` or BFG Repo-Cleaner on your GitHub repo. Keys are publishable/anon so low actual risk, but worth cleaning up.
+### Security Headers
+- [x] Add Content Security Policy meta tag to index.html
+- [x] Add X-Content-Type-Options, X-Frame-Options headers
 
-### 3. Silent failure fix (already done)
-You just implemented the agency error tracking with `fetchJSON` returning `{ data, error }`. This addresses finding #1 under Error Handling and the "returns empty arrays on failure" concern.
+### API Response Validation
+- [x] Add Zod validation schemas for NYC Open Data responses in generate-dd-report
+- [x] Validate DOB, ECB, HPD, FDNY, OATH, DOB Jobs, DOB Complaints responses
+- [x] Filter out malformed records with logging
 
-### 4. Add Zod validation on NYC API responses
-In `generate-dd-report/index.ts`, validate the shape of DOB/HPD/ECB/OATH responses before processing. This prevents corrupted data from making it into reports. ~3-5 hours of work across the edge functions.
+---
 
-### 5. Content Security Policy meta tag
-Add a `<meta>` CSP tag to `index.html`. Quick win for security headers.
+## Phase 2: Real Payment Processing (Week 2-3) — HARD BLOCKER
 
-## What can wait until after beta feedback
+### Stripe Integration
+- [ ] Enable Stripe connector in Lovable
+- [ ] Create checkout edge function for $199 one-time
+- [ ] Create subscription edge function for $599/mo professional
+- [ ] Handle payment webhooks (payment_intent.succeeded, subscription events)
+- [ ] Update Order.tsx to use real Stripe checkout
+- [ ] Add payment status tracking to dd_reports table
+- [ ] Email confirmation on successful payment
 
-| Item | Why it can wait |
-|------|----------------|
-| Stripe payments | Beta testers aren't paying yet |
-| CI/CD pipeline | Manual deploys are fine for beta |
-| Test suite | Important but won't block feedback collection |
-| Sentry/error monitoring | Console logs are adequate for beta scale |
-| Database-backed rate limiting | Beta testers won't be abusing endpoints |
-| Report encryption at rest | Low risk during controlled beta |
-| Dependency pinning | Low probability issue short-term |
-| Structured logging | Not needed at beta volume |
+### Order Fulfillment
+- [ ] Link paid orders to report generation queue
+- [ ] Track order → report → delivery lifecycle
+- [ ] Add payment receipts/invoices
 
-## Implementation order
+---
 
-1. Wire ErrorBoundary in `main.tsx` (5 min)
-2. CSP meta tag in `index.html` (15 min)
-3. Zod schemas for NYC API responses in edge functions (3-5 hours)
-4. Clean `.env` from Git history (GitHub side, outside Lovable)
+## Phase 3: Security & Reliability (Week 4)
 
-Total: ~1 day of work to be beta-ready with the security basics covered.
+### Database-Backed Rate Limiting
+- [ ] Create rate_limits table (ip, endpoint, count, window_start)
+- [ ] Replace in-memory rate limiter in search-property
+- [ ] Add rate limiting to generate-dd-report
+- [ ] Add rate limiting to all other edge functions
 
+### API Response Validation
+- [ ] Add Zod schemas for NYC Open Data responses (DOB, HPD, ECB, OATH, ACRIS)
+- [ ] Validate and sanitize all external API data before processing
+- [ ] Log validation failures for monitoring
+
+### Error Monitoring
+- [ ] Add Sentry integration (or similar)
+- [ ] Capture frontend errors with context
+- [ ] Capture edge function errors
+- [ ] Set up alerts for error spikes
+
+---
+
+## Phase 4: Testing & CI/CD (Week 5-6)
+
+### Test Coverage
+- [ ] Unit tests for scoring.ts (risk calculation)
+- [ ] Unit tests for violation-utils.ts
+- [ ] Integration tests for generate-dd-report edge function
+- [ ] E2E tests for critical flows (order → report → download)
+
+### CI/CD Pipeline
+- [ ] GitHub Actions for build/test on PR
+- [ ] Automated deployment to staging
+- [ ] Dependency scanning (npm audit, Snyk)
+- [ ] Type checking in CI
+
+---
+
+## Phase 5: Scale & Polish (Week 7-8)
+
+### Performance
+- [ ] Add report caching for repeat queries
+- [ ] Optimize large building queries (1000+ violations)
+- [ ] Add loading skeletons throughout
+
+### Monitoring & Observability
+- [ ] Structured logging in edge functions
+- [ ] Uptime monitoring
+- [ ] Performance metrics dashboard
+
+### Documentation
+- [ ] API documentation for edge functions
+- [ ] User-facing help center content
+- [ ] Internal architecture docs
+
+---
+
+## Current Blockers for Commercial Sale
+
+| Blocker | Phase | Status |
+|---------|-------|--------|
+| Real payment processing | 2 | Not started |
+| Global error boundary | 1 | Not started |
+| Rate limiting on report generation | 3 | Not started |
+| Basic test coverage | 4 | Not started |
+
+---
+
+## Estimated Timeline
+
+| Phase | Duration | Cumulative |
+|-------|----------|------------|
+| Phase 1 | 1 week | Week 1 |
+| Phase 2 | 2 weeks | Week 3 |
+| Phase 3 | 1 week | Week 4 |
+| Phase 4 | 2 weeks | Week 6 |
+| Phase 5 | 2 weeks | Week 8 |
+
+**Total: 8 weeks to production-ready**

@@ -1,6 +1,150 @@
 // DD Report Generator - Uses GeoSearch for address lookup
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
+
+// ━━━ NYC API RESPONSE VALIDATION SCHEMAS ━━━
+// Validates the shape of external API responses to prevent corrupted data in reports
+
+const DOBViolationSchema = z.object({
+  isn_dob_bis_viol: z.string().optional(),
+  number: z.string().optional(),
+  violation_type: z.string().optional(),
+  violation_category: z.string().optional(),
+  description: z.string().optional(),
+  violation_type_code: z.string().optional(),
+  issue_date: z.string().optional(),
+  disposition_date: z.string().optional(),
+  disposition_comments: z.string().optional(),
+}).passthrough();
+
+const DOBSafetyViolationSchema = z.object({
+  isn_dob_bis_viol: z.string().optional(),
+  violation_number: z.string().optional(),
+  violation_type: z.string().optional(),
+  violation_type_description: z.string().optional(),
+  violation_category: z.string().optional(),
+  description: z.string().optional(),
+  issue_date: z.string().optional(),
+  violation_date: z.string().optional(),
+  disposition_date: z.string().optional(),
+}).passthrough();
+
+const ECBViolationSchema = z.object({
+  ecb_violation_number: z.string().optional(),
+  ecb_violation_status: z.string().optional(),
+  violation_description: z.string().optional(),
+  infraction_code1: z.string().optional(),
+  violation_type: z.string().optional(),
+  issue_date: z.string().optional(),
+  severity: z.string().optional(),
+  penality_imposed: z.string().optional(),
+  amount_paid: z.string().optional(),
+  penalty_balance_due: z.string().optional(),
+}).passthrough();
+
+const HPDViolationSchema = z.object({
+  violationid: z.union([z.string(), z.number()]).optional(),
+  violationstatus: z.string().optional(),
+  novdescription: z.string().optional(),
+  class: z.string().optional(),
+  inspectiondate: z.string().optional(),
+  novissueddate: z.string().optional(),
+  apartment: z.string().optional(),
+  story: z.string().optional(),
+}).passthrough();
+
+const OATHHearingSchema = z.object({
+  ticket_number: z.string().optional(),
+  respondent_ticket_number: z.string().optional(),
+  violation_date: z.string().optional(),
+  hearing_status: z.string().optional(),
+  hearing_result: z.string().optional(),
+  compliance_status: z.string().optional(),
+  charge_1_code_description: z.string().optional(),
+  charge_2_code_description: z.string().optional(),
+  penalty_imposed: z.string().optional(),
+  total_violation_amount: z.string().optional(),
+  issuing_agency: z.string().optional(),
+}).passthrough();
+
+const FDNYViolationSchema = z.object({
+  violation_number: z.string().optional(),
+  issuance_number: z.string().optional(),
+  violation_code: z.string().optional(),
+  violation_code_description: z.string().optional(),
+  violation_category: z.string().optional(),
+  inspection_date: z.string().optional(),
+  violation_date: z.string().optional(),
+  status: z.string().optional(),
+  violation_status: z.string().optional(),
+}).passthrough();
+
+const DOBJobSchema = z.object({
+  job__: z.string().optional(),
+  bin__: z.string().optional(),
+  gis_bin: z.string().optional(),
+  house__: z.string().optional(),
+  street_name: z.string().optional(),
+  borough: z.string().optional(),
+  block: z.string().optional(),
+  lot: z.string().optional(),
+  job_type: z.string().optional(),
+  job_status: z.string().optional(),
+  job_description: z.string().optional(),
+  pre__filing_date: z.string().optional(),
+  latest_action_date: z.string().optional(),
+}).passthrough();
+
+const DOBComplaintSchema = z.object({
+  complaint_number: z.string().optional(),
+  date_entered: z.string().optional(),
+  status: z.string().optional(),
+  complaint_category: z.string().optional(),
+  unit: z.string().optional(),
+  disposition_date: z.string().optional(),
+  disposition_code: z.string().optional(),
+  inspection_date: z.string().optional(),
+}).passthrough();
+
+// Maps agency tags to their validation schemas for array-level validation
+const AGENCY_SCHEMAS: Record<string, z.ZodType> = {
+  'DOB': DOBViolationSchema,
+  'DOB-SAFETY': DOBSafetyViolationSchema,
+  'ECB': ECBViolationSchema,
+  'HPD': HPDViolationSchema,
+  'FDNY': FDNYViolationSchema,
+  'DOB-BIS': DOBJobSchema,
+  'DOB-NOW': DOBJobSchema,
+  'DOB-COMPLAINTS': DOBComplaintSchema,
+  // OATH hearings (queried per agency via OATH endpoint)
+  'DEP': OATHHearingSchema,
+  'DOT': OATHHearingSchema,
+  'DSNY': OATHHearingSchema,
+  'LPC': OATHHearingSchema,
+  'DOF': OATHHearingSchema,
+};
+
+// Validates an array of API records, filtering out malformed entries and logging issues
+function validateAPIResponse<T>(records: any[], schema: z.ZodType<T>, agencyTag: string): T[] {
+  const valid: T[] = [];
+  let invalidCount = 0;
+  for (const record of records) {
+    const result = schema.safeParse(record);
+    if (result.success) {
+      valid.push(result.data);
+    } else {
+      invalidCount++;
+      if (invalidCount <= 3) {
+        console.warn(`${agencyTag} validation failed for record:`, result.error.issues.slice(0, 2));
+      }
+    }
+  }
+  if (invalidCount > 0) {
+    console.warn(`${agencyTag}: ${invalidCount}/${records.length} records failed validation and were excluded`);
+  }
+  return valid;
+}
 
 const ALLOWED_ORIGINS = [
   'https://binchecknyc.com',
@@ -67,7 +211,14 @@ async function fetchNYCData(endpoint: string, params: Record<string, string>, ag
     }
     const data = await response.json();
     console.log(`Got ${Array.isArray(data) ? data.length : 'non-array'} results`);
-    return Array.isArray(data) ? data : [];
+    if (!Array.isArray(data)) return [];
+    
+    // Validate response shape if a schema exists for this agency
+    const schema = agencyTag ? AGENCY_SCHEMAS[agencyTag] : null;
+    if (schema && data.length > 0) {
+      return validateAPIResponse(data, schema, agencyTag!);
+    }
+    return data;
   } catch (error) {
     console.error(`Error fetching from ${endpoint}:`, error);
     if (agencyTag) agencyErrors.add(agencyTag);
