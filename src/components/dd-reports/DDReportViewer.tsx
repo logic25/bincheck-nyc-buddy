@@ -413,7 +413,8 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
   };
 
   const filteredApplications = applications.filter(matchesApplicationFilter);
-  const filteredComplaints = complaints;
+  const openComplaints = complaints.filter((c: any) => (c.status || '').toLowerCase() !== 'closed');
+  const filteredComplaints = openComplaints;
 
   // Check if report is stale (generating for >5 minutes)
   const isStaleGenerating = report.status === 'generating' && (() => {
@@ -429,7 +430,7 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
   const sectionNav = [
     { key: 'violations' as const, label: 'Violations', count: violations.length, icon: AlertTriangle },
     { key: 'applications' as const, label: 'Applications', count: applications.length, icon: FileStack },
-    ...(complaints.length > 0 ? [{ key: 'complaints' as const, label: 'Complaints', count: complaints.length, icon: MessageSquareWarning }] : []),
+    ...(openComplaints.length > 0 ? [{ key: 'complaints' as const, label: 'Complaints', count: openComplaints.length, icon: MessageSquareWarning }] : []),
     { key: 'acris' as const, label: 'ACRIS', count: acrisDocuments.length, icon: Landmark },
     { key: 'analysis' as const, label: 'AI Analysis', icon: Shield },
     { key: 'notes' as const, label: 'Notes', icon: StickyNote },
@@ -579,7 +580,7 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
             <Badge variant="outline" className="text-[10px] px-2 py-0.5">ECB: {ecbViolations.length}</Badge>
             <Badge variant="outline" className="text-[10px] px-2 py-0.5">HPD: {hpdViolations.length}</Badge>
             <Badge variant="outline" className="text-[10px] px-2 py-0.5">Applications: {applications.length}</Badge>
-            {complaints.length > 0 && <Badge variant="outline" className="text-[10px] px-2 py-0.5">Complaints: {complaints.length}</Badge>}
+            {openComplaints.length > 0 && <Badge variant="outline" className="text-[10px] px-2 py-0.5">Open Complaints: {openComplaints.length}</Badge>}
           </div>
           <p className="text-sm leading-relaxed text-foreground/85 whitespace-pre-line">{(report as any).property_status_summary}</p>
           <p className="text-[10px] text-muted-foreground mt-3 pt-2 border-t border-border/40 italic">
@@ -628,7 +629,7 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
           <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4 flex items-center gap-2">
             <FileStack className="w-3.5 h-3.5" /> Compliance Summary
           </h3>
-          <div className={`grid grid-cols-1 sm:grid-cols-2 ${complaints.length > 0 ? 'lg:grid-cols-3' : ''} gap-3`}>
+          <div className={`grid grid-cols-1 sm:grid-cols-2 ${openComplaints.length > 0 ? 'lg:grid-cols-3' : ''} gap-3`}>
             <div className="p-3 rounded-lg bg-muted/40 border border-border">
               <p className="text-2xl font-bold tracking-tight">{violations.length}</p>
               <p className="text-xs text-muted-foreground font-medium">Open Violations</p>
@@ -648,18 +649,10 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
                 <Badge variant="outline" className="text-[10px] px-1.5 py-0">Build {dobNowApplications.length}</Badge>
               </div>
             </div>
-            {complaints.length > 0 && (
+            {openComplaints.length > 0 && (
               <div className="p-3 rounded-lg bg-muted/40 border border-border">
-                <p className="text-2xl font-bold tracking-tight">{complaints.length}</p>
-                <p className="text-xs text-muted-foreground font-medium">DOB Complaints</p>
-                <div className="flex gap-1.5 mt-2">
-                  <Badge variant="outline" className="text-[10px] px-1.5 py-0">
-                    Open {complaints.filter((c: any) => (c.status || '').toLowerCase() !== 'closed').length}
-                  </Badge>
-                  <Badge variant="outline" className="text-[10px] px-1.5 py-0">
-                    Closed {complaints.filter((c: any) => (c.status || '').toLowerCase() === 'closed').length}
-                  </Badge>
-                </div>
+                <p className="text-2xl font-bold tracking-tight">{openComplaints.length}</p>
+                <p className="text-xs text-muted-foreground font-medium">Open DOB Complaints</p>
               </div>
             )}
             {hasCriticalOrders && (
