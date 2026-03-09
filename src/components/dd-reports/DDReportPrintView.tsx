@@ -31,6 +31,7 @@ interface DDReportPrintViewProps {
     line_item_notes?: any[];
     customer_concern?: string | null;
     property_status_summary?: string | null;
+    tax_lien_data?: any[];
     citisignal_recommended?: boolean;
   };
   userProfile?: UserProfile;
