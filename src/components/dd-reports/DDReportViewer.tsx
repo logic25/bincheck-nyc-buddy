@@ -24,6 +24,9 @@ import DDReportPrintView from './DDReportPrintView';
 import ExpandableViolationRow from './ExpandableViolationRow';
 import ExpandableApplicationRow from './ExpandableApplicationRow';
 import ExpandableComplaintRow from './ExpandableComplaintRow';
+import MobileViolationCard from './mobile/MobileViolationCard';
+import MobileApplicationCard from './mobile/MobileApplicationCard';
+import MobileComplaintCard from './mobile/MobileComplaintCard';
 import BatchEditPanel, { type SelectedItem } from './BatchEditPanel';
 import ArchitectRequestDialog from './ArchitectRequestDialog';
 import html2pdf from 'html2pdf.js';
@@ -372,6 +375,19 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
   const updateLineItemNote = (itemType: string, itemId: string, note: string) => {
     setLineItemNotes(prev => ({ ...prev, [`${itemType}-${itemId}`]: note }));
   };
+
+  const filteredViolations = violations.filter((v: any) => violationFilter === 'all' || v.agency === violationFilter);
+
+  const matchesApplicationFilter = (app: any) => {
+    if (applicationFilter === 'all') return true;
+    const s = (app.status || '').toUpperCase();
+    if (applicationFilter === 'R') return s === 'R' || s.includes('PERMIT ENTIRE');
+    if (applicationFilter === 'in_process') return ['A','B','C','D','E','F','G','H','K','L','M'].includes(s) || s.includes('FILED') || s.includes('PLAN EXAM');
+    return true;
+  };
+
+  const filteredApplications = applications.filter(matchesApplicationFilter);
+  const filteredComplaints = complaints;
 
   // Check if report is stale (generating for >5 minutes)
   const isStaleGenerating = report.status === 'generating' && (() => {
@@ -723,37 +739,56 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
             <div className="text-center py-12 text-muted-foreground text-sm">No open violations found.</div>
           ) : (
             <div className="w-full">
-              <Table className="text-sm w-full">
-                <TableHeader>
-                  <TableRow className="bg-muted/30 hover:bg-muted/30">
-                    <TableHead className="w-8">
-                      {bulkMode && (() => {
-                        const visibleKeys = violations
-                          .filter((v: any) => violationFilter === 'all' || v.agency === violationFilter)
-                          .map((v: any, idx: number) => `violation:${v.violation_number || v.id || idx}:${v.agency || 'DOB'}`);
-                        const allSelected = visibleKeys.length > 0 && visibleKeys.every((k: string) => selectedItems.has(k));
-                        return (
-                          <Checkbox
-                            checked={allSelected}
-                            onCheckedChange={() => selectAllVisible(visibleKeys)}
-                            className="ml-1"
-                          />
-                        );
-                      })()}
-                    </TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider">Violation #</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider">Agency</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider hidden sm:table-cell">Type</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider hidden sm:table-cell">Severity</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider">Issued</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider">Status</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider hidden md:table-cell">Notes</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {violations
-                    .filter((v: any) => violationFilter === 'all' || v.agency === violationFilter)
-                    .map((v: any, idx: number) => (
+              {/* Mobile: readable card list */}
+              <div className="sm:hidden divide-y divide-border">
+                {filteredViolations.map((v: any, idx: number) => (
+                  <MobileViolationCard
+                    key={v.id || idx}
+                    violation={v}
+                    index={idx}
+                    note={lineItemNotes[`violation-${v.id || idx}`] || ''}
+                    onNoteChange={(note) => updateLineItemNote('violation', v.id || String(idx), note)}
+                    bbl={report.bbl || building.bbl}
+                    readOnly={isReadOnly}
+                    reportId={report.id}
+                    editStatus={editStatuses[`violation-${v.violation_number || v.id || idx}`] || null}
+                    onEditSaved={(editId) => handleEditSaved('violation', v.violation_number || v.id || String(idx), editId)}
+                    bulkMode={bulkMode}
+                    isSelected={selectedItems.has(`violation:${v.violation_number || v.id || idx}:${v.agency || 'DOB'}`)}
+                    onToggleSelect={() => toggleItemSelection(`violation:${v.violation_number || v.id || idx}:${v.agency || 'DOB'}`)}
+                  />
+                ))}
+              </div>
+
+              {/* Desktop: table */}
+              <div className="hidden sm:block">
+                <Table className="text-sm w-full">
+                  <TableHeader>
+                    <TableRow className="bg-muted/30 hover:bg-muted/30">
+                      <TableHead className="w-8">
+                        {bulkMode && (() => {
+                          const visibleKeys = filteredViolations.map((v: any, idx: number) => `violation:${v.violation_number || v.id || idx}:${v.agency || 'DOB'}`);
+                          const allSelected = visibleKeys.length > 0 && visibleKeys.every((k: string) => selectedItems.has(k));
+                          return (
+                            <Checkbox
+                              checked={allSelected}
+                              onCheckedChange={() => selectAllVisible(visibleKeys)}
+                              className="ml-1"
+                            />
+                          );
+                        })()}
+                      </TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wider">Violation #</TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wider">Agency</TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wider hidden sm:table-cell">Type</TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wider hidden sm:table-cell">Severity</TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wider">Issued</TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wider">Status</TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wider hidden md:table-cell">Notes</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredViolations.map((v: any, idx: number) => (
                       <ExpandableViolationRow
                         key={v.id || idx}
                         violation={v}
@@ -770,8 +805,9 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
                         onToggleSelect={() => toggleItemSelection(`violation:${v.violation_number || v.id || idx}:${v.agency || 'DOB'}`)}
                       />
                     ))}
-                </TableBody>
-              </Table>
+                  </TableBody>
+                </Table>
+              </div>
             </div>
           )}
         </div>
@@ -835,52 +871,61 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
             <div className="text-center py-12 text-muted-foreground text-sm">No applications found.</div>
           ) : (
             <div className="w-full">
-              <Table className="text-sm w-full">
-                <TableHeader>
-                  <TableRow className="bg-muted/30 hover:bg-muted/30">
-                    <TableHead className="w-8">
-                      {bulkMode && (() => {
-                        const visibleKeys = applications
-                          .filter((app: any) => {
-                            if (applicationFilter === 'all') return true;
-                            const s = (app.status || '').toUpperCase();
-                            if (applicationFilter === 'R') return s === 'R' || s.includes('PERMIT ENTIRE');
-                            if (applicationFilter === 'in_process') return ['A','B','C','D','E','F','G','H','K','L','M'].includes(s) || s.includes('FILED') || s.includes('PLAN EXAM');
-                            return true;
-                          })
-                          .map((app: any, idx: number) => {
+              {/* Mobile */}
+              <div className="sm:hidden divide-y divide-border">
+                {filteredApplications.map((app: any, idx: number) => {
+                  const appKey = `${app.source || 'BIS'}-${app.id || app.application_number || idx}`;
+                  return (
+                    <MobileApplicationCard
+                      key={appKey}
+                      application={app}
+                      index={idx}
+                      note={lineItemNotes[`application-${appKey}`] || ''}
+                      onNoteChange={(note) => updateLineItemNote('application', appKey, note)}
+                      readOnly={isReadOnly}
+                      reportId={report.id}
+                      editStatus={editStatuses[`application-${appKey}`] || null}
+                      onEditSaved={(editId) => handleEditSaved('application', appKey, editId)}
+                      bulkMode={bulkMode}
+                      isSelected={selectedItems.has(`application:${appKey}:DOB`)}
+                      onToggleSelect={() => toggleItemSelection(`application:${appKey}:DOB`)}
+                    />
+                  );
+                })}
+              </div>
+
+              {/* Desktop */}
+              <div className="hidden sm:block">
+                <Table className="text-sm w-full">
+                  <TableHeader>
+                    <TableRow className="bg-muted/30 hover:bg-muted/30">
+                      <TableHead className="w-8">
+                        {bulkMode && (() => {
+                          const visibleKeys = filteredApplications.map((app: any, idx: number) => {
                             const appKey = `${app.source || 'BIS'}-${app.id || app.application_number || idx}`;
                             return `application:${appKey}:DOB`;
                           });
-                        const allSelected = visibleKeys.length > 0 && visibleKeys.every((k: string) => selectedItems.has(k));
-                        return (
-                          <Checkbox
-                            checked={allSelected}
-                            onCheckedChange={() => selectAllVisible(visibleKeys)}
-                            className="ml-1"
-                          />
-                        );
-                      })()}
-                    </TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider">Job #</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider hidden sm:table-cell">Job Type</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider">Status</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider">Filed</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider hidden md:table-cell">Description</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider hidden sm:table-cell">Floor/Apt</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider hidden lg:table-cell">Notes</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {applications
-                    .filter((app: any) => {
-                      if (applicationFilter === 'all') return true;
-                      const s = (app.status || '').toUpperCase();
-                      if (applicationFilter === 'R') return s === 'R' || s.includes('PERMIT ENTIRE');
-                      if (applicationFilter === 'in_process') return ['A','B','C','D','E','F','G','H','K','L','M'].includes(s) || s.includes('FILED') || s.includes('PLAN EXAM');
-                      return true;
-                    })
-                    .map((app: any, idx: number) => {
+                          const allSelected = visibleKeys.length > 0 && visibleKeys.every((k: string) => selectedItems.has(k));
+                          return (
+                            <Checkbox
+                              checked={allSelected}
+                              onCheckedChange={() => selectAllVisible(visibleKeys)}
+                              className="ml-1"
+                            />
+                          );
+                        })()}
+                      </TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wider">Job #</TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wider hidden sm:table-cell">Job Type</TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wider">Status</TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wider">Filed</TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wider hidden md:table-cell">Description</TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wider hidden sm:table-cell">Floor/Apt</TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wider hidden lg:table-cell">Notes</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredApplications.map((app: any, idx: number) => {
                       const appKey = `${app.source || 'BIS'}-${app.id || app.application_number || idx}`;
                       return (
                         <ExpandableApplicationRow
@@ -899,8 +944,9 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
                         />
                       );
                     })}
-                </TableBody>
-              </Table>
+                  </TableBody>
+                </Table>
+              </div>
             </div>
           )}
         </div>
@@ -927,53 +973,79 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
             <div className="text-center py-12 text-muted-foreground text-sm">No DOB complaints found.</div>
           ) : (
             <div className="w-full">
-              <Table className="text-sm w-full">
-                <TableHeader>
-                  <TableRow className="bg-muted/30 hover:bg-muted/30">
-                    <TableHead className="w-8">
-                      {bulkMode && (() => {
-                        const visibleKeys = complaints.map((c: any, idx: number) => `complaint:${c.complaint_number || idx}:DOB`);
-                        const allSelected = visibleKeys.length > 0 && visibleKeys.every((k: string) => selectedItems.has(k));
-                        return (
-                          <Checkbox
-                            checked={allSelected}
-                            onCheckedChange={() => selectAllVisible(visibleKeys)}
-                            className="ml-1"
-                          />
-                        );
-                      })()}
-                    </TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider">Complaint #</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider">Date</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider hidden sm:table-cell">Category</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider hidden md:table-cell">Unit</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider">Status</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider hidden md:table-cell">Disposition</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider hidden lg:table-cell">Notes</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {complaints.map((c: any, idx: number) => {
-                    const complaintId = c.complaint_number || String(idx);
-                    return (
-                      <ExpandableComplaintRow
-                        key={complaintId}
-                        complaint={c}
-                        index={idx}
-                        note={lineItemNotes[`complaint-${complaintId}`] || ''}
-                        onNoteChange={(n) => updateLineItemNote('complaint', complaintId, n)}
-                        readOnly={isReadOnly}
-                        reportId={report.id}
-                        editStatus={editStatuses[`complaint-${complaintId}`] || null}
-                        onEditSaved={(editId) => handleEditSaved('complaint', complaintId, editId)}
-                        bulkMode={bulkMode}
-                        isSelected={selectedItems.has(`complaint:${complaintId}:DOB`)}
-                        onToggleSelect={() => toggleItemSelection(`complaint:${complaintId}:DOB`)}
-                      />
-                    );
-                  })}
-                </TableBody>
-              </Table>
+              {/* Mobile */}
+              <div className="sm:hidden divide-y divide-border">
+                {filteredComplaints.map((c: any, idx: number) => {
+                  const complaintId = c.complaint_number || String(idx);
+                  return (
+                    <MobileComplaintCard
+                      key={complaintId}
+                      complaint={c}
+                      index={idx}
+                      note={lineItemNotes[`complaint-${complaintId}`] || ''}
+                      onNoteChange={(n) => updateLineItemNote('complaint', complaintId, n)}
+                      readOnly={isReadOnly}
+                      reportId={report.id}
+                      editStatus={editStatuses[`complaint-${complaintId}`] || null}
+                      onEditSaved={(editId) => handleEditSaved('complaint', complaintId, editId)}
+                      bulkMode={bulkMode}
+                      isSelected={selectedItems.has(`complaint:${complaintId}:DOB`)}
+                      onToggleSelect={() => toggleItemSelection(`complaint:${complaintId}:DOB`)}
+                    />
+                  );
+                })}
+              </div>
+
+              {/* Desktop */}
+              <div className="hidden sm:block">
+                <Table className="text-sm w-full">
+                  <TableHeader>
+                    <TableRow className="bg-muted/30 hover:bg-muted/30">
+                      <TableHead className="w-8">
+                        {bulkMode && (() => {
+                          const visibleKeys = filteredComplaints.map((c: any, idx: number) => `complaint:${c.complaint_number || idx}:DOB`);
+                          const allSelected = visibleKeys.length > 0 && visibleKeys.every((k: string) => selectedItems.has(k));
+                          return (
+                            <Checkbox
+                              checked={allSelected}
+                              onCheckedChange={() => selectAllVisible(visibleKeys)}
+                              className="ml-1"
+                            />
+                          );
+                        })()}
+                      </TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wider">Complaint #</TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wider">Date</TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wider hidden sm:table-cell">Category</TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wider hidden md:table-cell">Unit</TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wider">Status</TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wider hidden md:table-cell">Disposition</TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wider hidden lg:table-cell">Notes</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredComplaints.map((c: any, idx: number) => {
+                      const complaintId = c.complaint_number || String(idx);
+                      return (
+                        <ExpandableComplaintRow
+                          key={complaintId}
+                          complaint={c}
+                          index={idx}
+                          note={lineItemNotes[`complaint-${complaintId}`] || ''}
+                          onNoteChange={(n) => updateLineItemNote('complaint', complaintId, n)}
+                          readOnly={isReadOnly}
+                          reportId={report.id}
+                          editStatus={editStatuses[`complaint-${complaintId}`] || null}
+                          onEditSaved={(editId) => handleEditSaved('complaint', complaintId, editId)}
+                          bulkMode={bulkMode}
+                          isSelected={selectedItems.has(`complaint:${complaintId}:DOB`)}
+                          onToggleSelect={() => toggleItemSelection(`complaint:${complaintId}:DOB`)}
+                        />
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
             </div>
           )}
         </div>
