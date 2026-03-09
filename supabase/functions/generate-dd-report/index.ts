@@ -1337,19 +1337,18 @@ async function fetchACRISData(bbl: string): Promise<any> {
   } catch (error) {
     console.error("ACRIS fetch error:", error);
     return { documents: [], deeds: [], mortgages: [], liens: [] };
+  }
 }
 
 async function fetchTaxLienData(bbl: string): Promise<any[]> {
   if (!bbl || bbl.length < 10) return [];
   try {
-    // BBL format: Borough(1) Block(5) Lot(4) — parse into components
     const borough = bbl.substring(0, 1);
     const block = bbl.substring(1, 6).replace(/^0+/, '');
     const lot = bbl.substring(6, 10).replace(/^0+/, '');
     
     console.log(`Tax Lien lookup: BBL=${bbl}, Borough=${borough}, Block=${block}, Lot=${lot}`);
     
-    // Query by borough, block, lot
     const records = await fetchNYCData(NYC_ENDPOINTS.TAX_LIEN_SALE, {
       "$where": `borough = '${borough}' AND block = '${block}' AND lot = '${lot}'`,
       "$limit": "50",
@@ -1374,7 +1373,6 @@ async function fetchTaxLienData(bbl: string): Promise<any[]> {
     console.error("Tax Lien Sale fetch error:", error);
     return [];
   }
-}
 }
 
 async function generateAIAnalysis(reportData: any, customerConcern: string | null, LOVABLE_API_KEY: string): Promise<string> {
