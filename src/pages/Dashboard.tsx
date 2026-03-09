@@ -483,17 +483,17 @@ const Dashboard = () => {
               const si = statusInfo(r.status);
               return (
                 <Card key={r.id} className="border-primary/20 hover:border-primary/40 transition-colors cursor-pointer" onClick={() => setSelectedReportId(r.id)}>
-                  <CardContent className="p-4 flex items-center justify-between">
+                  <CardContent className="p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div className="space-y-1 min-w-0 flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <p className="font-semibold text-sm">{r.address || 'Unknown Address'}</p>
+                        <p className="font-semibold text-sm truncate">{r.address || 'Unknown Address'}</p>
                         <Badge variant={si.variant} className={si.className}>{si.label}</Badge>
                       </div>
                       <p className="text-xs text-muted-foreground">
                         {r.prepared_for} · {format(new Date(r.created_at), 'MMM d, yyyy')}
                       </p>
                     </div>
-                    <Button variant="outline" size="sm">
+                    <Button variant="outline" size="sm" className="w-full sm:w-auto">
                       <ArrowRight className="h-3.5 w-3.5 mr-1" /> Review
                     </Button>
                   </CardContent>
