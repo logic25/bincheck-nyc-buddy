@@ -265,8 +265,8 @@ const Dashboard = () => {
 
   const statusInfo = (status: string) => CLIENT_STATUS_LABELS[status] ?? { label: status, variant: 'outline' as const };
 
-  // Client report viewer (non-admin)
-  if (!isAdmin && selectedReportId) {
+  // Client report viewer (non-admin or admin previewing client view)
+  if (showClientView && selectedReportId) {
     if (loadingSelectedReport) {
       return (
         <div className="min-h-screen bg-background flex items-center justify-center">
