@@ -505,25 +505,32 @@ async function fetchViolations(bin: string, bbl: string): Promise<any[]> {
     }));
   }
 
-  if (bbl && bbl.length >= 10) {
+    if (bbl && bbl.length >= 10) {
     const borough = bbl.slice(0, 1);
     const block = bbl.slice(1, 6).replace(/^0+/, '') || '0';
     const lot = bbl.slice(6, 10).replace(/^0+/, '') || '0';
-    const hpdViolations = await fetchNYCData(NYC_ENDPOINTS.HPD_VIOLATIONS, {
-      "boroid": borough, "block": block, "lot": lot,
-      "$where": "violationstatus = 'Open'", "$limit": "1000", "$order": "inspectiondate DESC",
-    });
-    violations.push(...hpdViolations.map((v: any) => {
-      const desc = (v.novdescription || '').toLowerCase();
-      return {
-        id: v.violationid, agency: "HPD",
-        violation_number: v.violationid?.toString() || null, violation_type: v.novdescription?.slice(0, 50) || null,
-        violation_class: v.class || null, description_raw: v.novdescription || null,
-        issued_date: v.inspectiondate || v.novissueddate || null, severity: v.class || null, status: "open",
-        apartment: v.apartment || null, story: v.story || null,
-        is_vacate_order: desc.includes('vacate'), is_stop_work_order: false, is_partial_stop_work: false,
-      };
-    }));
+
+    // Only fetch HPD violations for residential/mixed-use properties (PLUTO landuse 01-03)
+    // HPD has jurisdiction over housing only — skip for commercial/industrial buildings
+    if (isResidentialProperty) {
+      const hpdViolations = await fetchNYCData(NYC_ENDPOINTS.HPD_VIOLATIONS, {
+        "boroid": borough, "block": block, "lot": lot,
+        "$where": "violationstatus = 'Open'", "$limit": "1000", "$order": "inspectiondate DESC",
+      });
+      violations.push(...hpdViolations.map((v: any) => {
+        const desc = (v.novdescription || '').toLowerCase();
+        return {
+          id: v.violationid, agency: "HPD",
+          violation_number: v.violationid?.toString() || null, violation_type: v.novdescription?.slice(0, 50) || null,
+          violation_class: v.class || null, description_raw: v.novdescription || null,
+          issued_date: v.inspectiondate || v.novissueddate || null, severity: v.class || null, status: "open",
+          apartment: v.apartment || null, story: v.story || null,
+          is_vacate_order: desc.includes('vacate'), is_stop_work_order: false, is_partial_stop_work: false,
+        };
+      }));
+    } else {
+      console.log('HPD: Skipped — commercial/industrial property (landuse not 01-03)');
+    }
 
     // Fetch OATH violations for all 6 agencies in parallel
     const oathResults = await Promise.all(

@@ -578,29 +578,6 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
         )}
       </section>
 
-      {/* AI Analysis / Conclusion */}
-      {report.ai_analysis && (
-        <section className="mb-6" style={{ pageBreakBefore: 'auto' }}>
-          <h3 className={sectionHeaderStyle}>Risk Assessment & Conclusion</h3>
-          <div className="text-[11px] leading-relaxed">
-            <ReactMarkdown
-              components={{
-                h1: ({ children }) => <h1 className="text-[14px] font-bold mt-4 mb-2 text-gray-900">{children}</h1>,
-                h2: ({ children }) => <h2 className="text-[13px] font-bold mt-3 mb-1.5 text-gray-900">{children}</h2>,
-                h3: ({ children }) => <h3 className="text-[12px] font-bold mt-2 mb-1 text-gray-800">{children}</h3>,
-                p: ({ children }) => <p className="mb-2 text-gray-700">{children}</p>,
-                ul: ({ children }) => <ul className="list-disc ml-4 mb-2">{children}</ul>,
-                ol: ({ children }) => <ol className="list-decimal ml-4 mb-2">{children}</ol>,
-                li: ({ children }) => <li className="mb-0.5 text-gray-700">{children}</li>,
-                strong: ({ children }) => <strong className="font-bold text-gray-900">{children}</strong>,
-              }}
-            >
-              {report.ai_analysis}
-            </ReactMarkdown>
-          </div>
-        </section>
-      )}
-
       {/* General Notes */}
       {report.general_notes && (
         <section className="mb-6" style={{ pageBreakInside: 'avoid' }}>

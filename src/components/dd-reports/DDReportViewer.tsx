@@ -1311,7 +1311,6 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
           <DDReportPrintView report={{
             ...report,
             general_notes: generalNotes || report.general_notes,
-            ai_analysis: aiAnalysis || report.ai_analysis,
             line_item_notes: Object.entries(lineItemNotes).map(([key, note]) => {
               const [item_type, ...rest] = key.split('-');
               return { item_type, item_id: rest.join('-'), note };
