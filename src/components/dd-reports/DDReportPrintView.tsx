@@ -69,12 +69,21 @@ const formatBBL = (bbl: string | null | undefined): string => {
   return `${clean.slice(0, 1)}-${clean.slice(1, 6).replace(/^0+/, '') || '0'}-${clean.slice(6, 10).replace(/^0+/, '') || '0'}`;
 };
 
+const formatCurrency = (val: any): string => {
+  if (!val && val !== 0) return '—';
+  const num = typeof val === 'string' ? parseFloat(val) : val;
+  if (isNaN(num)) return String(val);
+  return `$${num.toLocaleString()}`;
+};
+
 const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
   const violations = (report.violations_data || []).filter((v: any) => !v.hidden);
   const applications = (report.applications_data || []).filter((a: any) => !a.hidden);
   const orders = report.orders_data || { stop_work: [], vacate: [] };
+  const allComplaints = (report.complaints_data || []).filter((c: any) => !c.hidden);
+  // Only show open complaints in DD report
+  const complaints = allComplaints.filter((c: any) => (c.status || '').toLowerCase() !== 'closed');
   const building = report.building_data || {};
-  const complaints = (report.complaints_data || []).filter((c: any) => !c.hidden);
   const acris = report.acris_data || { documents: [], deeds: [], mortgages: [], liens: [] };
   const acrisDocuments = acris.documents || [];
   const reportId = generateReportId(report.report_date);
@@ -123,11 +132,9 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
   };
 
   const sectionHeaderStyle = "text-[13px] font-bold uppercase tracking-[0.08em] text-gray-900 border-b-2 border-gray-900 pb-1.5 mb-4";
-  const tableCellStyle = "border border-gray-200 px-2 py-1.5 text-[11px]";
+  const tableCellStyle = "border border-gray-200 px-2 py-1.5 text-[11px] align-top";
   const tableHeaderStyle = "border border-gray-200 px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-gray-600 bg-gray-50";
-  const sectionBreakStyle: React.CSSProperties = { pageBreakInside: 'avoid' as const };
 
-  // Check if violation likely needs architect
   const isArchitectLikelyNeeded = (v: any): boolean => {
     const desc = (v.description_raw || v.violation_type || '').toLowerCase();
     return desc.includes('illegal conversion') || desc.includes('illegal alteration') ||
@@ -140,10 +147,17 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
 
   const architectTaggedCount = violations.filter(isArchitectLikelyNeeded).length;
 
+  // Calculate total ECB penalty balance
+  const totalEcbPenalties = ecbViolations.reduce((sum: number, v: any) => {
+    const penalty = parseFloat(v.penalty_imposed || v.penalty_amount || 0);
+    const paid = parseFloat(v.amount_paid || 0);
+    return sum + Math.max(0, penalty - paid);
+  }, 0);
+
   const renderViolationGroup = (agencyViolations: any[], agencyName: string) => {
     if (agencyViolations.length === 0) return null;
     return (
-      <div className="mb-5">
+      <div className="mb-5" style={{ pageBreakInside: 'avoid' }}>
         <div className="flex items-center justify-between mb-2">
           <h4 className="text-[12px] font-bold text-gray-800">{agencyName} Violations</h4>
           <span className="text-[10px] font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded">{agencyViolations.length} items</span>
@@ -151,28 +165,32 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
         <table className="w-full border-collapse">
           <thead>
             <tr>
-              <th className={tableHeaderStyle}>Violation #</th>
-              <th className={tableHeaderStyle}>Type / Description</th>
-              <th className={tableHeaderStyle}>Severity</th>
-              <th className={tableHeaderStyle}>Issued</th>
-              <th className={tableHeaderStyle}>Status</th>
-              <th className={`${tableHeaderStyle} w-[28%]`}>Notes</th>
+              <th className={tableHeaderStyle} style={{ width: '14%' }}>Violation #</th>
+              <th className={tableHeaderStyle} style={{ width: '18%' }}>Type / Description</th>
+              <th className={tableHeaderStyle} style={{ width: '8%' }}>Severity</th>
+              <th className={tableHeaderStyle} style={{ width: '8%' }}>Issued</th>
+              <th className={tableHeaderStyle} style={{ width: '7%' }}>Status</th>
+              <th className={tableHeaderStyle} style={{ width: '45%' }}>Notes</th>
             </tr>
           </thead>
           <tbody>
-            {agencyViolations.slice(0, 50).map((v: any, idx: number) => (
-              <tr key={idx} className={idx % 2 === 0 ? '' : 'bg-gray-50/50'}>
+            {agencyViolations.map((v: any, idx: number) => (
+              <tr key={idx} className={idx % 2 === 0 ? '' : 'bg-gray-50/50'} style={{ pageBreakInside: 'avoid' }}>
                 <td className={`${tableCellStyle} font-mono text-[10px]`}>
                   {v.violation_number}
                   {isArchitectLikelyNeeded(v) && (
-                    <span className="ml-1 text-[8px] font-bold text-blue-700 bg-blue-50 px-1 py-0 rounded" title="Architect certification typically involved">RA</span>
+                    <span className="ml-1 text-[8px] font-bold text-blue-700 bg-blue-50 px-1 py-0 rounded">RA</span>
                   )}
                 </td>
-                <td className={`${tableCellStyle} max-w-[160px]`}>{(v.violation_type || v.description_raw || '—').slice(0, 55)}</td>
+                <td className={`${tableCellStyle}`}>
+                  <div className="break-words">{(v.violation_type || v.description_raw || '—').slice(0, 80)}</div>
+                </td>
                 <td className={tableCellStyle}>{v.severity || v.violation_class || '—'}</td>
                 <td className={`${tableCellStyle} whitespace-nowrap`}>{formatShortDate(v.issued_date)}</td>
                 <td className={tableCellStyle}>{v.status}</td>
-                <td className={`${tableCellStyle} text-gray-600`}>{getNote('violation', v.id || v.violation_number)}</td>
+                <td className={`${tableCellStyle} text-gray-600`}>
+                  <div className="break-words leading-[1.4]">{getNote('violation', v.id || v.violation_number)}</div>
+                </td>
               </tr>
             ))}
           </tbody>
@@ -183,8 +201,9 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
 
   const renderApplicationsTable = (apps: any[], title: string) => {
     if (apps.length === 0) return null;
+    const isBIS = title.includes('BIS');
     return (
-      <div className="mb-5">
+      <div className="mb-5" style={{ pageBreakInside: 'avoid' }}>
         <div className="flex items-center justify-between mb-2">
           <h4 className="text-[12px] font-bold text-gray-800">{title}</h4>
           <span className="text-[10px] font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded">{apps.length} items</span>
@@ -192,23 +211,36 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
         <table className="w-full border-collapse">
           <thead>
             <tr>
-              <th className={tableHeaderStyle}>Application #</th>
-              <th className={tableHeaderStyle}>Date Filed</th>
-              <th className={tableHeaderStyle}>Floor/Apt</th>
-              <th className={tableHeaderStyle}>Description</th>
-              <th className={`${tableHeaderStyle} w-[24%]`}>Notes</th>
+              <th className={tableHeaderStyle} style={{ width: '12%' }}>Application #</th>
+              <th className={tableHeaderStyle} style={{ width: '8%' }}>Type</th>
+              <th className={tableHeaderStyle} style={{ width: '8%' }}>Date Filed</th>
+              <th className={tableHeaderStyle} style={{ width: '7%' }}>Status</th>
+              <th className={tableHeaderStyle} style={{ width: isBIS ? '10%' : '12%' }}>{isBIS ? 'Filing Professional' : 'Applicant'}</th>
+              <th className={tableHeaderStyle} style={{ width: '25%' }}>Description</th>
+              <th className={tableHeaderStyle} style={{ width: '30%' }}>Notes</th>
             </tr>
           </thead>
           <tbody>
-            {apps.slice(0, 30).map((app: any, idx: number) => {
+            {apps.map((app: any, idx: number) => {
               const appKey = `${app.source || 'BIS'}-${app.id || app.application_number || idx}`;
+              const applicantName = isBIS
+                ? (app.filing_professional_name || '—')
+                : (app.applicant_name || [app.applicant_first_name, app.applicant_last_name].filter(Boolean).join(' ') || '—');
               return (
-                <tr key={idx} className={idx % 2 === 0 ? '' : 'bg-gray-50/50'}>
+                <tr key={idx} className={idx % 2 === 0 ? '' : 'bg-gray-50/50'} style={{ pageBreakInside: 'avoid' }}>
                   <td className={`${tableCellStyle} font-mono text-[10px]`}>{app.application_number || app.job_number}</td>
-                  <td className={`${tableCellStyle} whitespace-nowrap`}>{formatShortDate(app.filing_date)}</td>
-                  <td className={tableCellStyle}>{cleanFloorApt(app.floor, app.apartment)}</td>
-                  <td className={`${tableCellStyle} max-w-[200px]`}>{(app.job_description || '—').slice(0, 70)}</td>
-                  <td className={`${tableCellStyle} text-gray-600`}>{getNote('application', appKey)}</td>
+                  <td className={tableCellStyle}>{app.application_type || app.work_type || '—'}</td>
+                  <td className={`${tableCellStyle} whitespace-nowrap`}>{formatShortDate(app.filing_date || app.issued_date)}</td>
+                  <td className={tableCellStyle}>
+                    <span className="text-[10px]">{app.status_description || app.permit_status || app.status || '—'}</span>
+                  </td>
+                  <td className={`${tableCellStyle} text-[10px]`}>{applicantName}</td>
+                  <td className={`${tableCellStyle}`}>
+                    <div className="break-words">{(app.job_description || '—').slice(0, 120)}</div>
+                  </td>
+                  <td className={`${tableCellStyle} text-gray-600`}>
+                    <div className="break-words leading-[1.4]">{getNote('application', appKey)}</div>
+                  </td>
                 </tr>
               );
             })}
@@ -221,8 +253,8 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
   const renderComplaintsTable = () => {
     if (!complaints || complaints.length === 0) return null;
     return (
-      <section className="mb-6">
-        <h3 className={sectionHeaderStyle}>DOB Complaints ({complaints.length})</h3>
+      <section className="mb-6" style={{ pageBreakInside: 'avoid' }}>
+        <h3 className={sectionHeaderStyle}>Open DOB Complaints ({complaints.length})</h3>
         <table className="w-full border-collapse">
           <thead>
             <tr>
@@ -234,13 +266,15 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
             </tr>
           </thead>
           <tbody>
-            {complaints.slice(0, 30).map((c: any, idx: number) => (
-              <tr key={idx} className={idx % 2 === 0 ? '' : 'bg-gray-50/50'}>
+            {complaints.map((c: any, idx: number) => (
+              <tr key={idx} className={idx % 2 === 0 ? '' : 'bg-gray-50/50'} style={{ pageBreakInside: 'avoid' }}>
                 <td className={`${tableCellStyle} font-mono text-[10px]`}>{c.complaint_number || '—'}</td>
                 <td className={`${tableCellStyle} whitespace-nowrap`}>{formatShortDate(c.date_entered)}</td>
                 <td className={tableCellStyle}>{c.status || '—'}</td>
                 <td className={tableCellStyle}>{decodeComplaintCategory(c.complaint_category)}</td>
-                <td className={`${tableCellStyle} max-w-[200px]`}>{(c.category_description || decodeComplaintCategory(c.complaint_category)).slice(0, 70)}</td>
+                <td className={`${tableCellStyle}`}>
+                  <div className="break-words">{(c.category_description || decodeComplaintCategory(c.complaint_category)).slice(0, 100)}</div>
+                </td>
               </tr>
             ))}
           </tbody>
@@ -252,7 +286,7 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
   return (
     <div className="print-container bg-white text-black p-8 max-w-4xl mx-auto" style={{ fontFamily: "'Inter', 'Helvetica Neue', Arial, sans-serif", fontSize: '12px', lineHeight: '1.5' }}>
       {/* Letterhead */}
-      <div className="mb-8">
+      <div className="mb-8" style={{ pageBreakAfter: 'avoid' }}>
         <div className="flex items-start justify-between border-b-2 border-gray-900 pb-4">
           <div>
             <h1 className="text-[22px] font-extrabold tracking-tight text-gray-900">Due Diligence Report</h1>
@@ -279,7 +313,7 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
       </div>
 
       {/* Subject Property */}
-      <div className="mb-6 p-4 bg-gray-50 rounded border border-gray-200">
+      <div className="mb-6 p-4 bg-gray-50 rounded border border-gray-200" style={{ pageBreakInside: 'avoid' }}>
         <div className="flex items-start justify-between">
           <div>
             <p className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold mb-0.5">Subject Property</p>
@@ -306,9 +340,7 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
                   <span
                     key={a.agency}
                     className={`inline-flex items-center text-[9px] font-medium px-1.5 py-0.5 rounded ${
-                      a.results > 0
-                        ? 'bg-gray-900 text-white'
-                        : 'bg-gray-100 text-gray-400'
+                      a.results > 0 ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-400'
                     }`}
                   >
                     {a.agency}{a.results > 0 ? ` (${a.results})` : ''}
@@ -328,33 +360,42 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
 
       {/* Property Status Summary */}
       {report.property_status_summary && (
-        <section className="mb-6 p-5 bg-gray-50 rounded border border-gray-200">
+        <section className="mb-6 p-5 bg-gray-50 rounded border border-gray-200" style={{ pageBreakInside: 'avoid' }}>
           <h3 className="text-[13px] font-bold uppercase tracking-[0.08em] text-gray-900 mb-3">Property Status Summary</h3>
           <div className="flex flex-wrap gap-2 mb-3 pb-3 border-b border-gray-200">
-            <span className="text-[10px] font-medium text-gray-600 bg-gray-100 px-2 py-0.5 rounded">DOB Violations: {dobViolations.length}</span>
-            <span className="text-[10px] font-medium text-gray-600 bg-gray-100 px-2 py-0.5 rounded">ECB Violations: {ecbViolations.length}</span>
-            <span className="text-[10px] font-medium text-gray-600 bg-gray-100 px-2 py-0.5 rounded">HPD Violations: {hpdViolations.length}</span>
+            <span className="text-[10px] font-medium text-gray-600 bg-gray-100 px-2 py-0.5 rounded">DOB: {dobViolations.length}</span>
+            <span className="text-[10px] font-medium text-gray-600 bg-gray-100 px-2 py-0.5 rounded">ECB: {ecbViolations.length}</span>
+            <span className="text-[10px] font-medium text-gray-600 bg-gray-100 px-2 py-0.5 rounded">HPD: {hpdViolations.length}</span>
             {fdnyViolations.length > 0 && <span className="text-[10px] font-medium text-gray-600 bg-gray-100 px-2 py-0.5 rounded">FDNY: {fdnyViolations.length}</span>}
-            <span className="text-[10px] font-medium text-gray-600 bg-gray-100 px-2 py-0.5 rounded">Active Permits: {applications.length}</span>
-            <span className="text-[10px] font-medium text-gray-600 bg-gray-100 px-2 py-0.5 rounded">Complaints: {complaints.length}</span>
+            {otherOathViolations.length > 0 && <span className="text-[10px] font-medium text-gray-600 bg-gray-100 px-2 py-0.5 rounded">Other: {otherOathViolations.length}</span>}
+            <span className="text-[10px] font-medium text-gray-600 bg-gray-100 px-2 py-0.5 rounded">Applications: {applications.length}</span>
+            {complaints.length > 0 && <span className="text-[10px] font-medium text-gray-600 bg-gray-100 px-2 py-0.5 rounded">Open Complaints: {complaints.length}</span>}
+            {totalEcbPenalties > 0 && (
+              <span className="text-[10px] font-semibold text-red-700 bg-red-50 px-2 py-0.5 rounded border border-red-200">
+                ECB Penalties Due: {formatCurrency(totalEcbPenalties)}
+              </span>
+            )}
           </div>
           <p className="text-[13px] leading-relaxed text-gray-700 whitespace-pre-line">{report.property_status_summary}</p>
         </section>
       )}
 
       {/* Building Information */}
-      <section className="mb-6" style={sectionBreakStyle}>
+      <section className="mb-6" style={{ pageBreakInside: 'avoid' }}>
         <h3 className={sectionHeaderStyle}>Building Information</h3>
         <div className="grid grid-cols-4 gap-x-6 gap-y-2 text-[11px]">
           {[
             ['Year Built', building.year_built || '—'],
-            ['Dwelling Units', building.dwelling_units || '—'],
+            ['Stories', building.stories || '—'],
+            ['Dwelling Units', building.dwelling_units ?? '—'],
+            ['Building Class', building.building_class || '—'],
             ['Zoning', building.zoning_district || '—'],
             ['Building Area', building.building_area_sqft ? `${building.building_area_sqft.toLocaleString()} sqft` : '—'],
-            ['Stories', building.stories || '—'],
-            ['Landmark', building.is_landmark ? 'Yes' : 'No'],
+            ['Lot Area', building.lot_area_sqft ? `${building.lot_area_sqft.toLocaleString()} sqft` : '—'],
+            ['Assessed Value', building.assessed_total_value ? formatCurrency(building.assessed_total_value) : '—'],
             ['Owner', building.owner_name || '—'],
-            ['Building Class', building.building_class || '—'],
+            ['Landmark', building.is_landmark ? 'Yes' : building.historic_district ? `Historic: ${building.historic_district}` : 'No'],
+            ['Land Use', building.land_use || '—'],
           ].map(([label, value], i) => (
             <div key={i}>
               <span className="text-gray-500">{label}:</span>{' '}
@@ -364,15 +405,31 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
         </div>
       </section>
 
-      {/* Summary */}
-      <section className="mb-6">
+      {/* Compliance Summary */}
+      <section className="mb-6" style={{ pageBreakInside: 'avoid' }}>
         <h3 className={sectionHeaderStyle}>Compliance Summary</h3>
         <div className="grid grid-cols-4 gap-3">
           {[
-            { label: 'Open Violations', value: violations.length, sub: `DOB: ${dobViolations.length} | ECB: ${ecbViolations.length} | HPD: ${hpdViolations.length}${fdnyViolations.length > 0 ? ` | FDNY: ${fdnyViolations.length}` : ''}${otherOathViolations.length > 0 ? ` | Other: ${otherOathViolations.length}` : ''}` },
-            { label: 'Applications', value: applications.length, sub: `BIS: ${bisApplications.length} | DOB NOW: ${dobNowApplications.length}` },
-            { label: 'Stop Work Orders', value: orders.stop_work?.length || 0, danger: (orders.stop_work?.length || 0) > 0 },
-            { label: 'Vacate Orders', value: orders.vacate?.length || 0, danger: (orders.vacate?.length || 0) > 0 },
+            {
+              label: 'Open Violations',
+              value: violations.length,
+              sub: `DOB: ${dobViolations.length} | ECB: ${ecbViolations.length} | HPD: ${hpdViolations.length}${fdnyViolations.length > 0 ? ` | FDNY: ${fdnyViolations.length}` : ''}${otherOathViolations.length > 0 ? ` | Other: ${otherOathViolations.length}` : ''}`,
+            },
+            {
+              label: 'Applications',
+              value: applications.length,
+              sub: `BIS: ${bisApplications.length} | DOB NOW: ${dobNowApplications.length}`,
+            },
+            {
+              label: 'Stop Work Orders',
+              value: orders.stop_work?.length || 0,
+              danger: (orders.stop_work?.length || 0) > 0,
+            },
+            {
+              label: 'Vacate Orders',
+              value: orders.vacate?.length || 0,
+              danger: (orders.vacate?.length || 0) > 0,
+            },
           ].map((item, i) => (
             <div key={i} className={`p-3 border rounded text-center ${item.danger ? 'border-red-300 bg-red-50' : 'border-gray-200'}`}>
               <div className={`text-[20px] font-bold ${item.danger ? 'text-red-600' : 'text-gray-900'}`}>{item.value}</div>
@@ -381,15 +438,31 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
             </div>
           ))}
         </div>
+        {totalEcbPenalties > 0 && (
+          <div className="mt-3 p-2.5 border border-red-200 bg-red-50/60 rounded text-center">
+            <span className="text-[11px] font-semibold text-red-800">
+              Total Outstanding ECB Penalties: {formatCurrency(totalEcbPenalties)}
+            </span>
+            <span className="text-[10px] text-gray-600 ml-2">
+              (Unpaid ECB penalties typically become property liens)
+            </span>
+          </div>
+        )}
       </section>
 
       {/* Critical Orders */}
-      {(orders.stop_work?.length > 0 || orders.vacate?.length > 0) && (
-        <section className="mb-6">
+      {(orders.stop_work?.length > 0 || orders.vacate?.length > 0 || orders.partial_stop_work?.length > 0) && (
+        <section className="mb-6" style={{ pageBreakInside: 'avoid' }}>
           <h3 className={`${sectionHeaderStyle} text-red-700 border-red-700`}>⚠ Active Orders</h3>
           {orders.stop_work?.map((order: any, idx: number) => (
             <div key={`swo-${idx}`} className="p-3 mb-2 border border-red-200 bg-red-50 rounded">
               <p className="font-bold text-[11px] text-red-800">Stop Work Order — {formatShortDate(order.issued_date)}</p>
+              <p className="text-[11px] text-gray-700">{order.description || 'No description available'}</p>
+            </div>
+          ))}
+          {orders.partial_stop_work?.map((order: any, idx: number) => (
+            <div key={`pswo-${idx}`} className="p-3 mb-2 border border-orange-200 bg-orange-50 rounded">
+              <p className="font-bold text-[11px] text-orange-800">Partial Stop Work Order — {formatShortDate(order.issued_date)}</p>
               <p className="text-[11px] text-gray-700">{order.description || 'No description available'}</p>
             </div>
           ))}
@@ -403,10 +476,10 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
       )}
 
       {/* Violations by Agency */}
-      <section className="mb-6" style={sectionBreakStyle}>
+      <section className="mb-6">
         <h3 className={sectionHeaderStyle}>Open Violations ({violations.length})</h3>
         {violations.length === 0 ? (
-          <p className="text-[11px] text-gray-500 italic">No open violations found.</p>
+          <p className="text-[11px] text-gray-500 italic">No open violations found across all agencies queried.</p>
         ) : (
           <>
             {renderViolationGroup(dobViolations, 'DOB')}
@@ -417,7 +490,7 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
           </>
         )}
         {architectTaggedCount > 0 && (
-          <div className="mt-4 p-3 border border-blue-200 bg-blue-50/50 rounded">
+          <div className="mt-4 p-3 border border-blue-200 bg-blue-50/50 rounded" style={{ pageBreakInside: 'avoid' }}>
             <p className="text-[11px] font-semibold text-blue-900 mb-1">Architect Certification Typically Involved</p>
             <p className="text-[10px] text-gray-700 leading-relaxed">
               {architectTaggedCount} open violation{architectTaggedCount !== 1 ? 's' : ''} (marked <span className="font-bold text-blue-700 bg-blue-100 px-1 rounded text-[9px]">RA</span>) {architectTaggedCount !== 1 ? 'are' : 'is'} of a type where DOB has historically accepted or required a licensed architect's certification letter as part of the dismissal process. BinCheckNYC can coordinate architect opinion letters through our professional network.
@@ -430,7 +503,7 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
       {renderComplaintsTable()}
 
       {/* Applications */}
-      <section className="mb-6" style={sectionBreakStyle}>
+      <section className="mb-6">
         <h3 className={sectionHeaderStyle}>Permit Applications ({applications.length})</h3>
         {applications.length === 0 ? (
           <p className="text-[11px] text-gray-500 italic">No applications found.</p>
@@ -443,7 +516,7 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
       </section>
 
       {/* ACRIS - Property Transfer & Lien History */}
-      <section className="mb-6" style={sectionBreakStyle}>
+      <section className="mb-6" style={{ pageBreakInside: 'avoid' }}>
         <h3 className={sectionHeaderStyle}>Property Transfer & Lien History (ACRIS)</h3>
         {acrisDocuments.length === 0 ? (
           <p className="text-[11px] text-gray-500 italic">
@@ -454,27 +527,38 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
             <table className="w-full border-collapse">
               <thead>
                 <tr>
-                  <th className={tableHeaderStyle}>Date</th>
-                  <th className={tableHeaderStyle}>Document Type</th>
-                  <th className={tableHeaderStyle}>Party 1 (Grantor/Lender)</th>
-                  <th className={tableHeaderStyle}>Party 2 (Grantee/Borrower)</th>
-                  <th className={tableHeaderStyle}>Amount</th>
+                  <th className={tableHeaderStyle} style={{ width: '10%' }}>Date</th>
+                  <th className={tableHeaderStyle} style={{ width: '18%' }}>Document Type</th>
+                  <th className={tableHeaderStyle} style={{ width: '25%' }}>Party 1 (Grantor/Lender)</th>
+                  <th className={tableHeaderStyle} style={{ width: '25%' }}>Party 2 (Grantee/Borrower)</th>
+                  <th className={tableHeaderStyle} style={{ width: '12%' }}>Amount</th>
+                  <th className={tableHeaderStyle} style={{ width: '10%' }}>CRFN/Reel</th>
                 </tr>
               </thead>
               <tbody>
-                {acrisDocuments.slice(0, 10).map((doc: any, idx: number) => (
-                  <tr key={idx} className={idx % 2 === 0 ? '' : 'bg-gray-50/50'}>
-                    <td className={`${tableCellStyle} whitespace-nowrap`}>{formatShortDate(doc.document_date)}</td>
-                    <td className={tableCellStyle}>{doc.document_type || '—'}</td>
-                    <td className={`${tableCellStyle} max-w-[140px] truncate`}>{doc.party1 || '—'}</td>
-                    <td className={`${tableCellStyle} max-w-[140px] truncate`}>{doc.party2 || '—'}</td>
-                    <td className={`${tableCellStyle} whitespace-nowrap`}>
-                      {doc.document_amount ? `$${doc.document_amount.toLocaleString()}` : '—'}
+                {acrisDocuments.slice(0, 20).map((doc: any, idx: number) => (
+                  <tr key={idx} className={idx % 2 === 0 ? '' : 'bg-gray-50/50'} style={{ pageBreakInside: 'avoid' }}>
+                    <td className={`${tableCellStyle} whitespace-nowrap`}>{formatShortDate(doc.document_date || doc.recorded_datetime)}</td>
+                    <td className={tableCellStyle}>{doc.document_type || doc.doc_type || '—'}</td>
+                    <td className={`${tableCellStyle}`}>
+                      <div className="break-words text-[10px]">{doc.party1 || '—'}</div>
                     </td>
+                    <td className={`${tableCellStyle}`}>
+                      <div className="break-words text-[10px]">{doc.party2 || '—'}</div>
+                    </td>
+                    <td className={`${tableCellStyle} whitespace-nowrap`}>
+                      {doc.document_amount ? formatCurrency(doc.document_amount) : '—'}
+                    </td>
+                    <td className={`${tableCellStyle} font-mono text-[9px]`}>{doc.crfn || doc.reel_page || '—'}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
+            {acrisDocuments.length > 20 && (
+              <p className="text-[9px] text-gray-500 mt-1 italic">
+                Showing 20 of {acrisDocuments.length} recorded documents. Additional records available upon request.
+              </p>
+            )}
             <p className="text-[9px] text-gray-400 mt-2 italic">
               Source: NYC ACRIS — recorded documents only. Unrecorded agreements not included.
             </p>
@@ -484,7 +568,7 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
 
       {/* AI Analysis / Conclusion */}
       {report.ai_analysis && (
-        <section className="mb-6">
+        <section className="mb-6" style={{ pageBreakBefore: 'auto' }}>
           <h3 className={sectionHeaderStyle}>Risk Assessment & Conclusion</h3>
           <div className="text-[11px] leading-relaxed">
             <ReactMarkdown
@@ -507,15 +591,15 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
 
       {/* General Notes */}
       {report.general_notes && (
-        <section className="mb-6">
+        <section className="mb-6" style={{ pageBreakInside: 'avoid' }}>
           <h3 className={sectionHeaderStyle}>Notes</h3>
-          <p className="text-[11px] whitespace-pre-wrap text-gray-700">{report.general_notes}</p>
+          <p className="text-[11px] whitespace-pre-wrap text-gray-700 leading-relaxed">{report.general_notes}</p>
         </section>
       )}
 
       {/* CitiSignal Recommendation */}
       {report.citisignal_recommended && (
-        <section className="mb-6 p-5 rounded border-2 border-teal-300 bg-teal-50/50">
+        <section className="mb-6 p-5 rounded border-2 border-teal-300 bg-teal-50/50" style={{ pageBreakInside: 'avoid' }}>
           <h3 className="text-[13px] font-bold text-teal-900 mb-2">Ongoing Compliance Monitoring Available</h3>
           <p className="text-[11px] text-gray-700 leading-relaxed mb-3">
             This property has {violations.length} active violation{violations.length !== 1 ? 's' : ''} and {applications.length} open application{applications.length !== 1 ? 's' : ''} being tracked by multiple NYC agencies. Properties of this size and complexity benefit from continuous monitoring to catch new filings, violation updates, and permit changes as they happen — not just at the point of transaction.
@@ -534,7 +618,7 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
       )}
 
       {/* Footer */}
-      <footer className="mt-10 pt-4 border-t-2 border-gray-900">
+      <footer className="mt-10 pt-4 border-t-2 border-gray-900" style={{ pageBreakInside: 'avoid' }}>
         <p className="text-[9px] font-bold uppercase tracking-widest text-gray-500 mb-2 text-center">Disclaimer</p>
         <p className="text-[9px] text-gray-500 text-justify leading-[1.6]">
           This report is prepared in connection with real estate due diligence using information derived from
