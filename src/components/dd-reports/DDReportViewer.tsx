@@ -290,7 +290,6 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
         .update({
           general_notes: generalNotes.trim() || null,
           line_item_notes: formattedNotes,
-          ai_analysis: aiAnalysis.trim() || null,
         } as any)
         .eq('id', report.id);
 
