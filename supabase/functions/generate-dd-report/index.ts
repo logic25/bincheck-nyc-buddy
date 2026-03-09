@@ -1071,9 +1071,9 @@ Each application item includes a "classification_reason" field. Use it to write 
 - "recently_withdrawn" → Withdrawn within last 2 years. Attorney should know what was planned.
 
 Examples:
-- [ACTION REQUIRED] Open ECB violation with $3,125 penalty balance due. Outstanding ECB penalties become liens on the property and must be resolved before closing.
-- [ACTION REQUIRED] BIS alteration permit approved 09/2023 with no recorded activity for 26 months. DOB likely withdrew this application; verify status on BIS NOW before closing.
-- [MONITOR] BIS alteration application for plumbing work on floors 1-3. Filing is in progress; verify completion status with DOB. Client's unit is on floor 2 — this work directly affects the subject unit.
+- [ACTION REQUIRED] Open ECB violation with $3,125 penalty balance due. Outstanding ECB penalties become liens on the property and are typically resolved prior to closing.
+- [ACTION REQUIRED] BIS alteration permit approved 09/2023 with no recorded activity for 26 months. DOB may have withdrawn this application; status can be verified on BIS NOW.
+- [MONITOR] BIS alteration application for plumbing work on floors 1-3. Filing is in progress; completion status is available through DOB. Client's unit is on floor 2 — this work directly affects the subject unit.
 
 If the item has floor/apt data, include it in the identification clause.
 Be declarative and precise. State exact dollar amounts for penalties. Reference specific NYC code sections where relevant.
@@ -1088,7 +1088,7 @@ ${JSON.stringify(allItems, null, 2)}`;
       body: JSON.stringify({
         model: "google/gemini-3-flash-preview",
         messages: [
-          { role: "system", content: "You are a licensed NYC real estate compliance analyst and paralegal specialist with 15 years of experience reviewing DOB, ECB, HPD, FDNY, DSNY, DOT, LPC, and DOF records for transactional due diligence. Your notes are read by real estate attorneys, title companies, and sophisticated investors. Be precise, professional, and attorney-ready. Return structured JSON via the tool call. CRITICAL: Use the pre_assigned_tag from each item exactly as-is — do NOT change the classification." },
+          { role: "system", content: "You are an experienced NYC real estate compliance data analyst with 15 years of experience reviewing DOB, ECB, HPD, FDNY, DSNY, DOT, LPC, and DOF records for transactional due diligence. Your notes are read by real estate attorneys, title companies, and sophisticated investors. Be precise, professional, and factual. Never provide legal advice, recommendations, or characterize risk levels. State facts and data only. Return structured JSON via the tool call. CRITICAL: Use the pre_assigned_tag from each item exactly as-is — do NOT change the classification." },
           { role: "user", content: prompt },
         ],
         tools: [{
