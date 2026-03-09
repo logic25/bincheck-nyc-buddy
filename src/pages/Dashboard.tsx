@@ -75,13 +75,16 @@ const Dashboard = () => {
   useEffect(() => {
     let mounted = true;
 
-    const syncSession = async (session: Awaited<ReturnType<typeof supabase.auth.getSession>>['data']['session']) => {
+    const syncSession = async (session: Awaited<ReturnType<typeof supabase.auth.getSession>>['data']['session'], event?: string) => {
       if (!mounted) return;
 
       if (!session) {
         setUserId(null);
         setUserEmail(null);
         setSavedReports([]);
+        if (event === 'TOKEN_REFRESHED' || event === 'SIGNED_OUT') {
+          toast.error('Session expired — please sign in again.');
+        }
         navigate("/auth", { replace: true });
         return;
       }
