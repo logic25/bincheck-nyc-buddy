@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -19,11 +19,15 @@ import {
 import {
   FileText, Plus, Search, AlertTriangle, Loader2, Eye, Trash2, Clock, RefreshCw,
   Shield, ArrowLeft, LogOut, Settings, Zap, Inbox, Phone, Mail, Building2, BookOpen, Menu,
+  Users, Brain, Pencil, Scale, BarChart3,
 } from 'lucide-react';
 import { useUserRole } from '@/hooks/useUserRole';
 import { format } from 'date-fns';
 import DDReportViewer from '@/components/dd-reports/DDReportViewer';
 import CreateDDReportDialog from '@/components/dd-reports/CreateDDReportDialog';
+import EditReviewTab from '@/components/admin/EditReviewTab';
+import AILearningTab from '@/components/admin/AILearningTab';
+import ArchitectLettersTab from '@/components/admin/ArchitectLettersTab';
 
 interface DDReport {
   id: string;
