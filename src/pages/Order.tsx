@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { toast } from "sonner";
 import { Shield, MapPin, ArrowRight, ArrowLeft, CheckCircle, Clock, Zap, Lock, Loader2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -65,6 +66,25 @@ const Order = () => {
 
   // Step 3 — Plan
   const [plan, setPlan] = useState<"one-time" | "professional">(initialPlan as any);
+
+  // Mock card form state
+  const [cardNumber, setCardNumber] = useState("");
+  const [cardExpiry, setCardExpiry] = useState("");
+  const [cardCvc, setCardCvc] = useState("");
+  const [cardName, setCardName] = useState("");
+
+  const formatCardNumber = (value: string) => {
+    const digits = value.replace(/\D/g, "").slice(0, 16);
+    return digits.replace(/(\d{4})(?=\d)/g, "$1 ");
+  };
+
+  const formatExpiry = (value: string) => {
+    const digits = value.replace(/\D/g, "").slice(0, 4);
+    if (digits.length <= 2) return digits;
+    return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+  };
+
+  const cardValid = cardNumber.replace(/\s/g, "").length === 16 && cardExpiry.length === 5 && cardCvc.length >= 3 && cardName.trim().length > 0;
 
   const fetchSuggestions = useCallback(async (text: string) => {
     if (text.length < 3 || /^\d+$/.test(text.trim())) { setSuggestions([]); return; }
@@ -143,10 +163,58 @@ const Order = () => {
 
   const handlePayAndOrder = async () => {
     setIsProcessing(true);
-    // Mock payment processing — Stripe not wired yet
-    await new Promise(r => setTimeout(r, 2000));
-    setIsProcessing(false);
-    setSubmitted(true);
+    try {
+      // Simulate payment processing delay
+      await new Promise(r => setTimeout(r, 2500));
+
+      // Get or create user session
+      const { data: sessionData } = await supabase.auth.getSession();
+      const currentUserId = sessionData?.session?.user?.id;
+
+      if (!currentUserId) {
+        toast.error("Please sign in to complete your order");
+        navigate("/auth");
+        return;
+      }
+
+      // Create a real DD report
+      const { data: newReport, error: reportError } = await supabase.from("dd_reports").insert({
+        user_id: currentUserId,
+        address: address.trim(),
+        prepared_for: `${firstName} ${lastName}`,
+        client_name: `${firstName} ${lastName}`,
+        client_email: email.trim(),
+        client_firm: company.trim() || null,
+        customer_concern: concern.trim() || null,
+        rush_requested: rush,
+        requested_delivery_date: deliveryDate || null,
+        payment_status: "paid",
+        payment_amount: totalPrice,
+        status: "generating",
+        generation_started_at: new Date().toISOString(),
+        order_lead_id: leadId,
+      }).select("id").single();
+
+      if (reportError) throw reportError;
+
+      // Mark lead as converted
+      if (leadId) {
+        await supabase.from("order_leads").update({ converted: true }).eq("id", leadId);
+      }
+
+      // Fire report generation (don't await — it runs in background)
+      if (newReport) {
+        supabase.functions.invoke("generate-dd-report", {
+          body: { reportId: newReport.id, address: address.trim() },
+        }).catch(() => {});
+      }
+
+      setSubmitted(true);
+    } catch (e: any) {
+      toast.error("Order failed: " + (e.message || "Please try again"));
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   if (submitted) {
@@ -467,17 +535,68 @@ const Order = () => {
               </CardContent>
             </Card>
 
+            {/* Card Payment Form */}
+            <Card className="border-border">
+              <CardContent className="p-5 space-y-4">
+                <p className="text-sm font-semibold flex items-center gap-2">
+                  <Lock className="h-4 w-4 text-muted-foreground" /> Payment Details
+                </p>
+                <div className="space-y-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Name on Card</Label>
+                    <Input
+                      placeholder="Jane Smith"
+                      value={cardName}
+                      onChange={(e) => setCardName(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Card Number</Label>
+                    <Input
+                      placeholder="4242 4242 4242 4242"
+                      value={cardNumber}
+                      onChange={(e) => setCardNumber(formatCardNumber(e.target.value))}
+                      maxLength={19}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Expiry</Label>
+                      <Input
+                        placeholder="MM/YY"
+                        value={cardExpiry}
+                        onChange={(e) => setCardExpiry(formatExpiry(e.target.value))}
+                        maxLength={5}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">CVC</Label>
+                      <Input
+                        placeholder="123"
+                        value={cardCvc}
+                        onChange={(e) => setCardCvc(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                        maxLength={4}
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-muted/50 rounded-md px-3 py-2 text-xs text-muted-foreground flex items-start gap-2">
+                  <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                  <span>Beta mode — use test card <span className="font-mono font-medium text-foreground">4242 4242 4242 4242</span> with any expiry &amp; CVC. No real charges.</span>
+                </div>
+              </CardContent>
+            </Card>
+
             <div className="space-y-3">
-              <Button className="w-full" size="lg" onClick={handlePayAndOrder} disabled={isProcessing}>
+              <Button className="w-full" size="lg" onClick={handlePayAndOrder} disabled={isProcessing || !cardValid}>
                 {isProcessing ? (
                   <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Processing payment...</>
                 ) : (
                   <><Lock className="h-4 w-4 mr-2" /> Pay {priceLabel} &amp; Order Report</>
                 )}
               </Button>
-              <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground">
-                <span className="flex items-center gap-1"><Lock className="h-3 w-3" /> Secured by Stripe</span>
-                <span className="flex items-center gap-1"><AlertCircle className="h-3 w-3" /> Payment UI — Stripe not yet wired</span>
+              <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
+                <Lock className="h-3 w-3" /> 256-bit SSL encrypted
               </div>
               <Button variant="ghost" className="w-full" onClick={() => setStep(2)}>
                 <ArrowLeft className="h-4 w-4 mr-1" /> Back
