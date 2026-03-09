@@ -54,6 +54,8 @@ const Dashboard = () => {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { isAdmin, isLoading: roleLoading } = useUserRole();
+  const [viewAsClient, setViewAsClient] = useState(false);
+  const showClientView = !isAdmin || viewAsClient;
   const [savedReports, setSavedReports] = useState<ReportRow[]>([]);
   const [loadingSaved, setLoadingSaved] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);

@@ -8,7 +8,10 @@ const ALLOWED_ORIGINS = [
 
 function getCorsHeaders(req: Request) {
   const origin = req.headers.get('origin') || '';
-  const corsOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  const isAllowed = ALLOWED_ORIGINS.includes(origin) ||
+    /^https:\/\/.*\.lovable\.app$/.test(origin) ||
+    /^https:\/\/.*\.lovableproject\.com$/.test(origin);
+  const corsOrigin = isAllowed ? origin : ALLOWED_ORIGINS[0];
   return {
     'Access-Control-Allow-Origin': corsOrigin,
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
