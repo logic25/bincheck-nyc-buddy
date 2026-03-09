@@ -1365,7 +1365,7 @@ async function fetchTaxLienData(bbl: string): Promise<any[]> {
       "$where": `borough = '${borough}' AND block = '${block}' AND lot = '${lot}'`,
       "$limit": "50",
       "$order": "tax_class_code DESC",
-    });
+    }, 'DOF-LIEN');
     
     console.log(`Tax Lien Sale: ${records.length} records found`);
     
