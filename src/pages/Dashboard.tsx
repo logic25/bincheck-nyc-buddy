@@ -227,7 +227,7 @@ const Dashboard = () => {
       if (error) throw error;
       return data || [];
     },
-    enabled: !!userEmail && !isAdmin,
+    enabled: !!userEmail && showClientView,
   });
 
   const regenerateReport = useMutation({
