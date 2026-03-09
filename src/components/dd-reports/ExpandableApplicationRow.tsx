@@ -23,6 +23,8 @@ interface ExpandableApplicationRowProps {
   bulkMode?: boolean;
   isSelected?: boolean;
   onToggleSelect?: () => void;
+  isAdmin?: boolean;
+  onToggleHidden?: () => void;
 }
 
 const formatDate = (dateStr: string | null | undefined): string => {
