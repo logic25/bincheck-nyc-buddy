@@ -19,7 +19,7 @@ import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import {
   Shield, ArrowLeft, Loader2, Zap, Trash2, ChevronRight, ChevronLeft,
-  Brain, BarChart3, TrendingUp, DollarSign, Activity, Plus, BookOpen, Search,
+  Brain, BarChart3, TrendingUp, DollarSign, Activity, Plus, BookOpen, Search, FileText,
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { format, subDays, startOfDay } from 'date-fns';

@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { Shield, ArrowLeft, Loader2, Save, LogOut, KeyRound, User, CreditCard, CheckCircle } from 'lucide-react';
+import { Shield, ArrowLeft, Loader2, Save, LogOut, KeyRound, User, CreditCard, CheckCircle, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import { useUserRole } from '@/hooks/useUserRole';
 
