@@ -1397,25 +1397,39 @@ Mortgages: ${acrisData.mortgages.length} recorded${acrisData.mortgages.length > 
 Liens: ${acrisData.liens.length} recorded`
     : '\n\nACRIS: No records found (may be a cooperative or records filed under a different lot).';
 
-  const prompt = `You are a professional real estate due diligence analyst. Analyze this NYC property data and provide a comprehensive risk assessment.
+  const prompt = `Compile a factual summary of the following NYC property records. Report ONLY what the data shows — counts, dates, amounts, statuses, and document types. Do NOT assign risk levels, characterize findings (e.g., "excellent," "concerning," "red flag"), offer opinions, provide recommendations, or use advisory language (e.g., "should," "recommend," "caution," "consider").
 
 PROPERTY: ${building?.address || 'Unknown'} | BIN: ${building?.bin || 'Unknown'} | BBL: ${building?.bbl || 'Unknown'}
 Year Built: ${building?.year_built || 'Unknown'} | Stories: ${building?.stories || 'Unknown'} | Units: ${building?.dwelling_units || 'Unknown'}
 Zoning: ${building?.zoning_district || 'Unknown'} | Landmark: ${building?.is_landmark ? 'Yes' : 'No'} | Owner: ${building?.owner_name || 'Unknown'}
 
-VIOLATIONS: ${openViolations.length} total (DOB: ${dobV.length}, ECB: ${ecbV.length}, HPD: ${hpdV.length})
+VIOLATIONS: ${openViolations.length} total open (DOB: ${dobV.length}, ECB: ${ecbV.length}, HPD: ${hpdV.length})
 Stop Work Orders: ${orders.stop_work?.length || 0} | Vacate Orders: ${orders.vacate?.length || 0}
 
-RECENT: ${openViolations.slice(0, 10).map((v: any) => `[${v.agency}] ${v.violation_type || v.description_raw || 'Unknown'}`).join('; ') || 'None'}
+OPEN VIOLATIONS:
+${openViolations.slice(0, 15).map((v: any) => `- [${v.agency}] ${v.violation_number || 'N/A'}: ${v.violation_type || v.description_raw || 'No description'}. Issued: ${v.issued_date || 'Unknown'}. Status: ${v.status || 'open'}.${v.penalty_amount ? ` Outstanding penalty: $${parseFloat(v.penalty_amount).toLocaleString()}.` : ''}`).join('\n') || 'None'}
 
-APPLICATIONS: ${applications.length} total
-${applications.slice(0, 5).map((a: any) => `[${a.source}] ${a.application_type || 'Unknown'} - ${a.status || 'Unknown'}`).join('; ') || 'None'}
+APPLICATIONS: ${applications.length} total active
+${applications.slice(0, 8).map((a: any) => `- [${a.source}] ${a.application_number || 'N/A'}: ${a.application_type || a.job_type || 'Unknown'}. Filed: ${a.filing_date || 'Unknown'}. Status: ${a.status || 'Unknown'}.${a.job_description ? ` Desc: ${a.job_description}` : ''}`).join('\n') || 'None'}
 ${acrisSection}
 
-TAX LIEN SALE STATUS: ${(taxLienData || []).length > 0 ? `⚠️ PROPERTY IS ON THE NYC TAX LIEN SALE LIST (${(taxLienData || []).length} record(s)). This means the property has delinquent taxes, water charges, or other municipal debts that are eligible for sale to a third-party lien purchaser.` : 'Not on the Tax Lien Sale List — no delinquent taxes or charges identified.'}
+TAX LIEN SALE STATUS: ${(taxLienData || []).length > 0 ? `Property appears on the Tax Lien Sale List with ${(taxLienData || []).length} record(s).` : 'Not on the Tax Lien Sale List.'}
 ${concernSection}
 
-Provide: 1. Risk Level (Low/Medium/High/Critical) 2. Key Findings 3. Violation Analysis 4. Permit Activity 5. Ownership & Lien History 6. Tax Lien Status 7. Recommendations${customerConcern ? ' 8. Conclusion addressing the customer concern directly' : ''}`;
+Structure your response with these sections:
+1. **Property Overview** — Building type, age, zoning, owner of record.
+2. **Open Violations** — List each open violation by agency with number, type, date issued, and any outstanding penalties. State total ECB penalty balance.
+3. **Active Permits & Applications** — List each active application with type, filing date, and current status.
+4. **Ownership & Recorded Documents** — State most recent deed holder, purchase date and amount, most recent mortgage, and count of recorded liens.
+5. **Tax Lien Status** — State whether the property is on the lien sale list.
+${customerConcern ? `6. **Stated Area of Interest** — Identify which open items from the data relate to: "${customerConcern}". List them by number. Do not advise.` : ''}
+
+CRITICAL RULES:
+- State facts and data only. No adjectives like "clean," "excellent," "significant," "strong," "concerning."
+- No risk levels, risk ratings, or risk characterizations.
+- No recommendations, next steps, or action items.
+- No advisory language whatsoever.
+- If data is missing or unavailable, state "Not available" — do not speculate.`;
 
   try {
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -1424,7 +1438,7 @@ Provide: 1. Risk Level (Low/Medium/High/Critical) 2. Key Findings 3. Violation A
       body: JSON.stringify({
         model: "google/gemini-3-flash-preview",
         messages: [
-          { role: "system", content: "You are a professional real estate due diligence analyst for NYC properties. Provide clear, actionable analysis." },
+          { role: "system", content: "You are a factual data summarizer for NYC real estate due diligence. You report ONLY what the records show. You never assign risk levels, characterize findings subjectively, offer opinions, or provide recommendations. Your output reads like a neutral audit log, not an advisory memo." },
           { role: "user", content: prompt },
         ],
       }),
