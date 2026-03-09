@@ -36,6 +36,7 @@ const NYC_ENDPOINTS = {
   ACRIS_MASTER: "https://data.cityofnewyork.us/resource/bnx9-e6tj.json",
   ACRIS_PARTIES: "https://data.cityofnewyork.us/resource/636b-3b5g.json",
   ACRIS_LEGALS: "https://data.cityofnewyork.us/resource/8h5j-fqxa.json",
+  TAX_LIEN_SALE: "https://data.cityofnewyork.us/resource/9rz4-mjek.json",
 };
 
 const BOROUGH_CODES: Record<string, string> = {
