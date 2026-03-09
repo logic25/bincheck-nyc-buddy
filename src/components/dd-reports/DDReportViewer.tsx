@@ -953,6 +953,7 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
                   <TableBody>
                     {filteredApplications.map((app: any, idx: number) => {
                       const appKey = `${app.source || 'BIS'}-${app.id || app.application_number || idx}`;
+                      const realIdx = allApplications.indexOf(app);
                       return (
                         <ExpandableApplicationRow
                           key={appKey}
@@ -967,6 +968,8 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
                           bulkMode={bulkMode}
                           isSelected={selectedItems.has(`application:${appKey}:DOB`)}
                           onToggleSelect={() => toggleItemSelection(`application:${appKey}:DOB`)}
+                          isAdmin={isAdmin}
+                          onToggleHidden={realIdx >= 0 ? () => toggleItemHidden('applications_data', realIdx) : undefined}
                         />
                       );
                     })}
