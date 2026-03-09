@@ -123,7 +123,7 @@ const ExpandableViolationRow = ({ violation, index, note, onNoteChange, bbl, rea
             {violation.status}
           </Badge>
         </TableCell>
-        <TableCell className="max-w-[200px] text-xs text-muted-foreground">
+        <TableCell className="max-w-[200px] text-xs text-muted-foreground hidden md:table-cell">
           <div className="flex items-center gap-1.5">
             <span className="truncate" title={note || ''}>{note || <span className="italic opacity-50">—</span>}</span>
             {hasEdit && (
