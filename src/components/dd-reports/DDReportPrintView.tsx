@@ -387,40 +387,7 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
         )}
       </div>
 
-      {/* Property Status Summary */}
-      {report.property_status_summary && (
-        <section className="mb-3 p-3 bg-gray-50 rounded border border-gray-200" style={{ pageBreakInside: 'avoid' }}>
-          <h3 className="text-[10px] font-semibold uppercase tracking-[0.1em] text-gray-500 mb-1.5">Property Status Summary</h3>
-          <div className="flex flex-wrap gap-1 mb-1.5 pb-1.5 border-b border-gray-200">
-            <span className="text-[8px] font-semibold text-gray-700 bg-white px-1 py-0.5 rounded border border-gray-200">DOB: {dobViolations.length}</span>
-            <span className="text-[8px] font-semibold text-gray-700 bg-white px-1 py-0.5 rounded border border-gray-200">ECB: {ecbViolations.length}</span>
-            <span className="text-[8px] font-semibold text-gray-700 bg-white px-1 py-0.5 rounded border border-gray-200">HPD: {hpdViolations.length}</span>
-            {fdnyViolations.length > 0 && <span className="text-[8px] font-semibold text-gray-700 bg-white px-1 py-0.5 rounded border border-gray-200">FDNY: {fdnyViolations.length}</span>}
-            {otherOathViolations.length > 0 && <span className="text-[8px] font-semibold text-gray-700 bg-white px-1 py-0.5 rounded border border-gray-200">Other: {otherOathViolations.length}</span>}
-            <span className="text-[8px] font-semibold text-gray-700 bg-white px-1 py-0.5 rounded border border-gray-200">Applications: {applications.length}</span>
-            {complaints.length > 0 && <span className="text-[8px] font-semibold text-gray-700 bg-white px-1 py-0.5 rounded border border-gray-200">Complaints: {complaints.length}</span>}
-            {totalEcbPenalties > 0 && (
-              <span className="text-[8px] font-semibold text-red-700 bg-red-50 px-1 py-0.5 rounded border border-red-200">
-                ECB Penalties: {formatCurrency(totalEcbPenalties)}
-              </span>
-            )}
-          </div>
-          <p className="text-[9px] leading-[1.4] text-gray-800 whitespace-pre-line">{report.property_status_summary}</p>
-        </section>
-      )}
-
-      {/* Tax Lien Sale Alert */}
-      {(report.tax_lien_data || []).length > 0 && (
-        <section className="mb-3 p-2 bg-red-50 rounded border border-red-300" style={{ pageBreakInside: 'avoid' }}>
-          <h3 className="text-[10px] font-semibold uppercase tracking-[0.1em] text-red-700 mb-0.5">⚠ Tax Lien Sale — Property Flagged</h3>
-          <p className="text-[9px] leading-[1.4] text-red-800">
-            This property appears on the NYC DOF Tax Lien Sale List with {(report.tax_lien_data || []).length} record{(report.tax_lien_data || []).length !== 1 ? 's' : ''}.
-            Verify current status directly with DOF before proceeding.
-          </p>
-        </section>
-      )}
-
-      {/* Building Info + Compliance Summary — keep together */}
+      {/* Building Info + Compliance Summary — compact, keep on page 1 */}
       <div style={{ pageBreakInside: 'avoid' }}>
         <section className="mb-2">
           <h3 className={sectionHeaderStyle}>Building Information</h3>
@@ -488,6 +455,39 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
           )}
         </section>
       </div>
+
+      {/* Property Status Summary — narrative section, flows after compact data */}
+      {report.property_status_summary && (
+        <section className="mb-3 p-3 bg-gray-50 rounded border border-gray-200" style={{ pageBreakInside: 'avoid' }}>
+          <h3 className="text-[10px] font-semibold uppercase tracking-[0.1em] text-gray-500 mb-1.5">Property Status Summary</h3>
+          <div className="flex flex-wrap gap-1 mb-1.5 pb-1.5 border-b border-gray-200">
+            <span className="text-[8px] font-semibold text-gray-700 bg-white px-1 py-0.5 rounded border border-gray-200">DOB: {dobViolations.length}</span>
+            <span className="text-[8px] font-semibold text-gray-700 bg-white px-1 py-0.5 rounded border border-gray-200">ECB: {ecbViolations.length}</span>
+            <span className="text-[8px] font-semibold text-gray-700 bg-white px-1 py-0.5 rounded border border-gray-200">HPD: {hpdViolations.length}</span>
+            {fdnyViolations.length > 0 && <span className="text-[8px] font-semibold text-gray-700 bg-white px-1 py-0.5 rounded border border-gray-200">FDNY: {fdnyViolations.length}</span>}
+            {otherOathViolations.length > 0 && <span className="text-[8px] font-semibold text-gray-700 bg-white px-1 py-0.5 rounded border border-gray-200">Other: {otherOathViolations.length}</span>}
+            <span className="text-[8px] font-semibold text-gray-700 bg-white px-1 py-0.5 rounded border border-gray-200">Applications: {applications.length}</span>
+            {complaints.length > 0 && <span className="text-[8px] font-semibold text-gray-700 bg-white px-1 py-0.5 rounded border border-gray-200">Complaints: {complaints.length}</span>}
+            {totalEcbPenalties > 0 && (
+              <span className="text-[8px] font-semibold text-red-700 bg-red-50 px-1 py-0.5 rounded border border-red-200">
+                ECB Penalties: {formatCurrency(totalEcbPenalties)}
+              </span>
+            )}
+          </div>
+          <p className="text-[9px] leading-[1.4] text-gray-800 whitespace-pre-line">{report.property_status_summary}</p>
+        </section>
+      )}
+
+      {/* Tax Lien Sale Alert */}
+      {(report.tax_lien_data || []).length > 0 && (
+        <section className="mb-3 p-2 bg-red-50 rounded border border-red-300" style={{ pageBreakInside: 'avoid' }}>
+          <h3 className="text-[10px] font-semibold uppercase tracking-[0.1em] text-red-700 mb-0.5">⚠ Tax Lien Sale — Property Flagged</h3>
+          <p className="text-[9px] leading-[1.4] text-red-800">
+            This property appears on the NYC DOF Tax Lien Sale List with {(report.tax_lien_data || []).length} record{(report.tax_lien_data || []).length !== 1 ? 's' : ''}.
+            Verify current status directly with DOF before proceeding.
+          </p>
+        </section>
+      )}
 
       {/* Critical Orders */}
       {(orders.stop_work?.length > 0 || orders.vacate?.length > 0 || orders.partial_stop_work?.length > 0) && (
