@@ -396,13 +396,22 @@ const DDReports = () => {
               )}
             </TabsTrigger>
             <TabsTrigger value="reports" className="gap-1.5 flex-1 sm:flex-none">
-              <FileText className="h-4 w-4" />
-              <span className="hidden xs:inline">Reports</span> Queue
-              {(reports?.length ?? 0) > 0 && (
-                <span className="ml-1 text-xs bg-muted px-1.5 py-0.5 rounded-full">{reports!.length}</span>
-              )}
-            </TabsTrigger>
-          </TabsList>
+               <FileText className="h-4 w-4" />
+               <span className="hidden xs:inline">Reports</span> Queue
+               {(reports?.length ?? 0) > 0 && (
+                 <span className="ml-1 text-xs bg-muted px-1.5 py-0.5 rounded-full">{reports!.length}</span>
+               )}
+             </TabsTrigger>
+             <TabsTrigger value="edit-review" className="gap-1.5 flex-1 sm:flex-none">
+               <Pencil className="h-4 w-4" /> Edit Review
+             </TabsTrigger>
+             <TabsTrigger value="architect-letters" className="gap-1.5 flex-1 sm:flex-none">
+               <Scale className="h-4 w-4" /> Architect Letters
+             </TabsTrigger>
+             <TabsTrigger value="ai-learning" className="gap-1.5 flex-1 sm:flex-none">
+               <Brain className="h-4 w-4" /> AI Learning
+             </TabsTrigger>
+           </TabsList>
 
           {/* ── INCOMING ORDERS TAB ── */}
           <TabsContent value="incoming" className="mt-4">
