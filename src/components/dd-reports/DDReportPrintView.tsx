@@ -420,73 +420,70 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
         </section>
       )}
 
-      {/* Building Info + Compliance Summary — grouped to stay on same page */}
+      {/* Building Info + Compliance Summary — keep together */}
       <div style={{ pageBreakInside: 'avoid' }}>
-        <section className="mb-3">
+        <section className="mb-2">
           <h3 className={sectionHeaderStyle}>Building Information</h3>
-          <div className="grid grid-cols-4 gap-x-4 gap-y-1.5 text-[10px]">
+          <div className="grid grid-cols-4 gap-x-3 gap-y-0.5 text-[9px]">
             {[
               ['Year Built', building.year_built || '—'],
               ['Stories', building.stories || '—'],
-              ['Dwelling Units', building.dwelling_units ?? '—'],
-              ['Building Class', building.building_class || '—'],
+              ['Units', building.dwelling_units ?? '—'],
+              ['Class', building.building_class || '—'],
               ['Zoning', building.zoning_district || '—'],
-              ['Building Area', building.building_area_sqft ? `${building.building_area_sqft.toLocaleString()} sqft` : '—'],
-              ['Lot Area', building.lot_area_sqft ? `${building.lot_area_sqft.toLocaleString()} sqft` : '—'],
-              ['Assessed Value', building.assessed_total_value ? formatCurrency(building.assessed_total_value) : '—'],
+              ['Bldg Area', building.building_area_sqft ? `${building.building_area_sqft.toLocaleString()} sf` : '—'],
+              ['Lot Area', building.lot_area_sqft ? `${building.lot_area_sqft.toLocaleString()} sf` : '—'],
+              ['Assessed', building.assessed_total_value ? formatCurrency(building.assessed_total_value) : '—'],
               ['Owner', building.owner_name || '—'],
-              ['Landmark', building.is_landmark ? 'Yes' : building.historic_district ? `Historic: ${building.historic_district}` : 'No'],
+              ['Landmark', building.is_landmark ? 'Yes' : building.historic_district ? `Historic` : 'No'],
               ['Land Use', building.land_use || '—'],
             ].map(([label, value], i) => (
               <div key={i}>
-                <span className="text-gray-400 text-[9px]">{label}</span>
-                <div className="font-semibold text-gray-900">{value}</div>
+                <span className="text-gray-400">{label}:</span>{' '}
+                <span className="font-semibold text-gray-900">{value}</span>
               </div>
             ))}
           </div>
         </section>
 
-        {/* Compliance Summary — compact horizontal bar */}
-        <section className="mb-4">
+        <section className="mb-3">
           <h3 className={sectionHeaderStyle}>Compliance Summary</h3>
-          <div className="flex gap-2">
+          <div className="flex gap-1.5">
             {[
               {
                 label: 'Open Violations',
                 value: violations.length,
-                sub: `DOB: ${dobViolations.length} | ECB: ${ecbViolations.length} | HPD: ${hpdViolations.length}${fdnyViolations.length > 0 ? ` | FDNY: ${fdnyViolations.length}` : ''}${otherOathViolations.length > 0 ? ` | Other: ${otherOathViolations.length}` : ''}`,
+                sub: `DOB ${dobViolations.length} · ECB ${ecbViolations.length} · HPD ${hpdViolations.length}${fdnyViolations.length > 0 ? ` · FDNY ${fdnyViolations.length}` : ''}`,
               },
               {
                 label: 'Applications',
                 value: applications.length,
-                sub: `BIS: ${bisApplications.length} | DOB NOW: ${dobNowApplications.length}`,
+                sub: `BIS ${bisApplications.length} · NOW ${dobNowApplications.length}`,
               },
               {
-                label: 'Stop Work Orders',
+                label: 'Stop Work',
                 value: orders.stop_work?.length || 0,
                 danger: (orders.stop_work?.length || 0) > 0,
               },
               {
-                label: 'Vacate Orders',
+                label: 'Vacate',
                 value: orders.vacate?.length || 0,
                 danger: (orders.vacate?.length || 0) > 0,
               },
             ].map((item, i) => (
-              <div key={i} className={`flex-1 py-2 px-3 rounded-lg text-center ${item.danger ? 'border border-red-300 bg-red-50' : 'border border-gray-200 bg-gray-50'}`}>
-                <div className={`text-[16px] font-bold ${item.danger ? 'text-red-600' : 'text-black'}`}>{item.value}</div>
-                <div className="text-[7px] font-semibold text-gray-500 uppercase tracking-wider">{item.label}</div>
+              <div key={i} className={`flex-1 py-1.5 px-2 rounded text-center ${item.danger ? 'border border-red-300 bg-red-50' : 'border border-gray-200 bg-gray-50'}`}>
+                <div className={`text-[14px] font-bold ${item.danger ? 'text-red-600' : 'text-black'}`}>{item.value}</div>
+                <div className="text-[6px] font-semibold text-gray-500 uppercase tracking-wider">{item.label}</div>
                 {item.sub && <div className="text-[6px] text-gray-400 mt-0.5">{item.sub}</div>}
               </div>
             ))}
           </div>
           {totalEcbPenalties > 0 && (
-            <div className="mt-2 p-1.5 border border-red-200 bg-red-50 rounded-lg text-center">
-              <span className="text-[10px] font-semibold text-red-700">
-                Total Outstanding ECB Penalties: {formatCurrency(totalEcbPenalties)}
+            <div className="mt-1.5 p-1 border border-red-200 bg-red-50 rounded text-center">
+              <span className="text-[9px] font-semibold text-red-700">
+                ECB Penalties Outstanding: {formatCurrency(totalEcbPenalties)}
               </span>
-              <span className="text-[9px] text-gray-500 ml-2">
-                (Unpaid ECB penalties typically become property liens)
-              </span>
+              <span className="text-[8px] text-gray-500 ml-1">(typically become property liens)</span>
             </div>
           )}
         </section>
