@@ -615,7 +615,7 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
               </div>
             )}
             {!hasCriticalOrders && (
-              <div className="col-span-2 p-3 rounded-lg bg-emerald-500/5 border border-emerald-500/20">
+              <div className="col-span-1 sm:col-span-2 lg:col-span-3 p-3 rounded-lg bg-emerald-500/5 border border-emerald-500/20">
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-500" />
                   <span className="text-sm font-medium text-emerald-500">No Critical Orders</span>
