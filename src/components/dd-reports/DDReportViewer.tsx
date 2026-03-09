@@ -724,8 +724,8 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
           {violations.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground text-sm">No open violations found.</div>
           ) : (
-            <div className="overflow-x-auto">
-              <Table className="text-sm min-w-[600px]">
+            <div className="w-full">
+              <Table className="text-sm w-full">
                 <TableHeader>
                   <TableRow className="bg-muted/30 hover:bg-muted/30">
                     <TableHead className="w-8">
