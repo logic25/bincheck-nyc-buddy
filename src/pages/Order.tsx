@@ -162,10 +162,58 @@ const Order = () => {
 
   const handlePayAndOrder = async () => {
     setIsProcessing(true);
-    // Mock payment processing — Stripe not wired yet
-    await new Promise(r => setTimeout(r, 2000));
-    setIsProcessing(false);
-    setSubmitted(true);
+    try {
+      // Simulate payment processing delay
+      await new Promise(r => setTimeout(r, 2500));
+
+      // Get or create user session
+      const { data: sessionData } = await supabase.auth.getSession();
+      const currentUserId = sessionData?.session?.user?.id;
+
+      if (!currentUserId) {
+        toast.error("Please sign in to complete your order");
+        navigate("/auth");
+        return;
+      }
+
+      // Create a real DD report
+      const { data: newReport, error: reportError } = await supabase.from("dd_reports").insert({
+        user_id: currentUserId,
+        address: address.trim(),
+        prepared_for: `${firstName} ${lastName}`,
+        client_name: `${firstName} ${lastName}`,
+        client_email: email.trim(),
+        client_firm: company.trim() || null,
+        customer_concern: concern.trim() || null,
+        rush_requested: rush,
+        requested_delivery_date: deliveryDate || null,
+        payment_status: "paid",
+        payment_amount: totalPrice,
+        status: "generating",
+        generation_started_at: new Date().toISOString(),
+        order_lead_id: leadId,
+      }).select("id").single();
+
+      if (reportError) throw reportError;
+
+      // Mark lead as converted
+      if (leadId) {
+        await supabase.from("order_leads").update({ converted: true }).eq("id", leadId);
+      }
+
+      // Fire report generation (don't await — it runs in background)
+      if (newReport) {
+        supabase.functions.invoke("generate-dd-report", {
+          body: { reportId: newReport.id, address: address.trim() },
+        }).catch(() => {});
+      }
+
+      setSubmitted(true);
+    } catch (e: any) {
+      toast.error("Order failed: " + (e.message || "Please try again"));
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   if (submitted) {
