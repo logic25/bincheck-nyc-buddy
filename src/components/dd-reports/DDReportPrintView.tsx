@@ -623,42 +623,7 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
         </section>
       )}
 
-      {/* CitiSignal Recommendation */}
-      {report.citisignal_recommended && (
-        <section className="mb-4 p-3 rounded border-2 border-teal-500 bg-teal-100" style={{ pageBreakInside: 'avoid' }}>
-          <h3 className="text-[12px] font-bold text-teal-900 mb-1">Ongoing Compliance Monitoring Available</h3>
-          <p className="text-[10px] text-gray-900 leading-relaxed mb-2">
-            This property has {violations.length} active violation{violations.length !== 1 ? 's' : ''} and {applications.length} open application{applications.length !== 1 ? 's' : ''} being tracked by multiple NYC agencies. Properties of this size and complexity benefit from continuous monitoring to catch new filings, violation updates, and permit changes as they happen — not just at the point of transaction.
-          </p>
-          <p className="text-[10px] font-bold text-gray-900 mb-1">CitiSignal by BinCheckNYC provides:</p>
-          <ul className="text-[10px] text-gray-900 list-disc ml-5 space-y-0 mb-2">
-            <li>Real-time violation and permit monitoring across DOB, ECB, FDNY, HPD, and OATH</li>
-            <li>AI-powered compliance scoring and alerts</li>
-            <li>Property management tools including work orders and vendor coordination</li>
-            <li>Telegram and email notifications for new filings</li>
-          </ul>
-          <p className="text-[10px] text-gray-800">
-            Learn more at <span className="font-bold text-teal-800">citisignal.com</span> or contact us to set up monitoring for this property.
-          </p>
-        </section>
-      )}
-
-      {/* Physical Document Upsell */}
-      <section className="mb-4 p-3 rounded border-2 border-gray-500 bg-gray-100" style={{ pageBreakInside: 'avoid' }}>
-        <h3 className="text-[12px] font-bold text-black mb-1">Need a Certified Physical Copy?</h3>
-        <p className="text-[10px] text-gray-900 leading-relaxed mb-1">
-          A printed, signed, and sealed physical copy of this Due Diligence Report is available for an additional <span className="font-bold">$150</span>.
-          Physical copies are ideal for closing binders, legal filings, or lender requirements where a certified hard copy is expected.
-        </p>
-        <p className="text-[10px] text-gray-900 leading-relaxed">
-          <span className="font-bold">Includes:</span> Bound report with professional cover page, wet signature certification, and priority shipping (2–3 business days).
-        </p>
-        <p className="text-[10px] text-gray-800 mt-1">
-          To order, contact <span className="font-bold">orders@binchecknyc.com</span> with your Report ID: <span className="font-mono font-bold">{reportId}</span>
-        </p>
-      </section>
-
-      {/* Footer */}
+      {/* Footer — Disclaimer + Copyright */}
       <footer className="mt-6 pt-3 border-t-2 border-black" style={{ pageBreakInside: 'avoid' }}>
         <p className="text-[10px] font-bold uppercase tracking-widest text-gray-800 mb-1.5 text-center">Disclaimer</p>
         <p className="text-[10px] text-gray-700 text-justify leading-[1.5]">
@@ -673,6 +638,29 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
             © {new Date().getFullYear()} BinCheckNYC{userProfile?.company_name ? ` · ${userProfile.company_name}` : ''}
           </p>
           <p className="text-[9px] text-gray-600 mt-0.5">Proprietary analysis · All rights reserved</p>
+        </div>
+
+        {/* Additional Services — appendix after disclaimer */}
+        <div className="mt-4 pt-3 border-t border-gray-300">
+          <p className="text-[9px] font-bold uppercase tracking-wider text-gray-600 mb-2 text-center">Additional Services</p>
+          
+          {report.citisignal_recommended && (
+            <div className="mb-2 p-2 rounded border border-gray-300" style={{ pageBreakInside: 'avoid' }}>
+              <p className="text-[10px] font-semibold text-gray-600 mb-0.5">Ongoing Compliance Monitoring</p>
+              <p className="text-[9px] text-gray-600 leading-relaxed">
+                This property has {violations.length} active violation{violations.length !== 1 ? 's' : ''} and {applications.length} open application{applications.length !== 1 ? 's' : ''} across multiple agencies. CitiSignal by BinCheckNYC provides real-time monitoring, AI-powered compliance scoring, and alerts for new filings.
+                Learn more at <span className="font-semibold">citisignal.com</span>
+              </p>
+            </div>
+          )}
+
+          <div className="p-2 rounded border border-gray-300" style={{ pageBreakInside: 'avoid' }}>
+            <p className="text-[10px] font-semibold text-gray-600 mb-0.5">Certified Physical Copy — $150</p>
+            <p className="text-[9px] text-gray-600 leading-relaxed">
+              Bound report with professional cover page, wet signature certification, and priority shipping (2–3 business days).
+              Contact <span className="font-semibold">orders@binchecknyc.com</span> with Report ID: <span className="font-mono font-semibold">{reportId}</span>
+            </p>
+          </div>
         </div>
       </footer>
     </div>
