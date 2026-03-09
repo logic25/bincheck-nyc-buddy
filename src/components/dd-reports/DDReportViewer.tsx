@@ -124,6 +124,7 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
   const [violationFilter, setViolationFilter] = useState<string>('all');
   const [activeSection, setActiveSection] = useState<'violations' | 'applications' | 'complaints' | 'acris' | 'notes'>('violations');
   const [architectDialogOpen, setArchitectDialogOpen] = useState(false);
+  const [closeoutDialogOpen, setCloseoutDialogOpen] = useState(false);
 
   // Track edit statuses for line items
   const [editStatuses, setEditStatuses] = useState<Record<string, { status: 'pending' | 'approved' | 'rejected'; id: string }>>({});
