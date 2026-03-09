@@ -115,10 +115,7 @@ const Index = () => {
           <nav className="flex items-center gap-2">
             {session ? (
               <>
-                <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard")}>Dashboard</Button>
-                <Button variant="ghost" size="sm" onClick={() => navigate("/dd-reports")}>
-                  <FileText className="h-4 w-4 mr-1" /> Report Manager
-                </Button>
+                <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard")}>Home</Button>
                 <Button variant="ghost" size="sm" onClick={() => navigate("/settings")}>
                   <Settings className="h-4 w-4 mr-1" /> Settings
                 </Button>
