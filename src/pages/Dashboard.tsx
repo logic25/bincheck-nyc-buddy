@@ -426,6 +426,23 @@ const Dashboard = () => {
         ) : (
           <>
             {/* ── CLIENT VIEW ── */}
+            {/* New Report Button */}
+            <div className="flex justify-end">
+              <Button onClick={() => setShowCreateDialog(true)}>
+                <Plus className="h-4 w-4 mr-2" /> New Report
+              </Button>
+            </div>
+
+            <CreateDDReportDialog
+              open={showCreateDialog}
+              onOpenChange={setShowCreateDialog}
+              onSuccess={(report) => {
+                setShowCreateDialog(false);
+                queryClient.invalidateQueries({ queryKey: ['dashboard-dd-reports'] });
+                setSelectedReportId(report.id);
+              }}
+            />
+
             {/* Stat Cards */}
             <div className="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-3">
               <Card>
