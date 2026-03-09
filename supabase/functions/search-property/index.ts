@@ -56,18 +56,24 @@ function appendToken(url: string): string {
   return `${url}${sep}$$app_token=${NYC_APP_TOKEN}`;
 }
 
-async function fetchJSON(url: string) {
+interface FetchResult {
+  data: any[];
+  error: boolean;
+}
+
+async function fetchJSON(url: string): Promise<FetchResult> {
   try {
     const res = await fetch(appendToken(url));
     if (!res.ok) {
       console.error(`Failed to fetch ${url}: ${res.status}`);
       await res.text();
-      return [];
+      return { data: [], error: true };
     }
-    return await res.json();
+    const json = await res.json();
+    return { data: Array.isArray(json) ? json : [], error: false };
   } catch (e) {
     console.error(`Error fetching ${url}:`, e);
-    return [];
+    return { data: [], error: true };
   }
 }
 
@@ -86,8 +92,8 @@ async function lookupByAddress(address: string): Promise<{ bin: string; bbl: str
     // Fallback: try DOB violations dataset
     const encoded = encodeURIComponent(address.toUpperCase());
     const url = `${NYC_DATA_BASE}/${DOB_VIOLATIONS}.json?$where=upper(house__||' '||street) like '%25${encoded}%25'&$limit=1&$select=bin`;
-    const data = await fetchJSON(url);
-    if (data.length > 0 && data[0].bin) return { bin: data[0].bin, bbl: "" };
+    const fallback = await fetchJSON(url);
+    if (fallback.data.length > 0 && fallback.data[0].bin) return { bin: fallback.data[0].bin, bbl: "" };
     return null;
   } catch (e) {
     console.error('Address lookup error:', e);
@@ -97,9 +103,9 @@ async function lookupByAddress(address: string): Promise<{ bin: string; bbl: str
 
 // Resolve BBL from BIN via PLUTO
 async function lookupBBLByBIN(bin: string): Promise<string> {
-  const data = await fetchJSON(`${NYC_DATA_BASE}/${PLUTO}.json?bin=${bin}&$limit=1`);
-  if (data.length > 0) {
-    const bbl = data[0].bbl || "";
+  const result = await fetchJSON(`${NYC_DATA_BASE}/${PLUTO}.json?bin=${bin}&$limit=1`);
+  if (result.data.length > 0) {
+    const bbl = result.data[0].bbl || "";
     return bbl.toString();
   }
   return "";
@@ -126,10 +132,10 @@ const OATH_AGENCY_CODES: Record<string, string> = {
 };
 const OATH_RESOLVED = ["paid", "dismissed", "written off", "defaulted", "satisfied", "complied", "waived"];
 
-async function fetchOATH(bbl: string): Promise<any[]> {
+async function fetchOATH(bbl: string): Promise<{ data: any[]; error: boolean }> {
   const cleanBbl = bbl.replace(/\D/g, "");
   const boroughName = OATH_BOROUGH_NAMES[cleanBbl.charAt(0)];
-  if (!boroughName) return [];
+  if (!boroughName) return { data: [], error: false };
   const blockPadded = cleanBbl.slice(1, 6);
   const lotPadded = cleanBbl.slice(6, 10);
 
@@ -140,20 +146,26 @@ async function fetchOATH(bbl: string): Promise<any[]> {
     })
   );
 
-  return results.flat().map((r: any) => {
-    const combined = `${(r.hearing_status || "").toLowerCase()} ${(r.hearing_result || "").toLowerCase()} ${(r.compliance_status || "").toLowerCase()}`;
-    const isResolved = OATH_RESOLVED.some(t => combined.includes(t));
-    return {
-      ticket_number: r.ticket_number || "",
-      issuing_agency: OATH_AGENCY_CODES[r.issuing_agency] || r.issuing_agency || "",
-      violation_date: r.violation_date || "",
-      charge_1_code_description: r.charge_1_code_description || "",
-      penalty_imposed: r.penalty_imposed || "0",
-      hearing_status: r.hearing_status || "",
-      hearing_result: r.hearing_result || "",
-      status: isResolved ? "closed" : "open",
-    };
-  });
+  const hadError = results.some(r => r.error);
+  const allData = results.flatMap(r => r.data);
+
+  return {
+    data: allData.map((r: any) => {
+      const combined = `${(r.hearing_status || "").toLowerCase()} ${(r.hearing_result || "").toLowerCase()} ${(r.compliance_status || "").toLowerCase()}`;
+      const isResolved = OATH_RESOLVED.some(t => combined.includes(t));
+      return {
+        ticket_number: r.ticket_number || "",
+        issuing_agency: OATH_AGENCY_CODES[r.issuing_agency] || r.issuing_agency || "",
+        violation_date: r.violation_date || "",
+        charge_1_code_description: r.charge_1_code_description || "",
+        penalty_imposed: r.penalty_imposed || "0",
+        hearing_status: r.hearing_status || "",
+        hearing_result: r.hearing_result || "",
+        status: isResolved ? "closed" : "open",
+      };
+    }),
+    error: hadError,
+  };
 }
 
 // Deduplicate records by key, keeping the one with more non-null fields
@@ -220,11 +232,11 @@ serve(async (req) => {
     // Fetch all sources in parallel
     const hpdQuery = hpdBorough
       ? fetchJSON(`${NYC_DATA_BASE}/${HPD_VIOLATIONS}.json?boroid=${hpdBorough}&block=${hpdBlock}&lot=${hpdLot}&$limit=500`)
-      : Promise.resolve([]);
+      : Promise.resolve({ data: [], error: false } as FetchResult);
 
-    const oathQuery = resolvedBbl ? fetchOATH(resolvedBbl) : Promise.resolve([]);
+    const oathQuery = resolvedBbl ? fetchOATH(resolvedBbl) : Promise.resolve({ data: [], error: false });
 
-    const [dobViolations, dobSafetyViolations, ecbViolations, hpdViolations, permits, dobComplaints, oathViolations, fdnyViolations] = await Promise.all([
+    const [dobResult, dobSafetyResult, ecbResult, hpdResult, permitsResult, complaintsResult, oathResult, fdnyResult] = await Promise.all([
       fetchJSON(`${NYC_DATA_BASE}/${DOB_VIOLATIONS}.json?bin=${resolvedBin}&$limit=500`),
       fetchJSON(`${NYC_DATA_BASE}/${DOB_SAFETY_VIOLATIONS}.json?bin=${resolvedBin}&$limit=500`),
       fetchJSON(`${NYC_DATA_BASE}/${DOB_ECB_VIOLATIONS}.json?bin=${resolvedBin}&$limit=500`),
@@ -234,6 +246,15 @@ serve(async (req) => {
       oathQuery,
       fetchJSON(`${NYC_DATA_BASE}/${FDNY_VIOLATIONS}.json?bin=${resolvedBin}&$limit=200&$order=inspection_date DESC`),
     ]);
+
+    const dobViolations = dobResult.data;
+    const dobSafetyViolations = dobSafetyResult.data;
+    const ecbViolations = ecbResult.data;
+    const hpdViolations = hpdResult.data;
+    const permits = permitsResult.data;
+    const dobComplaints = complaintsResult.data;
+    const oathViolations = oathResult.data;
+    const fdnyViolations = fdnyResult.data;
 
     // Merge and deduplicate DOB violations from both datasets
     const allDobMapped = [

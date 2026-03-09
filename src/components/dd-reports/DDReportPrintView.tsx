@@ -345,22 +345,37 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
           if (aq.length === 0) return null;
           const queried = aq.filter((a: any) => a.queried);
           const withData = queried.filter((a: any) => a.results > 0);
+          const withErrors = queried.filter((a: any) => a.error && a.results === 0);
           return (
             <div className="mt-3 pt-3 border-t border-gray-200">
+              {withErrors.length > 0 && (
+                <div className="mb-2 p-2 rounded border border-amber-300 bg-amber-50">
+                  <p className="text-[10px] font-semibold text-amber-800">
+                    ⚠ {withErrors.length} data source{withErrors.length !== 1 ? 's were' : ' was'} unavailable at time of report: {withErrors.map(a => a.agency).join(', ')}. Results may be incomplete.
+                  </p>
+                </div>
+              )}
               <p className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold mb-1">
-                Sources Checked ({withData.length} of {queried.length} returned records)
+                Sources Checked ({withData.length} of {queried.length} returned records{withErrors.length > 0 ? ` · ${withErrors.length} unavailable` : ''})
               </p>
               <div className="flex flex-wrap gap-1">
-                {queried.map((a: any) => (
-                  <span
-                    key={a.agency}
-                    className={`inline-flex items-center text-[9px] font-medium px-1.5 py-0.5 rounded ${
-                      a.results > 0 ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-400'
-                    }`}
-                  >
-                    {a.agency}{a.results > 0 ? ` (${a.results})` : ''}
-                  </span>
-                ))}
+                {queried.map((a: any) => {
+                  const isError = a.error && a.results === 0;
+                  return (
+                    <span
+                      key={a.agency}
+                      className={`inline-flex items-center text-[9px] font-medium px-1.5 py-0.5 rounded ${
+                        a.results > 0
+                          ? 'bg-gray-900 text-white'
+                          : isError
+                            ? 'bg-amber-100 text-amber-800 border border-amber-300'
+                            : 'bg-gray-100 text-gray-400'
+                      }`}
+                    >
+                      {a.agency}{a.results > 0 ? ` (${a.results})` : isError ? ' ⚠' : ''}
+                    </span>
+                  );
+                })}
               </div>
             </div>
           );

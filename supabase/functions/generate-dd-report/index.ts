@@ -49,7 +49,10 @@ const BOROUGH_CODES: Record<string, string> = {
 
 const NYC_APP_TOKEN = Deno.env.get("NYC_APP_TOKEN") || "";
 
-async function fetchNYCData(endpoint: string, params: Record<string, string>): Promise<any[]> {
+// Track which API calls encountered errors
+const agencyErrors = new Set<string>();
+
+async function fetchNYCData(endpoint: string, params: Record<string, string>, agencyTag?: string): Promise<any[]> {
   const url = new URL(endpoint);
   Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
   if (NYC_APP_TOKEN) url.searchParams.set("$$app_token", NYC_APP_TOKEN);
@@ -59,6 +62,7 @@ async function fetchNYCData(endpoint: string, params: Record<string, string>): P
     if (!response.ok) {
       const errorText = await response.text();
       console.error(`NYC API error ${response.status}: ${errorText.substring(0, 200)}`);
+      if (agencyTag) agencyErrors.add(agencyTag);
       return [];
     }
     const data = await response.json();
@@ -66,6 +70,7 @@ async function fetchNYCData(endpoint: string, params: Record<string, string>): P
     return Array.isArray(data) ? data : [];
   } catch (error) {
     console.error(`Error fetching from ${endpoint}:`, error);
+    if (agencyTag) agencyErrors.add(agencyTag);
     return [];
   }
 }
@@ -179,7 +184,7 @@ async function fetchOATHViolations(bbl: string, agencyCode: string, oathAgencyNa
     "$order": "violation_date DESC",
   };
 
-  const records = await fetchNYCData(NYC_ENDPOINTS.OATH_HEARINGS, params);
+  const records = await fetchNYCData(NYC_ENDPOINTS.OATH_HEARINGS, params, agencyCode);
   return records.map((r: any) => {
     const hearingStatus = (r.hearing_status || '').toLowerCase();
     const hearingResult = (r.hearing_result || '').toLowerCase();
@@ -218,7 +223,7 @@ async function fetchFDNYViolations(bin: string): Promise<any[]> {
   if (!bin) return [];
   const records = await fetchNYCData(NYC_ENDPOINTS.FDNY_VIOLATIONS, {
     "bin": bin, "$limit": "200", "$order": "inspection_date DESC",
-  });
+  }, 'FDNY');
   return records.map((r: any) => {
     const status = (r.status || r.violation_status || '').toLowerCase();
     const isResolved = status.includes('close') || status.includes('resolved') || status.includes('cured') || status.includes('complied');
@@ -244,7 +249,7 @@ async function fetchDOBSafetyViolations(bin: string): Promise<any[]> {
   if (!bin) return [];
   const records = await fetchNYCData(NYC_ENDPOINTS.DOB_SAFETY_VIOLATIONS, {
     "bin": bin, "$limit": "500",
-  });
+  }, 'DOB');
   return records.map((v: any) => {
     const vt = (v.violation_type || '').toLowerCase();
     const desc = (v.description || v.violation_type_description || '').toLowerCase();
@@ -270,7 +275,7 @@ async function fetchDOBComplaints(bin: string): Promise<any[]> {
   if (!bin) return [];
   const records = await fetchNYCData(NYC_ENDPOINTS.DOB_COMPLAINTS, {
     "bin": bin, "$limit": "200", "$order": "date_entered DESC",
-  });
+  }, 'DOB-COMPLAINTS');
   // Official DOB Complaint Category codes — source: nyc.gov/assets/buildings/pdf/complaint_category.pdf (Rev. 09/21)
   const COMPLAINT_CATEGORIES: Record<string, string> = {
     "01": "Accident — Construction/Plumbing", "02": "Accident — To Public",
@@ -453,7 +458,7 @@ async function fetchViolations(bin: string, bbl: string, isResidentialProperty: 
     const [dobViolationsRaw, dobSafetyRaw, fdnyDirect] = await Promise.all([
       fetchNYCData(NYC_ENDPOINTS.DOB_VIOLATIONS, {
         "bin": bin, "$where": "disposition_date IS NULL", "$limit": "200", "$order": "issue_date DESC",
-      }),
+      }, 'DOB'),
       fetchDOBSafetyViolations(bin),
       fetchFDNYViolations(bin),
     ]);
@@ -483,7 +488,7 @@ async function fetchViolations(bin: string, bbl: string, isResidentialProperty: 
 
     const ecbViolations = await fetchNYCData(NYC_ENDPOINTS.ECB_VIOLATIONS, {
       "bin": bin, "$where": "ecb_violation_status != 'RESOLVE'", "$limit": "200", "$order": "issue_date DESC",
-    });
+    }, 'ECB');
     violations.push(...ecbViolations.map((v: any) => {
       const imposed = v.penality_imposed ? parseFloat(v.penality_imposed) : null;
       const paid = v.amount_paid ? parseFloat(v.amount_paid) : 0;
@@ -516,7 +521,7 @@ async function fetchViolations(bin: string, bbl: string, isResidentialProperty: 
       const hpdViolations = await fetchNYCData(NYC_ENDPOINTS.HPD_VIOLATIONS, {
         "boroid": borough, "block": block, "lot": lot,
         "$where": "violationstatus = 'Open'", "$limit": "1000", "$order": "inspectiondate DESC",
-      });
+      }, 'HPD');
       violations.push(...hpdViolations.map((v: any) => {
         const desc = (v.novdescription || '').toLowerCase();
         return {
@@ -579,10 +584,10 @@ async function fetchApplications(bin: string): Promise<any[]> {
   const [dobJobsRecent, dobJobsOldest] = await Promise.all([
     fetchNYCData(NYC_ENDPOINTS.DOB_JOBS, {
       "bin__": bin, "$limit": "500", "$order": "latest_action_date DESC",
-    }),
+    }, 'DOB-BIS'),
     fetchNYCData(NYC_ENDPOINTS.DOB_JOBS, {
       "bin__": bin, "$limit": "500", "$order": "pre__filing_date ASC",
-    }),
+    }, 'DOB-BIS'),
   ]);
 
   // Merge and deduplicate by job number
@@ -613,7 +618,7 @@ async function fetchApplications(bin: string): Promise<any[]> {
 
   applications.push(...bisApps);
 
-  const dobNowApps = await fetchNYCData(NYC_ENDPOINTS.DOB_NOW, { "bin": bin, "$limit": "200" });
+  const dobNowApps = await fetchNYCData(NYC_ENDPOINTS.DOB_NOW, { "bin": bin, "$limit": "200" }, 'DOB-NOW');
   const nowApps = dobNowApps.map((a: any) => ({
     id: a.job_filing_number || a.filing_number, source: "DOB_NOW",
     application_number: a.job_filing_number || a.filing_number,
@@ -1282,7 +1287,7 @@ async function fetchACRISData(bbl: string): Promise<any> {
       "$where": `borough='${borough}' AND block=${parseInt(block)} AND lot=${parseInt(lot)}`,
       "$limit": "30",
       "$order": "document_id DESC",
-    });
+    }, 'ACRIS');
 
     console.log(`ACRIS Legals: ${legalRecords.length} records for BBL ${borough}-${block}-${lot}`);
     if (legalRecords.length === 0) return { documents: [], deeds: [], mortgages: [], liens: [] };
@@ -1360,7 +1365,7 @@ async function fetchTaxLienData(bbl: string): Promise<any[]> {
       "$where": `borough = '${borough}' AND block = '${block}' AND lot = '${lot}'`,
       "$limit": "50",
       "$order": "tax_class_code DESC",
-    });
+    }, 'DOF-LIEN');
     
     console.log(`Tax Lien Sale: ${records.length} records found`);
     
@@ -1469,6 +1474,8 @@ serve(async (req) => {
   }
 
   try {
+    // Clear error tracker for this request
+    agencyErrors.clear();
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -1558,22 +1565,23 @@ serve(async (req) => {
     const acrisDocs = acrisData?.documents?.length || 0;
 
     const agenciesQueried = [
-      { agency: 'DOB', label: 'Dept of Buildings', queried: true, results: dobViolationsFromAll.length, category: 'violations' },
-      { agency: 'ECB', label: 'ECB/OATH', queried: true, results: ecbViolationsFromAll.length, category: 'violations' },
-      { agency: 'HPD', label: 'Housing Preservation', queried: isResidentialProperty && !!bbl, results: hpdViolationsFromAll.length, category: 'violations', ...((!isResidentialProperty) ? { note: 'Skipped — commercial property' } : {}) },
-      { agency: 'FDNY', label: 'Fire Department', queried: true, results: fdnyViolationsFromAll.length, category: 'violations' },
-      { agency: 'DEP', label: 'Environmental Protection', queried: !!bbl, results: depViolationsFromAll.length, category: 'violations' },
-      { agency: 'DOT', label: 'Transportation', queried: !!bbl, results: dotViolationsFromAll.length, category: 'violations' },
-      { agency: 'DSNY', label: 'Sanitation', queried: !!bbl, results: dsnyViolationsFromAll.length, category: 'violations' },
-      { agency: 'LPC', label: 'Landmarks', queried: !!bbl, results: lpcViolationsFromAll.length, category: 'violations' },
-      { agency: 'DOF', label: 'Dept of Finance', queried: !!bbl, results: dofViolationsFromAll.length, category: 'violations' },
-      { agency: 'DOB-BIS', label: 'DOB BIS Applications', queried: !!bin, results: bisAppsCount, category: 'applications' },
-      { agency: 'DOB-NOW', label: 'DOB NOW Applications', queried: !!bin, results: dobNowAppsCount, category: 'applications' },
-      { agency: 'DOB-COMPLAINTS', label: 'DOB Complaints', queried: !!bin, results: complaints.length, category: 'complaints' },
-      { agency: 'ACRIS', label: 'ACRIS Property Records', queried: !!bbl, results: acrisDocs, category: 'transfers' },
-      { agency: 'DOF-LIEN', label: 'Tax Lien Sale List', queried: !!bbl, results: taxLienData.length, category: 'tax_liens' },
+      { agency: 'DOB', label: 'Dept of Buildings', queried: true, results: dobViolationsFromAll.length, category: 'violations', error: agencyErrors.has('DOB') },
+      { agency: 'ECB', label: 'ECB/OATH', queried: true, results: ecbViolationsFromAll.length, category: 'violations', error: agencyErrors.has('ECB') },
+      { agency: 'HPD', label: 'Housing Preservation', queried: isResidentialProperty && !!bbl, results: hpdViolationsFromAll.length, category: 'violations', error: agencyErrors.has('HPD'), ...((!isResidentialProperty) ? { note: 'Skipped — commercial property' } : {}) },
+      { agency: 'FDNY', label: 'Fire Department', queried: true, results: fdnyViolationsFromAll.length, category: 'violations', error: agencyErrors.has('FDNY') },
+      { agency: 'DEP', label: 'Environmental Protection', queried: !!bbl, results: depViolationsFromAll.length, category: 'violations', error: agencyErrors.has('DEP') },
+      { agency: 'DOT', label: 'Transportation', queried: !!bbl, results: dotViolationsFromAll.length, category: 'violations', error: agencyErrors.has('DOT') },
+      { agency: 'DSNY', label: 'Sanitation', queried: !!bbl, results: dsnyViolationsFromAll.length, category: 'violations', error: agencyErrors.has('DSNY') },
+      { agency: 'LPC', label: 'Landmarks', queried: !!bbl, results: lpcViolationsFromAll.length, category: 'violations', error: agencyErrors.has('LPC') },
+      { agency: 'DOF', label: 'Dept of Finance', queried: !!bbl, results: dofViolationsFromAll.length, category: 'violations', error: agencyErrors.has('DOF') },
+      { agency: 'DOB-BIS', label: 'DOB BIS Applications', queried: !!bin, results: bisAppsCount, category: 'applications', error: agencyErrors.has('DOB-BIS') },
+      { agency: 'DOB-NOW', label: 'DOB NOW Applications', queried: !!bin, results: dobNowAppsCount, category: 'applications', error: agencyErrors.has('DOB-NOW') },
+      { agency: 'DOB-COMPLAINTS', label: 'DOB Complaints', queried: !!bin, results: complaints.length, category: 'complaints', error: agencyErrors.has('DOB-COMPLAINTS') },
+      { agency: 'ACRIS', label: 'ACRIS Property Records', queried: !!bbl, results: acrisDocs, category: 'transfers', error: agencyErrors.has('ACRIS') },
+      { agency: 'DOF-LIEN', label: 'Tax Lien Sale List', queried: !!bbl, results: taxLienData.length, category: 'tax_liens', error: agencyErrors.has('DOF-LIEN') },
     ];
-    console.log(`Agencies queried: ${agenciesQueried.filter(a => a.queried).length}, with data: ${agenciesQueried.filter(a => a.results > 0).length}`);
+    const errorAgencies = agenciesQueried.filter(a => a.error);
+    console.log(`Agencies queried: ${agenciesQueried.filter(a => a.queried).length}, with data: ${agenciesQueried.filter(a => a.results > 0).length}, with errors: ${errorAgencies.length} (${errorAgencies.map(a => a.agency).join(', ')})`);
 
     // CRITICAL: Filter out closed/resolved/dismissed violations — report must only contain open items
     const CLOSED_STATUSES = ['closed', 'resolved', 'dismissed', 'paid', 'complied', 'certified closed'];
