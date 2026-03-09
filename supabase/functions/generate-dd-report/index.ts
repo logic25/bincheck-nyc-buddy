@@ -1337,7 +1337,44 @@ async function fetchACRISData(bbl: string): Promise<any> {
   } catch (error) {
     console.error("ACRIS fetch error:", error);
     return { documents: [], deeds: [], mortgages: [], liens: [] };
+}
+
+async function fetchTaxLienData(bbl: string): Promise<any[]> {
+  if (!bbl || bbl.length < 10) return [];
+  try {
+    // BBL format: Borough(1) Block(5) Lot(4) — parse into components
+    const borough = bbl.substring(0, 1);
+    const block = bbl.substring(1, 6).replace(/^0+/, '');
+    const lot = bbl.substring(6, 10).replace(/^0+/, '');
+    
+    console.log(`Tax Lien lookup: BBL=${bbl}, Borough=${borough}, Block=${block}, Lot=${lot}`);
+    
+    // Query by borough, block, lot
+    const records = await fetchNYCData(NYC_ENDPOINTS.TAX_LIEN_SALE, {
+      "$where": `borough = '${borough}' AND block = '${block}' AND lot = '${lot}'`,
+      "$limit": "50",
+      "$order": "tax_class_code DESC",
+    });
+    
+    console.log(`Tax Lien Sale: ${records.length} records found`);
+    
+    return records.map((r: any) => ({
+      borough: r.borough,
+      block: r.block,
+      lot: r.lot,
+      building_class: r.building_class || null,
+      tax_class_code: r.tax_class_code || null,
+      lien_sale_year: r.year || r.calendar_year || null,
+      eco_category: r.eco_category || null,
+      community_district: r.community_district || null,
+      council_district: r.council_district || null,
+      raw: r,
+    }));
+  } catch (error) {
+    console.error("Tax Lien Sale fetch error:", error);
+    return [];
   }
+}
 }
 
 async function generateAIAnalysis(reportData: any, customerConcern: string | null, LOVABLE_API_KEY: string): Promise<string> {
