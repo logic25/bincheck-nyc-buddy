@@ -556,10 +556,10 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
           </>
         )}
         {closeoutTaggedCount > 0 && (
-          <div className="mt-3 p-2 border border-emerald-400 bg-emerald-100 rounded" style={{ pageBreakInside: 'avoid' }}>
-            <p className="text-[10px] font-bold text-emerald-900 mb-0.5">Permit Closeout May Be Required</p>
-            <p className="text-[9px] text-gray-900 leading-relaxed">
-              {closeoutTaggedCount} application{closeoutTaggedCount !== 1 ? 's' : ''} (marked <span className="font-bold text-emerald-800 bg-emerald-200 px-0.5 rounded text-[8px]">CO</span>) {closeoutTaggedCount !== 1 ? 'are' : 'is'} still open and may need to be formally closed out with DOB. Open permits can affect property transfers and new filings. Green Light Expediting can manage the closeout process on your behalf.
+          <div className="mt-3 p-2.5 border border-emerald-200 bg-emerald-50 rounded-lg" style={{ pageBreakInside: 'avoid' }}>
+            <p className="text-[10px] font-semibold text-emerald-700 mb-0.5">Permit Closeout May Be Required</p>
+            <p className="text-[9px] text-gray-700 leading-relaxed">
+              {closeoutTaggedCount} application{closeoutTaggedCount !== 1 ? 's' : ''} (marked <span className="font-semibold text-emerald-700 bg-emerald-100 px-0.5 rounded text-[8px]">CO</span>) {closeoutTaggedCount !== 1 ? 'are' : 'is'} still open and may need to be formally closed out with DOB. Open permits can affect property transfers and new filings. Green Light Expediting can manage the closeout process on your behalf.
             </p>
           </div>
         )}
