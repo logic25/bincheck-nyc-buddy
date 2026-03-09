@@ -14,8 +14,11 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import {
+  Sheet, SheetContent, SheetTrigger,
+} from '@/components/ui/sheet';
+import {
   FileText, Plus, Search, AlertTriangle, Loader2, Eye, Trash2, Clock, RefreshCw,
-  Shield, ArrowLeft, LogOut, Settings, Zap, Inbox, Phone, Mail, Building2, BookOpen,
+  Shield, ArrowLeft, LogOut, Settings, Zap, Inbox, Phone, Mail, Building2, BookOpen, Menu,
 } from 'lucide-react';
 import { useUserRole } from '@/hooks/useUserRole';
 import { format } from 'date-fns';
