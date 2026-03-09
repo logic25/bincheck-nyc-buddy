@@ -298,30 +298,29 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
   };
 
   return (
-    <div className="print-container bg-white text-black p-6 max-w-4xl mx-auto" style={{ fontFamily: "'Inter', 'Helvetica Neue', Arial, sans-serif", fontSize: '11px', lineHeight: '1.4', color: '#111' }}>
-      {/* Letterhead */}
-      <div className="mb-4" style={{ pageBreakAfter: 'avoid' }}>
-        <div className="flex items-start justify-between border-b-2 border-black pb-3">
+    <div className="print-container bg-white text-black p-8 max-w-4xl mx-auto" style={{ fontFamily: "'Inter', 'Helvetica Neue', Arial, sans-serif", fontSize: '11px', lineHeight: '1.5', color: '#1a1a1a' }}>
+      {/* Letterhead — clean modern header */}
+      <div className="mb-6" style={{ pageBreakAfter: 'avoid' }}>
+        <div className="flex items-end justify-between pb-4" style={{ borderBottom: '1px solid #e5e5e5' }}>
           <div>
-            <h1 className="text-[20px] font-extrabold tracking-tight text-black">BinCheckNYC Report</h1>
-            <p className="text-[10px] text-gray-700 mt-0.5 font-bold tracking-wide uppercase">Property Compliance Assessment</p>
+            <h1 className="text-[22px] font-bold tracking-[-0.02em] text-black" style={{ letterSpacing: '-0.5px' }}>BinCheckNYC Report</h1>
+            <p className="text-[9px] text-gray-400 mt-1 font-medium tracking-[0.15em] uppercase">Property Compliance Assessment</p>
           </div>
           <div className="text-right">
-            <p className="text-[13px] font-bold text-black">BinCheck<span className="text-red-700">NYC</span></p>
-            <p className="text-[9px] text-gray-700 mt-1 font-medium">Report ID: {reportId}</p>
-            <p className="text-[9px] text-gray-700">{format(new Date(report.report_date), 'MMMM d, yyyy')}</p>
+            <p className="text-[9px] text-gray-400 font-medium">Report ID: {reportId}</p>
+            <p className="text-[9px] text-gray-400">{format(new Date(report.report_date), 'MMMM d, yyyy')}</p>
           </div>
         </div>
         {/* Meta Row */}
         <div className="grid grid-cols-2 gap-4 mt-3 text-[10px]">
           <div>
-            <p className="text-gray-800 text-[9px] uppercase tracking-wider font-bold mb-0.5">Prepared For</p>
-            <p className="font-semibold text-black">{report.prepared_for}</p>
+            <p className="text-gray-400 text-[8px] uppercase tracking-[0.15em] font-medium mb-0.5">Prepared For</p>
+            <p className="font-semibold text-black text-[11px]">{report.prepared_for}</p>
           </div>
           <div className="text-right">
-            <p className="text-gray-800 text-[9px] uppercase tracking-wider font-bold mb-0.5">Prepared By</p>
-            <p className="font-semibold text-black">{preparedByLine || '—'}</p>
-            {credentialsLine && <p className="text-gray-700 text-[9px] mt-0.5">{credentialsLine}</p>}
+            <p className="text-gray-400 text-[8px] uppercase tracking-[0.15em] font-medium mb-0.5">Prepared By</p>
+            <p className="font-semibold text-black text-[11px]">{preparedByLine || '—'}</p>
+            {credentialsLine && <p className="text-gray-500 text-[9px] mt-0.5">{credentialsLine}</p>}
           </div>
         </div>
       </div>
