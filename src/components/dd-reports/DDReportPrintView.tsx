@@ -298,43 +298,42 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
   };
 
   return (
-    <div className="print-container bg-white text-black p-8 max-w-4xl mx-auto" style={{ fontFamily: "'Inter', 'Helvetica Neue', Arial, sans-serif", fontSize: '11px', lineHeight: '1.5', color: '#1a1a1a' }}>
-      {/* Letterhead — clean modern header */}
-      <div className="mb-6" style={{ pageBreakAfter: 'avoid' }}>
-        <div className="flex items-end justify-between pb-4" style={{ borderBottom: '1px solid #e5e5e5' }}>
+    <div className="print-container bg-white text-black p-6 max-w-4xl mx-auto" style={{ fontFamily: "'Inter', 'Helvetica Neue', Arial, sans-serif", fontSize: '11px', lineHeight: '1.4', color: '#1a1a1a' }}>
+      {/* Letterhead */}
+      <div className="mb-3" style={{ pageBreakAfter: 'avoid' }}>
+        <div className="flex items-end justify-between pb-2" style={{ borderBottom: '1px solid #ddd' }}>
           <div>
-            <h1 className="text-[22px] font-bold tracking-[-0.02em] text-black" style={{ letterSpacing: '-0.5px' }}>BinCheckNYC Report</h1>
-            <p className="text-[9px] text-gray-400 mt-1 font-medium tracking-[0.15em] uppercase">Property Compliance Assessment</p>
+            <h1 className="text-[18px] font-bold tracking-tight text-black">BinCheckNYC Report</h1>
+            <p className="text-[8px] text-gray-400 mt-0.5 font-medium tracking-[0.12em] uppercase">Property Compliance Assessment</p>
           </div>
-          <div className="text-right">
-            <p className="text-[9px] text-gray-400 font-medium">Report ID: {reportId}</p>
-            <p className="text-[9px] text-gray-400">{format(new Date(report.report_date), 'MMMM d, yyyy')}</p>
+          <div className="text-right text-[8px] text-gray-400">
+            <p>Report ID: {reportId}</p>
+            <p>{format(new Date(report.report_date), 'MMMM d, yyyy')}</p>
           </div>
         </div>
-        {/* Meta Row */}
-        <div className="grid grid-cols-2 gap-4 mt-3 text-[10px]">
+        <div className="grid grid-cols-2 gap-4 mt-2 text-[10px]">
           <div>
-            <p className="text-gray-400 text-[8px] uppercase tracking-[0.15em] font-medium mb-0.5">Prepared For</p>
-            <p className="font-semibold text-black text-[11px]">{report.prepared_for}</p>
+            <p className="text-gray-400 text-[7px] uppercase tracking-[0.12em] font-medium">Prepared For</p>
+            <p className="font-semibold text-black">{report.prepared_for}</p>
           </div>
           <div className="text-right">
-            <p className="text-gray-400 text-[8px] uppercase tracking-[0.15em] font-medium mb-0.5">Prepared By</p>
-            <p className="font-semibold text-black text-[11px]">{preparedByLine || '—'}</p>
-            {credentialsLine && <p className="text-gray-500 text-[9px] mt-0.5">{credentialsLine}</p>}
+            <p className="text-gray-400 text-[7px] uppercase tracking-[0.12em] font-medium">Prepared By</p>
+            <p className="font-semibold text-black">{preparedByLine || '—'}</p>
+            {credentialsLine && <p className="text-gray-500 text-[8px]">{credentialsLine}</p>}
           </div>
         </div>
       </div>
 
       {/* Subject Property */}
-      <div className="mb-5 p-4 rounded-lg border border-gray-200 bg-gray-50" style={{ pageBreakInside: 'avoid' }}>
+      <div className="mb-3 p-3 rounded border border-gray-200 bg-gray-50" style={{ pageBreakInside: 'avoid' }}>
         <div className="flex items-start justify-between">
           <div>
-            <p className="text-[8px] text-gray-400 uppercase tracking-[0.15em] font-medium mb-1">Subject Property</p>
-            <p className="text-[15px] font-bold text-black tracking-[-0.01em]">{report.address}</p>
+            <p className="text-[7px] text-gray-400 uppercase tracking-[0.12em] font-medium">Subject Property</p>
+            <p className="text-[13px] font-bold text-black">{report.address}</p>
           </div>
-          <div className="text-right text-[10px] space-y-0.5">
-            <p><span className="text-gray-400 text-[9px]">BIN</span> <span className="font-mono font-semibold text-black ml-1">{report.bin || '—'}</span></p>
-            <p><span className="text-gray-400 text-[9px]">BBL</span> <span className="font-mono font-semibold text-black ml-1">{formatBBL(report.bbl)}</span></p>
+          <div className="text-right text-[9px]">
+            <p><span className="text-gray-400 text-[8px]">BIN</span> <span className="font-mono font-semibold text-black ml-1">{report.bin || '—'}</span></p>
+            <p><span className="text-gray-400 text-[8px]">BBL</span> <span className="font-mono font-semibold text-black ml-1">{formatBBL(report.bbl)}</span></p>
           </div>
         </div>
         {/* Agency Sources */}
@@ -345,24 +344,26 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
           const withData = queried.filter((a: any) => a.results > 0);
           const withErrors = queried.filter((a: any) => a.error && a.results === 0);
           return (
-            <div className="mt-3 pt-3 border-t border-gray-200">
+            <div className="mt-2 pt-2 border-t border-gray-200">
               {withErrors.length > 0 && (
-                <div className="mb-2 p-1.5 rounded border border-amber-300 bg-amber-50">
-                  <p className="text-[9px] font-medium text-amber-800">
+                <div className="mb-1.5 p-1 rounded border border-amber-300 bg-amber-50">
+                  <p className="text-[8px] font-medium text-amber-800">
                     ⚠ {withErrors.length} source{withErrors.length !== 1 ? 's' : ''} unavailable: {withErrors.map(a => a.agency).join(', ')}
                   </p>
                 </div>
               )}
-              <p className="text-[8px] text-gray-400 uppercase tracking-[0.15em] font-medium mb-1.5">
-                Sources Checked ({withData.length} of {queried.length} returned records{withErrors.length > 0 ? ` · ${withErrors.length} unavailable` : ''})
+              <p className="text-[7px] text-gray-400 uppercase tracking-[0.12em] font-medium mb-1">
+                Sources ({withData.length}/{queried.length} returned data)
               </p>
-              <div className="flex flex-wrap gap-1">
+              <div className="flex flex-wrap gap-0.5">
                 {queried.map((a: any) => {
                   const isError = a.error && a.results === 0;
+                  const badgeText = `${a.agency}${a.results > 0 ? ` (${a.results})` : isError ? ' ⚠' : ''}`;
                   return (
                     <span
                       key={a.agency}
-                      className={`inline-flex items-center justify-center text-[8px] font-semibold px-2 py-1 rounded-md leading-none ${
+                      style={{ height: '16px', lineHeight: '16px', fontSize: '7px', display: 'inline-block', textAlign: 'center', verticalAlign: 'middle' }}
+                      className={`font-semibold px-1.5 rounded ${
                         a.results > 0
                           ? 'bg-black text-white'
                           : isError
@@ -370,7 +371,7 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
                             : 'bg-white text-gray-500 border border-gray-300'
                       }`}
                     >
-                      {a.agency}{a.results > 0 ? ` (${a.results})` : isError ? ' ⚠' : ''}
+                      {badgeText}
                     </span>
                   );
                 })}
@@ -379,9 +380,9 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
           );
         })()}
         {(report as any).customer_concern && (
-          <div className="mt-3 pt-3 border-t border-gray-200">
-            <p className="text-[8px] text-gray-400 uppercase tracking-[0.15em] font-medium mb-0.5">Scope of Review</p>
-            <p className="text-[10px] text-gray-700 italic">"{(report as any).customer_concern}"</p>
+          <div className="mt-2 pt-2 border-t border-gray-200">
+            <p className="text-[7px] text-gray-400 uppercase tracking-[0.12em] font-medium">Scope of Review</p>
+            <p className="text-[9px] text-gray-700 italic">"{(report as any).customer_concern}"</p>
           </div>
         )}
       </div>
