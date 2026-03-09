@@ -74,7 +74,7 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
   const applications = (report.applications_data || []).filter((a: any) => !a.hidden);
   const orders = report.orders_data || { stop_work: [], vacate: [] };
   const building = report.building_data || {};
-  const complaints = report.complaints_data || [];
+  const complaints = (report.complaints_data || []).filter((c: any) => !c.hidden);
   const acris = report.acris_data || { documents: [], deeds: [], mortgages: [], liens: [] };
   const acrisDocuments = acris.documents || [];
   const reportId = generateReportId(report.report_date);
