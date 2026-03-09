@@ -326,15 +326,15 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
       </div>
 
       {/* Subject Property */}
-      <div className="mb-4 p-3 bg-gray-100 rounded border border-gray-500" style={{ pageBreakInside: 'avoid' }}>
+      <div className="mb-5 p-4 rounded-lg border border-gray-200 bg-gray-50" style={{ pageBreakInside: 'avoid' }}>
         <div className="flex items-start justify-between">
           <div>
-            <p className="text-[9px] text-gray-800 uppercase tracking-wider font-bold mb-0.5">Subject Property</p>
-            <p className="text-[14px] font-bold text-black">{report.address}</p>
+            <p className="text-[8px] text-gray-400 uppercase tracking-[0.15em] font-medium mb-1">Subject Property</p>
+            <p className="text-[15px] font-bold text-black tracking-[-0.01em]">{report.address}</p>
           </div>
-          <div className="text-right text-[10px]">
-            <p><span className="text-gray-700 font-semibold">BIN:</span> <span className="font-mono font-bold text-black">{report.bin || '—'}</span></p>
-            <p><span className="text-gray-700 font-semibold">BBL:</span> <span className="font-mono font-bold text-black">{formatBBL(report.bbl)}</span></p>
+          <div className="text-right text-[10px] space-y-0.5">
+            <p><span className="text-gray-400 text-[9px]">BIN</span> <span className="font-mono font-semibold text-black ml-1">{report.bin || '—'}</span></p>
+            <p><span className="text-gray-400 text-[9px]">BBL</span> <span className="font-mono font-semibold text-black ml-1">{formatBBL(report.bbl)}</span></p>
           </div>
         </div>
         {/* Agency Sources */}
@@ -345,15 +345,15 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
           const withData = queried.filter((a: any) => a.results > 0);
           const withErrors = queried.filter((a: any) => a.error && a.results === 0);
           return (
-            <div className="mt-2 pt-2 border-t border-gray-400">
+            <div className="mt-3 pt-3 border-t border-gray-200">
               {withErrors.length > 0 && (
-                <div className="mb-2 p-1.5 rounded border border-amber-500 bg-amber-100">
-                  <p className="text-[9px] font-bold text-amber-900">
-                    ⚠ {withErrors.length} data source{withErrors.length !== 1 ? 's were' : ' was'} unavailable at time of report: {withErrors.map(a => a.agency).join(', ')}. Results may be incomplete.
+                <div className="mb-2 p-1.5 rounded border border-amber-300 bg-amber-50">
+                  <p className="text-[9px] font-medium text-amber-800">
+                    ⚠ {withErrors.length} source{withErrors.length !== 1 ? 's' : ''} unavailable: {withErrors.map(a => a.agency).join(', ')}
                   </p>
                 </div>
               )}
-              <p className="text-[9px] text-gray-800 uppercase tracking-wider font-bold mb-1">
+              <p className="text-[8px] text-gray-400 uppercase tracking-[0.15em] font-medium mb-1.5">
                 Sources Checked ({withData.length} of {queried.length} returned records{withErrors.length > 0 ? ` · ${withErrors.length} unavailable` : ''})
               </p>
               <div className="flex flex-wrap gap-1">
@@ -362,12 +362,12 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
                   return (
                     <span
                       key={a.agency}
-                      className={`inline-flex items-center text-[8px] font-bold px-1.5 py-0.5 rounded ${
+                      className={`inline-flex items-center justify-center text-[8px] font-semibold px-2 py-1 rounded-md leading-none ${
                         a.results > 0
                           ? 'bg-black text-white'
                           : isError
-                            ? 'bg-amber-200 text-amber-900 border border-amber-500'
-                            : 'bg-gray-200 text-gray-600 border border-gray-400'
+                            ? 'bg-amber-50 text-amber-700 border border-amber-300'
+                            : 'bg-white text-gray-500 border border-gray-300'
                       }`}
                     >
                       {a.agency}{a.results > 0 ? ` (${a.results})` : isError ? ' ⚠' : ''}
@@ -379,9 +379,9 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
           );
         })()}
         {(report as any).customer_concern && (
-          <div className="mt-2 pt-2 border-t border-gray-400">
-            <p className="text-[9px] text-gray-800 uppercase tracking-wider font-bold mb-0.5">Scope of Review</p>
-            <p className="text-[10px] text-gray-900 italic">"{(report as any).customer_concern}"</p>
+          <div className="mt-3 pt-3 border-t border-gray-200">
+            <p className="text-[8px] text-gray-400 uppercase tracking-[0.15em] font-medium mb-0.5">Scope of Review</p>
+            <p className="text-[10px] text-gray-700 italic">"{(report as any).customer_concern}"</p>
           </div>
         )}
       </div>
