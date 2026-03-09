@@ -241,17 +241,17 @@ const Dashboard = () => {
 
   const regenerateReport = useMutation({
     mutationFn: async ({ reportId, address }: { reportId: string; address: string }) => {
-      const { error } = await supabase.functions.invoke('generate-dd-report', {
-        body: { reportId, address },
-      });
-      if (error) throw error;
+      // Set status to generating first
+      await supabase.from('dd_reports').update({ status: 'generating', generation_started_at: new Date().toISOString() }).eq('id', reportId);
+      // Fire-and-forget — the function updates the report on completion
+      supabase.functions.invoke('generate-dd-report', { body: { reportId, address } }).catch(() => {});
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['dashboard-dd-reports'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard-dd-report-full', selectedReportId] });
-      toast.success('Report regenerated');
+      toast.success('Report regeneration started — this may take a minute');
     },
-    onError: () => toast.error('Failed to regenerate report'),
+    onError: () => toast.error('Failed to start report regeneration'),
   });
 
   const handleDeleteSaved = async (id: string) => {
