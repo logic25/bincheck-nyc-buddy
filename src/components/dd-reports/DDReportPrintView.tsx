@@ -632,7 +632,7 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
       <section className="mb-6 p-5 rounded border-2 border-gray-300 bg-gray-50" style={{ pageBreakInside: 'avoid' }}>
         <h3 className="text-[13px] font-bold text-gray-900 mb-2">Need a Certified Physical Copy?</h3>
         <p className="text-[11px] text-gray-700 leading-relaxed mb-2">
-          A printed, signed, and sealed physical copy of this Due Diligence Report is available for an additional <span className="font-bold">$75</span>. 
+          A printed, signed, and sealed physical copy of this Due Diligence Report is available for an additional <span className="font-bold">$150</span>. 
           Physical copies are ideal for closing binders, legal filings, or lender requirements where a certified hard copy is expected.
         </p>
         <p className="text-[11px] text-gray-700 leading-relaxed">
