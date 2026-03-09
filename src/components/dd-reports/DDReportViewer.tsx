@@ -910,13 +910,13 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
       {activeSection === 'complaints' && (
         <div className="border border-border rounded-xl bg-card">
           <div className="p-4 border-b border-border">
-            <div className="flex items-center justify-between mb-3">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
               <div>
                 <h3 className="text-base font-semibold">DOB Complaints</h3>
                 <p className="text-xs text-muted-foreground mt-0.5">{complaints.length} complaints on record</p>
               </div>
               {!isReadOnly && complaints.length > 0 && (
-                <Button variant={bulkMode && activeSection === 'complaints' ? 'default' : 'outline'} size="sm" className="h-7 text-xs gap-1.5" onClick={toggleBulkMode}>
+                <Button variant={bulkMode && activeSection === 'complaints' ? 'default' : 'outline'} size="sm" className="h-7 text-xs gap-1.5 w-full sm:w-auto" onClick={toggleBulkMode}>
                   <ListChecks className="w-3.5 h-3.5" />
                   {bulkMode && activeSection === 'complaints' ? 'Exit Bulk' : 'Bulk Edit'}
                 </Button>
@@ -926,8 +926,8 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
           {complaints.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground text-sm">No DOB complaints found.</div>
           ) : (
-            <ScrollArea className="h-[520px]">
-              <Table className="text-sm">
+            <div className="w-full">
+              <Table className="text-sm w-full">
                 <TableHeader>
                   <TableRow className="bg-muted/30 hover:bg-muted/30">
                     <TableHead className="w-8">
@@ -945,11 +945,11 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
                     </TableHead>
                     <TableHead className="text-xs font-semibold uppercase tracking-wider">Complaint #</TableHead>
                     <TableHead className="text-xs font-semibold uppercase tracking-wider">Date</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider">Category</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider">Unit</TableHead>
+                    <TableHead className="text-xs font-semibold uppercase tracking-wider hidden sm:table-cell">Category</TableHead>
+                    <TableHead className="text-xs font-semibold uppercase tracking-wider hidden md:table-cell">Unit</TableHead>
                     <TableHead className="text-xs font-semibold uppercase tracking-wider">Status</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider">Disposition</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider">Notes</TableHead>
+                    <TableHead className="text-xs font-semibold uppercase tracking-wider hidden md:table-cell">Disposition</TableHead>
+                    <TableHead className="text-xs font-semibold uppercase tracking-wider hidden lg:table-cell">Notes</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -974,10 +974,11 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
                   })}
                 </TableBody>
               </Table>
-            </ScrollArea>
+            </div>
           )}
         </div>
       )}
+
 
       {/* AI Analysis Section */}
       {activeSection === 'analysis' && (

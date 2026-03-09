@@ -85,17 +85,17 @@ const ExpandableComplaintRow = ({
         </TableCell>
         <TableCell className="font-mono text-xs">{complaintId}</TableCell>
         <TableCell className="text-xs whitespace-nowrap">{formatDate(complaint.date_entered)}</TableCell>
-        <TableCell className="text-xs max-w-[250px]">
+        <TableCell className="text-xs max-w-[250px] hidden sm:table-cell">
           <span className="font-medium">{decodeComplaintCategory(complaint.complaint_category)}</span>
         </TableCell>
-        <TableCell className="text-xs">{complaint.unit || '—'}</TableCell>
+        <TableCell className="text-xs hidden md:table-cell">{complaint.unit || '—'}</TableCell>
         <TableCell>
           <Badge variant={isClosed ? 'secondary' : 'destructive'} className="text-[10px]">
             {complaint.status || 'Unknown'}
           </Badge>
         </TableCell>
-        <TableCell className="text-xs">{formatDate(complaint.disposition_date)}</TableCell>
-        <TableCell className="max-w-[200px] text-xs text-muted-foreground">
+        <TableCell className="text-xs hidden md:table-cell">{formatDate(complaint.disposition_date)}</TableCell>
+        <TableCell className="max-w-[200px] text-xs text-muted-foreground hidden lg:table-cell">
           <div className="flex items-center gap-1.5">
             <span className="truncate" title={note || ''}>{note || <span className="italic opacity-50">—</span>}</span>
             {hasEdit && (

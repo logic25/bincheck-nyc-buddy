@@ -93,7 +93,8 @@ const ExpandableApplicationRow = ({ application, index, note, onNoteChange, read
         </TableCell>
         <TableCell className="font-mono text-sm">{application.application_number || application.job_number}</TableCell>
         <TableCell>
-          <Badge variant="outline">{application.application_type || application.job_type || '—'}</Badge>
+          <Badge variant="outline" className="hidden sm:inline-flex">{application.application_type || application.job_type || '—'}</Badge>
+          <Badge variant="outline" className="sm:hidden">{(application.application_type || application.job_type || '—').toString().slice(0, 4)}</Badge>
         </TableCell>
         <TableCell>
           <Badge variant="outline" className={getStatusColor(application.status)}>
@@ -101,12 +102,12 @@ const ExpandableApplicationRow = ({ application, index, note, onNoteChange, read
           </Badge>
         </TableCell>
         <TableCell>{formatDate(application.filing_date)}</TableCell>
-        <TableCell className="max-w-[200px] truncate" title={application.job_description || ''}>
+        <TableCell className="max-w-[200px] truncate hidden md:table-cell" title={application.job_description || ''}>
           {application.job_description?.slice(0, 40) || '—'}
           {application.job_description?.length > 40 ? '...' : ''}
         </TableCell>
-        <TableCell>{floorApt}</TableCell>
-        <TableCell className="max-w-[200px] text-xs text-muted-foreground">
+        <TableCell className="hidden sm:table-cell">{floorApt}</TableCell>
+        <TableCell className="max-w-[200px] text-xs text-muted-foreground hidden lg:table-cell">
           <div className="flex items-center gap-1.5">
             <span className="truncate" title={note || ''}>{note || <span className="italic opacity-50">—</span>}</span>
             {hasEdit && (
