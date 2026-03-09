@@ -135,6 +135,11 @@ const AdminReportManager = ({ userId, userEmail, userProfile }: AdminReportManag
       return data as unknown as DDReport;
     },
     enabled: !!selectedReportId,
+    // Auto-poll every 3 seconds when report is generating
+    refetchInterval: (query) => {
+      const report = query.state.data;
+      return report?.status === 'generating' ? 3000 : false;
+    },
   });
 
   const deleteReport = useMutation({
