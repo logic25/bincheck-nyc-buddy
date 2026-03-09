@@ -7,13 +7,15 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { Shield, ArrowLeft, Loader2, Save, LogOut, KeyRound, User, CreditCard, CheckCircle, FileText } from 'lucide-react';
+import { Shield, ArrowLeft, Loader2, Save, LogOut, KeyRound, User, CreditCard, CheckCircle, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { useUserRole } from '@/hooks/useUserRole';
+import { useQuery } from '@tanstack/react-query';
+import { format } from 'date-fns';
 
 const Settings = () => {
   const navigate = useNavigate();
-  const { isAdmin } = useUserRole();
+  const { isAdmin, isLoading: roleLoading } = useUserRole();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
@@ -84,6 +86,17 @@ const Settings = () => {
     navigate('/');
   };
 
+  // Admin: fetch all users
+  const { data: allUsers, isLoading: loadingUsers } = useQuery({
+    queryKey: ['admin-users'],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_users_with_email');
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: isAdmin && !roleLoading,
+  });
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -114,11 +127,17 @@ const Settings = () => {
         <Tabs defaultValue="profile">
           <TabsList>
             <TabsTrigger value="profile"><User className="h-4 w-4 mr-1" /> Profile</TabsTrigger>
-            <TabsTrigger value="plan"><CreditCard className="h-4 w-4 mr-1" /> My Plan</TabsTrigger>
+            {!isAdmin && (
+              <TabsTrigger value="plan"><CreditCard className="h-4 w-4 mr-1" /> My Plan</TabsTrigger>
+            )}
             <TabsTrigger value="security"><KeyRound className="h-4 w-4 mr-1" /> Security</TabsTrigger>
+            {isAdmin && (
+              <TabsTrigger value="users"><Users className="h-4 w-4 mr-1" /> Users</TabsTrigger>
+            )}
             <TabsTrigger value="account"><LogOut className="h-4 w-4 mr-1" /> Account</TabsTrigger>
           </TabsList>
 
+          {/* Profile Tab */}
           <TabsContent value="profile">
             <Card>
               <CardHeader>
@@ -152,54 +171,58 @@ const Settings = () => {
             </Card>
           </TabsContent>
 
-          <TabsContent value="plan">
-            <Card>
-              <CardHeader>
-                <CardTitle>My Plan</CardTitle>
-                <CardDescription>Your current subscription and usage</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="flex items-center justify-between p-4 rounded-lg border border-border bg-muted/30">
-                  <div>
-                    <p className="font-semibold">Current Plan</p>
-                    <p className="text-sm text-muted-foreground mt-0.5">No active subscription</p>
-                  </div>
-                  <Badge variant="outline">No Plan</Badge>
-                </div>
-
-                <div className="space-y-3">
-                  {[
-                    { plan: "One-Time Report", price: "$199/report", desc: "Single report with 24hr delivery" },
-                    { plan: "Professional", price: "$599/mo", desc: "5 reports · priority queue · rush included" },
-                  ].map((p) => (
-                    <div key={p.plan} className="flex items-center justify-between p-4 rounded-lg border border-border">
-                      <div>
-                        <p className="font-medium text-sm">{p.plan}</p>
-                        <p className="text-xs text-muted-foreground">{p.desc}</p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-semibold text-sm">{p.price}</span>
-                        <Button size="sm" variant="outline" onClick={() => navigate('/order')}>Select</Button>
-                      </div>
+          {/* My Plan Tab — clients only */}
+          {!isAdmin && (
+            <TabsContent value="plan">
+              <Card>
+                <CardHeader>
+                  <CardTitle>My Plan</CardTitle>
+                  <CardDescription>Your current subscription and usage</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="flex items-center justify-between p-4 rounded-lg border border-border bg-muted/30">
+                    <div>
+                      <p className="font-semibold">Current Plan</p>
+                      <p className="text-sm text-muted-foreground mt-0.5">No active subscription</p>
                     </div>
-                  ))}
-                </div>
+                    <Badge variant="outline">No Plan</Badge>
+                  </div>
 
-                <div className="border-t border-border pt-4">
-                  <Button variant="outline" className="w-full" onClick={() => toast.info("Stripe billing portal coming soon")}>
-                    <CreditCard className="h-4 w-4 mr-2" /> Manage Billing
-                  </Button>
-                  <p className="text-xs text-muted-foreground text-center mt-2">Powered by Stripe · SSL secured</p>
-                </div>
+                  <div className="space-y-3">
+                    {[
+                      { plan: "One-Time Report", price: "$199/report", desc: "Single report with 24hr delivery" },
+                      { plan: "Professional", price: "$599/mo", desc: "5 reports · priority queue · rush included" },
+                    ].map((p) => (
+                      <div key={p.plan} className="flex items-center justify-between p-4 rounded-lg border border-border">
+                        <div>
+                          <p className="font-medium text-sm">{p.plan}</p>
+                          <p className="text-xs text-muted-foreground">{p.desc}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-sm">{p.price}</span>
+                          <Button size="sm" variant="outline" onClick={() => navigate('/order')}>Select</Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
 
-                <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/30 rounded-lg p-3">
-                  <CheckCircle className="h-4 w-4 text-primary shrink-0" />
-                  <span>Enterprise plans for law firms and title companies — <span className="text-primary cursor-pointer hover:underline" onClick={() => window.location.href = "mailto:hello@bincheckyc.com"}>contact us</span></span>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
+                  <div className="border-t border-border pt-4">
+                    <Button variant="outline" className="w-full" onClick={() => toast.info("Stripe billing portal coming soon")}>
+                      <CreditCard className="h-4 w-4 mr-2" /> Manage Billing
+                    </Button>
+                    <p className="text-xs text-muted-foreground text-center mt-2">Powered by Stripe · SSL secured</p>
+                  </div>
 
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/30 rounded-lg p-3">
+                    <CheckCircle className="h-4 w-4 text-primary shrink-0" />
+                    <span>Enterprise plans for law firms and title companies — <span className="text-primary cursor-pointer hover:underline" onClick={() => window.location.href = "mailto:hello@binchecknyc.com"}>contact us</span></span>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          )}
+
+          {/* Security Tab */}
           <TabsContent value="security">
             <Card>
               <CardHeader>
@@ -222,6 +245,44 @@ const Settings = () => {
             </Card>
           </TabsContent>
 
+          {/* Users Tab — admin only */}
+          {isAdmin && (
+            <TabsContent value="users">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Users className="h-5 w-5 text-primary" />
+                    Registered Users ({allUsers?.length ?? 0})
+                  </CardTitle>
+                  <CardDescription>All users who have signed up</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {loadingUsers ? (
+                    <div className="flex justify-center py-8">
+                      <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                    </div>
+                  ) : !allUsers?.length ? (
+                    <p className="text-muted-foreground text-center py-8">No users found.</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {allUsers.map((u: any) => (
+                        <div key={u.user_id} className="flex items-center justify-between p-3 rounded-lg border border-border">
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium truncate">{u.email}</p>
+                            <p className="text-xs text-muted-foreground">
+                              Joined {format(new Date(u.created_at), 'MMM d, yyyy')}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          )}
+
+          {/* Account Tab */}
           <TabsContent value="account">
             <Card>
               <CardHeader>
