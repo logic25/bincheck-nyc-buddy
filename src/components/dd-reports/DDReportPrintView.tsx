@@ -106,7 +106,12 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
   const bisApplications = applications.filter((a: any) => a.source === 'BIS');
   const dobNowApplications = applications.filter((a: any) => a.source === 'DOB_NOW');
 
-  const buildPreparedByLine = () => {
+  const closeoutTaggedCount = applications.filter((a: any) => {
+    const status = (a.status || a.status_description || a.permit_status || '').toUpperCase();
+    const closedStatuses = ['SIGNED OFF', 'SIGN-OFF', 'SIGNOFF', 'CLOSED', 'COMPLETED', 'COMPLETE', 'X', 'WITHDRAWN', 'DISAPPROVED'];
+    return !closedStatuses.some(cs => status.includes(cs));
+  }).length;
+
     const parts: string[] = [];
     if (report.prepared_by) parts.push(report.prepared_by);
     else if (userProfile?.display_name) parts.push(userProfile.display_name);
