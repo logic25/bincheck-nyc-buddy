@@ -232,7 +232,7 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
     try {
       const element = printRef.current;
       const opt = {
-        margin: [0.5, 0.5, 0.7, 0.5],
+        margin: [0.5, 0.5, 0.7, 0.5] as [number, number, number, number],
         filename: `BinCheckNYC Report - ${report.address}.pdf`,
         image: { type: 'jpeg' as const, quality: 0.98 },
         html2canvas: { scale: 2, useCORS: true, scrollY: 0, windowWidth: 816 },
