@@ -177,7 +177,7 @@ const CreateDDReportDialog = ({ open, onOpenChange, onSuccess }: CreateDDReportD
             <Label htmlFor="customerConcern">What should we look for? (Optional)</Label>
             <Textarea
               id="customerConcern"
-              placeholder="e.g., I'm buying Unit 10B and want to ensure no violations or permits affect it, and that future combination work is possible"
+              placeholder="Buying a condo — flag anything that could delay closing. Check for open permits, illegal work, or pending violations that need resolution before transfer."
               value={customerConcern}
               onChange={(e) => setCustomerConcern(e.target.value)}
               disabled={createReport.isPending}
