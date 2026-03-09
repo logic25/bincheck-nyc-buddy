@@ -425,7 +425,11 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
   const statusLabel = report.status === 'approved' ? 'Approved' : report.status === 'pending_review' ? 'Pending Review' : report.status === 'generating' ? (isStaleGenerating ? 'Stale — Retry' : 'Generating') : report.status;
 
   const acris = (report as any).acris_data || { documents: [], deeds: [], mortgages: [], liens: [] };
-  const acrisDocuments = acris.documents || [];
+  const acrisDocuments = [...(acris.documents || [])].sort((a: any, b: any) => {
+    const da = new Date(a.document_date || '1900-01-01').getTime();
+    const db = new Date(b.document_date || '1900-01-01').getTime();
+    return db - da; // newest first
+  });
 
   const sectionNav = [
     { key: 'violations' as const, label: 'Violations', count: violations.length, icon: AlertTriangle },
