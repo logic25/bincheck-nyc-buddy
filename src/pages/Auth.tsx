@@ -92,7 +92,7 @@ const Auth = () => {
           const msg = data?.error || error?.message || 'An unexpected error occurred.';
           toast.error(msg);
         } else {
-          toast.success("Account created! Check your email to confirm your account.");
+          toast.success("Account created! You can now sign in.");
           setIsLogin(true);
           setInviteCode('');
         }
