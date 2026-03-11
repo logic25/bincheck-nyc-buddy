@@ -106,7 +106,7 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        message: 'Account created! Check your email to confirm your account.',
+        message: 'Account created! You can now sign in.',
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
