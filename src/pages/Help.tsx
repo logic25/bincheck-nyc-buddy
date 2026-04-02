@@ -346,9 +346,14 @@ const Help = () => {
   // Roadmap state
   const [testingItemId, setTestingItemId] = useState<string | null>(null);
 
+  // Auth check — redirect unauthenticated users only
   useEffect(() => {
-    if (!roleLoading && !isAdmin) navigate('/dashboard');
-  }, [roleLoading, isAdmin, navigate]);
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) navigate('/auth');
+    };
+    checkAuth();
+  }, [navigate]);
 
   // ── Roadmap queries ──
   const { data: roadmapItems = [], isLoading: loadingRoadmap } = useQuery({
