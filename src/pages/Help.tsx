@@ -563,17 +563,21 @@ const Help = () => {
           </div>
         </div>
 
-        <Tabs defaultValue="roadmap">
+        <Tabs defaultValue={isAdmin ? "roadmap" : "bugs"}>
           <TabsList>
-            <TabsTrigger value="roadmap">
-              <TrendingUp className="h-4 w-4 mr-1.5" /> Product Roadmap
-            </TabsTrigger>
-            <TabsTrigger value="requests">
-              <Brain className="h-4 w-4 mr-1.5" /> Feature Requests
-            </TabsTrigger>
-            <TabsTrigger value="usage">
-              <BarChart3 className="h-4 w-4 mr-1.5" /> AI Usage
-            </TabsTrigger>
+            {isAdmin && (
+              <>
+                <TabsTrigger value="roadmap">
+                  <TrendingUp className="h-4 w-4 mr-1.5" /> Product Roadmap
+                </TabsTrigger>
+                <TabsTrigger value="requests">
+                  <Brain className="h-4 w-4 mr-1.5" /> Feature Requests
+                </TabsTrigger>
+                <TabsTrigger value="usage">
+                  <BarChart3 className="h-4 w-4 mr-1.5" /> AI Usage
+                </TabsTrigger>
+              </>
+            )}
             <TabsTrigger value="bugs">
               <Bug className="h-4 w-4 mr-1.5" /> Bug Reports
             </TabsTrigger>
