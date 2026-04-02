@@ -19,8 +19,9 @@ import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import {
   Shield, ArrowLeft, Loader2, Zap, Trash2, ChevronRight, ChevronLeft,
-  Brain, BarChart3, TrendingUp, DollarSign, Activity, Plus, BookOpen, Search, FileText,
+  Brain, BarChart3, TrendingUp, DollarSign, Activity, Plus, BookOpen, Search, FileText, Bug,
 } from 'lucide-react';
+import { BugReports } from '@/components/helpdesk/BugReports';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { format, subDays, startOfDay } from 'date-fns';
 
