@@ -19,8 +19,9 @@ import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import {
   Shield, ArrowLeft, Loader2, Zap, Trash2, ChevronRight, ChevronLeft,
-  Brain, BarChart3, TrendingUp, DollarSign, Activity, Plus, BookOpen, Search, FileText,
+  Brain, BarChart3, TrendingUp, DollarSign, Activity, Plus, BookOpen, Search, FileText, Bug,
 } from 'lucide-react';
+import { BugReports } from '@/components/helpdesk/BugReports';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { format, subDays, startOfDay } from 'date-fns';
 
@@ -568,6 +569,9 @@ const Help = () => {
             <TabsTrigger value="usage">
               <BarChart3 className="h-4 w-4 mr-1.5" /> AI Usage
             </TabsTrigger>
+            <TabsTrigger value="bugs">
+              <Bug className="h-4 w-4 mr-1.5" /> Bug Reports
+            </TabsTrigger>
           </TabsList>
 
           {/* ══ TAB 1: PRODUCT ROADMAP ══════════════════════════════════════ */}
@@ -939,6 +943,11 @@ const Help = () => {
                 <p className="text-sm mt-1">Generate a report or run an AI stress test to see data here.</p>
               </div>
             )}
+          </TabsContent>
+
+          {/* ══ TAB 4: BUG REPORTS ══════════════════════════════════════════ */}
+          <TabsContent value="bugs" className="mt-6">
+            <BugReports />
           </TabsContent>
         </Tabs>
       </main>
