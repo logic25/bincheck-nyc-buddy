@@ -944,6 +944,11 @@ const Help = () => {
               </div>
             )}
           </TabsContent>
+
+          {/* ══ TAB 4: BUG REPORTS ══════════════════════════════════════════ */}
+          <TabsContent value="bugs" className="mt-6">
+            <BugReports />
+          </TabsContent>
         </Tabs>
       </main>
     </div>
