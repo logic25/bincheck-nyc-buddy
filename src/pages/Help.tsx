@@ -569,6 +569,9 @@ const Help = () => {
             <TabsTrigger value="usage">
               <BarChart3 className="h-4 w-4 mr-1.5" /> AI Usage
             </TabsTrigger>
+            <TabsTrigger value="bugs">
+              <Bug className="h-4 w-4 mr-1.5" /> Bug Reports
+            </TabsTrigger>
           </TabsList>
 
           {/* ══ TAB 1: PRODUCT ROADMAP ══════════════════════════════════════ */}
