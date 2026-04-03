@@ -20,3 +20,6 @@ verify_jwt = false
 
 [functions.refresh-accuracy-stats]
 verify_jwt = false
+
+[functions.timeout-stale-reports]
+verify_jwt = false
