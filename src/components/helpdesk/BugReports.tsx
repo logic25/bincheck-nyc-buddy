@@ -258,6 +258,8 @@ export function BugReports() {
     setNewComment("");
     setCommentFiles([]);
     setStatusComment("");
+    setStatusCommentFiles([]);
+    savingRef.current = false;
   };
 
   const saveDetail = async () => {
