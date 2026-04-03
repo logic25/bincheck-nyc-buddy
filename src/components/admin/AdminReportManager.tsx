@@ -21,7 +21,7 @@ import DDReportViewer from '@/components/dd-reports/DDReportViewer';
 import CreateDDReportDialog from '@/components/dd-reports/CreateDDReportDialog';
 import EditReviewTab from '@/components/admin/EditReviewTab';
 import AILearningTab from '@/components/admin/AILearningTab';
-import ArchitectLettersTab from '@/components/admin/ArchitectLettersTab';
+import ServiceRequestsTab from '@/components/admin/ServiceRequestsTab';
 import InviteCodesTab from '@/components/admin/InviteCodesTab';
 
 interface DDReport {
