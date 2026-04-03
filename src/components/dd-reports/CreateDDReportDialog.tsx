@@ -110,6 +110,7 @@ const CreateDDReportDialog = ({ open, onOpenChange, onSuccess }: CreateDDReportD
       setPreparedFor('');
       setPreparedBy('');
       setCustomerConcern('');
+      setClientEmail('');
       onSuccess(report);
     },
     onError: (error: any) => {
