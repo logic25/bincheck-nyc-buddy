@@ -669,6 +669,7 @@ const Dashboard = () => {
                                   <ArrowRight className="h-3.5 w-3.5 mr-1" /> View Report
                                 </Button>
                               )}
+                            </div>
                           </div>
                         </CardContent>
                       </Card>
