@@ -296,6 +296,36 @@ export type Database = {
           },
         ]
       }
+      cross_sell_impressions: {
+        Row: {
+          clicked_at: string | null
+          client_email: string
+          converted_at: string | null
+          cta_type: string
+          id: string
+          report_id: string
+          sent_at: string
+        }
+        Insert: {
+          clicked_at?: string | null
+          client_email: string
+          converted_at?: string | null
+          cta_type: string
+          id?: string
+          report_id: string
+          sent_at?: string
+        }
+        Update: {
+          clicked_at?: string | null
+          client_email?: string
+          converted_at?: string | null
+          cta_type?: string
+          id?: string
+          report_id?: string
+          sent_at?: string
+        }
+        Relationships: []
+      }
       dd_reports: {
         Row: {
           acris_data: Json | null
