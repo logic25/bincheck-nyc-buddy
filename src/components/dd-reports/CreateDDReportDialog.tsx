@@ -185,6 +185,24 @@ const CreateDDReportDialog = ({ open, onOpenChange, onSuccess }: CreateDDReportD
           </div>
 
           <div className="space-y-2">
+            <Label htmlFor="clientEmail" className="flex items-center gap-2">
+              <Mail className="w-4 h-4" />
+              Client Email (Optional)
+            </Label>
+            <Input
+              id="clientEmail"
+              type="email"
+              placeholder="client@example.com"
+              value={clientEmail}
+              onChange={(e) => setClientEmail(e.target.value)}
+              disabled={createReport.isPending}
+            />
+            <p className="text-xs text-muted-foreground">
+              Client will receive the report via email when approved
+            </p>
+          </div>
+
+          <div className="space-y-2">
             <Label htmlFor="customerConcern">What should we look for? (Optional)</Label>
             <Textarea
               id="customerConcern"
