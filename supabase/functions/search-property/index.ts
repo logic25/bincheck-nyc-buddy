@@ -192,6 +192,120 @@ function deduplicateByKey(records: any[], keyFn: (r: any) => string): any[] {
   return Array.from(seen.values());
 }
 
+// Build unified DOB NOW applications array from all DOB NOW datasets
+function buildDobNowApplications(
+  dobNowBuild: any[],
+  dobNowLimitedAlt: any[],
+  dobNowElectrical: any[],
+  dobNowElevator: any[],
+): any[] {
+  const apps: any[] = [];
+  const fmt = (d: any) => d ? String(d).split('T')[0] : '';
+
+  // DOB NOW Build
+  for (const a of dobNowBuild) {
+    const appNum = a.job_filing_number || a.dobrunjobnumber || '';
+    if (!appNum) continue;
+    apps.push({
+      application_number: String(appNum),
+      application_type: a.job_type || 'DOB NOW Filing',
+      source: 'DOB NOW Build',
+      status: a.filing_status || '',
+      filing_date: fmt(a.filing_date),
+      approval_date: fmt(a.approved_date),
+      expiration_date: fmt(a.expiration_date),
+      work_type: a.building_type || '',
+      description: (a.job_description || '').replace(/\u00a0|&nbsp;/g, ' ').trim(),
+      applicant_name: [a.applicant_first_name, a.applicant_last_name].filter(Boolean).join(' ').trim(),
+      owner_name: a.owner_s_business_name || [a.owner_first_name, a.owner_last_name].filter(Boolean).join(' ').trim(),
+      estimated_cost: a.initial_cost || '',
+      proposed_stories: a.proposed_no_of_stories || '',
+      proposed_dwelling_units: a.proposed_dwelling_units || '',
+    });
+  }
+
+  // DOB NOW Limited Alteration — group by job_number
+  const laaByJob = new Map<string, any[]>();
+  for (const la of dobNowLimitedAlt) {
+    const jobNum = la.job_number as string;
+    if (!jobNum) continue;
+    if (!laaByJob.has(jobNum)) laaByJob.set(jobNum, []);
+    laaByJob.get(jobNum)!.push(la);
+  }
+  for (const [jobNum, filings] of laaByJob) {
+    filings.sort((a: any, b: any) => String(a.filing_number || '').localeCompare(String(b.filing_number || '')));
+    const primary = filings.find((f: any) => String(f.filing_number || '').startsWith('I')) || filings[0];
+    apps.push({
+      application_number: String(jobNum),
+      application_type: primary.work_type_name || 'Limited Alteration',
+      source: 'DOB NOW Limited Alt',
+      status: primary.filing_status_name || '',
+      filing_date: fmt(primary.filing_date),
+      approval_date: fmt(primary.permit_issued_date),
+      expiration_date: fmt(primary.permit_expiration_date),
+      work_type: primary.work_type_name || '',
+      description: primary.proposed_work_summary || '',
+      applicant_name: '',
+      owner_name: '',
+      estimated_cost: '',
+      proposed_stories: '',
+      proposed_dwelling_units: '',
+    });
+  }
+
+  // DOB NOW Electrical
+  for (const el of dobNowElectrical) {
+    const appNum = el.job_filing_number || el.job_number || '';
+    if (!appNum) continue;
+    apps.push({
+      application_number: String(appNum),
+      application_type: 'Electrical Permit',
+      source: 'DOB NOW Electrical',
+      status: el.filing_status || '',
+      filing_date: fmt(el.filing_date),
+      approval_date: '',
+      expiration_date: '',
+      work_type: 'Electrical',
+      description: (el.job_description || '').replace(/\u00a0|&nbsp;/g, ' ').trim(),
+      applicant_name: [el.applicant_first_name, el.applicant_last_name].filter(Boolean).join(' ').trim(),
+      owner_name: [el.owner_first_name, el.owner_last_name].filter(Boolean).join(' ').trim(),
+      estimated_cost: '',
+      proposed_stories: '',
+      proposed_dwelling_units: '',
+    });
+  }
+
+  // DOB NOW Elevator
+  for (const ev of dobNowElevator) {
+    const appNum = ev.job_filing_number || ev.job_number || '';
+    if (!appNum) continue;
+    apps.push({
+      application_number: String(appNum),
+      application_type: ev.elevatordevicetype || 'Elevator Permit',
+      source: 'DOB NOW Elevator',
+      status: ev.filing_status || '',
+      filing_date: fmt(ev.filing_date),
+      approval_date: fmt(ev.permit_entire_date),
+      expiration_date: fmt(ev.permit_expiration_date),
+      work_type: ev.filingstatus_or_filingincludes || 'Elevator',
+      description: ev.descriptionofwork || '',
+      applicant_name: [ev.applicant_firstname, ev.applicant_lastname].filter(Boolean).join(' ').trim(),
+      owner_name: ev.owner_businessname || [ev.owner_firstname, ev.owner_lastname].filter(Boolean).join(' ').trim(),
+      estimated_cost: ev.estimated_cost || '',
+      proposed_stories: ev.buildingstories || '',
+      proposed_dwelling_units: '',
+    });
+  }
+
+  // Deduplicate by source + application_number
+  const seen = new Map<string, any>();
+  for (const a of apps) {
+    const key = `${a.source}:${a.application_number}`;
+    if (!seen.has(key)) seen.set(key, a);
+  }
+  return Array.from(seen.values());
+}
+
 serve(async (req) => {
   const corsHeaders = getCorsHeaders(req);
   if (req.method === 'OPTIONS') {
