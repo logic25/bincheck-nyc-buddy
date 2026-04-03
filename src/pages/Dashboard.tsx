@@ -660,7 +660,15 @@ const Dashboard = () => {
                                   </Button>
                                 </div>
                               ) : (
-                            </div>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => setSelectedReportId(r.id)}
+                                  disabled={r.status === 'generating'}
+                                >
+                                  <ArrowRight className="h-3.5 w-3.5 mr-1" /> View Report
+                                </Button>
+                              )}
                           </div>
                         </CardContent>
                       </Card>
