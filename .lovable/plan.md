@@ -1,129 +1,136 @@
-# BinCheckNYC Production Readiness Plan
 
-## Executive Summary
-5-phase plan to take BinCheckNYC from MVP (3/10 readiness) to production-ready (8/10) for commercial sale to attorneys and title companies.
 
----
+# BinCheckNYC: Report-Ready Email, Cross-Sell Tracking, Lead Notifications & Admin Leads Tab
 
-## Phase 1: Foundation & Mobile (Week 1) ✅ IN PROGRESS
+## Overview
 
-### Mobile Responsiveness
-- [x] Index.tsx - hamburger menu for mobile nav
-- [x] Dashboard.tsx - hamburger menu for mobile nav  
-- [x] DDReports.tsx - hamburger menu + responsive tabs
-- [ ] Order.tsx - verify form layouts on mobile
-- [ ] Settings.tsx - verify mobile layout
-- [ ] Admin.tsx - verify mobile layout
+This plan covers the full approved scope plus the enrichments for architect/closeout lead handling. There are 7 workstreams:
 
-### Global Error Handling
-- [x] Create ErrorBoundary component with user-friendly fallback UI
-- [x] Wrap App.tsx with ErrorBoundary
-- [x] Add error recovery actions (reload, go home)
-
-### Security Headers
-- [x] Add Content Security Policy meta tag to index.html
-- [x] Add X-Content-Type-Options, X-Frame-Options headers
-
-### API Response Validation
-- [x] Add Zod validation schemas for NYC Open Data responses in generate-dd-report
-- [x] Validate DOB, ECB, HPD, FDNY, OATH, DOB Jobs, DOB Complaints responses
-- [x] Filter out malformed records with logging
+1. Email domain setup (prerequisite)
+2. Email infrastructure + transactional email scaffolding
+3. `cross_sell_impressions` table + `report-ready` email template
+4. Client email capture in CreateDDReportDialog
+5. Report approval triggers email send + cross-sell logging
+6. CTA click tracking edge function
+7. Lead notification emails (architect + closeout) + client confirmations
+8. Admin "Service Requests" tab (unified view of architect + closeout requests with enhanced statuses)
 
 ---
 
-## Phase 2: Real Payment Processing (Week 2-3) — HARD BLOCKER
+## Step 1: Email Domain Setup
 
-### Stripe Integration
-- [ ] Enable Stripe connector in Lovable
-- [ ] Create checkout edge function for $199 one-time
-- [ ] Create subscription edge function for $599/mo professional
-- [ ] Handle payment webhooks (payment_intent.succeeded, subscription events)
-- [ ] Update Order.tsx to use real Stripe checkout
-- [ ] Add payment status tracking to dd_reports table
-- [ ] Email confirmation on successful payment
+No email domain is configured. First step is showing the setup dialog so you can configure a sender domain (e.g., `notify.bincheckyc.com`). Nothing else can proceed until this is done.
 
-### Order Fulfillment
-- [ ] Link paid orders to report generation queue
-- [ ] Track order → report → delivery lifecycle
-- [ ] Add payment receipts/invoices
+## Step 2: Email Infrastructure
 
----
+After domain is configured:
+- Call `setup_email_infra` to create pgmq queues, email tables, cron job
+- Call `scaffold_transactional_email` to create the `send-transactional-email` edge function, unsubscribe handling, and sample template
+- Create unsubscribe page at the path specified by the scaffold output
 
-## Phase 3: Security & Reliability (Week 4)
+## Step 3: Database Migration
 
-### Database-Backed Rate Limiting
-- [ ] Create rate_limits table (ip, endpoint, count, window_start)
-- [ ] Replace in-memory rate limiter in search-property
-- [ ] Add rate limiting to generate-dd-report
-- [ ] Add rate limiting to all other edge functions
+Create `cross_sell_impressions` table:
 
-### API Response Validation
-- [ ] Add Zod schemas for NYC Open Data responses (DOB, HPD, ECB, OATH, ACRIS)
-- [ ] Validate and sanitize all external API data before processing
-- [ ] Log validation failures for monitoring
+```sql
+CREATE TABLE public.cross_sell_impressions (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  report_id uuid NOT NULL,
+  client_email text NOT NULL,
+  cta_type text NOT NULL,  -- 'citisignal' or 'gle'
+  sent_at timestamptz NOT NULL DEFAULT now(),
+  clicked_at timestamptz,
+  converted_at timestamptz
+);
+ALTER TABLE public.cross_sell_impressions ENABLE ROW LEVEL SECURITY;
+-- Admin select, service_role full access
+```
 
-### Error Monitoring
-- [ ] Add Sentry integration (or similar)
-- [ ] Capture frontend errors with context
-- [ ] Capture edge function errors
-- [ ] Set up alerts for error spikes
+Also add `status` options to `architect_requests` and `closeout_requests` — they already have a `status` column with values like `submitted`, `assigned`, etc. We'll add UI support for: `submitted` → `contacted` → `converted` → `closed`.
 
----
+## Step 4: Email Templates
 
-## Phase 4: Testing & CI/CD (Week 5-6)
+Create 4 templates in `_shared/transactional-email-templates/`:
 
-### Test Coverage
-- [ ] Unit tests for scoring.ts (risk calculation)
-- [ ] Unit tests for violation-utils.ts
-- [ ] Integration tests for generate-dd-report edge function
-- [ ] E2E tests for critical flows (order → report → download)
+**a) `report-ready.tsx`** — Sent to client when report is approved
+- Property address, report date, risk level summary
+- "View Your Report" CTA button
+- Conditional CitiSignal monitoring block (when `citisignal_recommended = true`)
+- Conditional GLE block (when open applications exist)
+- CTA links route through `track-cta-click` for impression tracking
 
-### CI/CD Pipeline
-- [ ] GitHub Actions for build/test on PR
-- [ ] Automated deployment to staging
-- [ ] Dependency scanning (npm audit, Snyk)
-- [ ] Type checking in CI
+**b) `gle-lead-notification.tsx`** — Sent to `info@greenlightexpediting.com`
+- Request type (Architect Letter or Permit Closeout)
+- Property address, client name/email/phone
+- Selected violations or applications list
+- Urgency level and quoted price
+- "Reply to this email or call the client within 24hrs"
 
----
+**c) `client-request-confirmation.tsx`** — Sent to client after submitting a request
+- "Thank you for your request. Green Light Expediting will contact you within 24 hours regarding your [type] for [address]."
 
-## Phase 5: Scale & Polish (Week 7-8)
+**d) Register all in `registry.ts`**
 
-### Performance
-- [ ] Add report caching for repeat queries
-- [ ] Optimize large building queries (1000+ violations)
-- [ ] Add loading skeletons throughout
+## Step 5: Trigger Wiring
 
-### Monitoring & Observability
-- [ ] Structured logging in edge functions
-- [ ] Uptime monitoring
-- [ ] Performance metrics dashboard
+**On report approval** (in `DDReportViewer.tsx`):
+- After status update to `approved`, invoke `send-transactional-email` with `report-ready` template
+- If `citisignal_recommended`, insert row into `cross_sell_impressions` with `cta_type: 'citisignal'`
+- If open applications exist, insert with `cta_type: 'gle'`
 
-### Documentation
-- [ ] API documentation for edge functions
-- [ ] User-facing help center content
-- [ ] Internal architecture docs
+**On architect/closeout request submission** (in `ArchitectRequestDialog.tsx` and `CloseoutRequestDialog.tsx`):
+- After successful insert, invoke `send-transactional-email` twice:
+  1. `gle-lead-notification` to `info@greenlightexpediting.com`
+  2. `client-request-confirmation` to the client's contact email
 
----
+## Step 6: Click Tracking Edge Function
 
-## Current Blockers for Commercial Sale
+Create `supabase/functions/track-cta-click/index.ts`:
+- Accepts `id` (impression ID) and `dest` (destination URL) query params
+- Updates `clicked_at` on the matching `cross_sell_impressions` row
+- Returns 302 redirect to destination
+- CTA links in report-ready email route through this function
 
-| Blocker | Phase | Status |
-|---------|-------|--------|
-| Real payment processing | 2 | Not started |
-| Global error boundary | 1 | Not started |
-| Rate limiting on report generation | 3 | Not started |
-| Basic test coverage | 4 | Not started |
+## Step 7: Client Email Capture
 
----
+Update `CreateDDReportDialog.tsx` to add an optional "Client Email" field that gets saved to `dd_reports.client_email`.
 
-## Estimated Timeline
+## Step 8: Admin Service Requests Tab
 
-| Phase | Duration | Cumulative |
-|-------|----------|------------|
-| Phase 1 | 1 week | Week 1 |
-| Phase 2 | 2 weeks | Week 3 |
-| Phase 3 | 1 week | Week 4 |
-| Phase 4 | 2 weeks | Week 6 |
-| Phase 5 | 2 weeks | Week 8 |
+Replace the existing "Architect Letters" tab with a unified "Service Requests" tab in `AdminReportManager.tsx`:
 
-**Total: 8 weeks to production-ready**
+- Combines `architect_requests` and `closeout_requests` into one view
+- Sub-tabs or filter: All / Architect Letters / Permit Closeout
+- Status workflow: New → Contacted → Converted → Closed (with color-coded badges)
+- Each row shows: type, property address, client name/email/phone, urgency, price, time since submission
+- Flag rows where status is still "submitted" and >48 hours old (red highlight or warning icon)
+- Inline status update dropdown for admins
+- This replaces the current `ArchitectLettersTab` component
+
+## File Changes Summary
+
+| File | Action |
+|------|--------|
+| Migration SQL | Create `cross_sell_impressions` |
+| `src/components/dd-reports/CreateDDReportDialog.tsx` | Add client email field |
+| `src/components/dd-reports/ArchitectRequestDialog.tsx` | Add email sends after submit |
+| `src/components/dd-reports/CloseoutRequestDialog.tsx` | Add email sends after submit |
+| `src/components/dd-reports/DDReportViewer.tsx` | Add email send + cross-sell logging on approval |
+| `src/components/admin/ServiceRequestsTab.tsx` | New — unified leads/requests admin tab |
+| `src/components/admin/AdminReportManager.tsx` | Replace ArchitectLettersTab with ServiceRequestsTab |
+| `supabase/functions/track-cta-click/index.ts` | New — click tracking redirect |
+| `supabase/functions/_shared/transactional-email-templates/report-ready.tsx` | New |
+| `supabase/functions/_shared/transactional-email-templates/gle-lead-notification.tsx` | New |
+| `supabase/functions/_shared/transactional-email-templates/client-request-confirmation.tsx` | New |
+| `supabase/functions/_shared/transactional-email-templates/registry.ts` | Register templates |
+| `supabase/config.toml` | Add track-cta-click config |
+| Unsubscribe page (path TBD by scaffold) | New |
+
+## Ordino Integration (Future — Not Built Now)
+
+Noted for later: on architect/closeout request submission, call Ordino's `receive-lead` webhook to auto-create a lead/proposal with service type and pricing pre-filled. Requires Ordino webhook URL as a secret.
+
+## First Action
+
+Setting up the email domain. Let's start there.
+
