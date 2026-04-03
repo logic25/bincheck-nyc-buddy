@@ -94,6 +94,8 @@ interface DDReportViewerProps {
     created_at: string;
     customer_concern?: string | null;
     property_status_summary?: string | null;
+    client_email?: string | null;
+    citisignal_recommended?: boolean | null;
   };
   onBack: () => void;
   onDelete: () => void;
