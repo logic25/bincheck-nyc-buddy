@@ -87,6 +87,9 @@ export function BugReports() {
   const commentFileRef = useRef<HTMLInputElement>(null);
   const commentsEndRef = useRef<HTMLDivElement>(null);
   const [statusComment, setStatusComment] = useState("");
+  const [statusCommentFiles, setStatusCommentFiles] = useState<File[]>([]);
+  const statusCommentFileRef = useRef<HTMLInputElement>(null);
+  const savingRef = useRef(false);
 
   // Get current user
   const { data: currentUser } = useQuery({
