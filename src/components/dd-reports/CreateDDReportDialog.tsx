@@ -65,6 +65,7 @@ const CreateDDReportDialog = ({ open, onOpenChange, onSuccess }: CreateDDReportD
           address: address.trim(),
           prepared_for: preparedFor.trim(),
           prepared_by: preparedBy.trim() || null,
+          client_email: clientEmail.trim() || null,
           status: 'generating',
           report_date: reportDate,
         } as any)
