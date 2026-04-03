@@ -638,16 +638,28 @@ const Dashboard = () => {
                                     <ArrowRight className="h-3.5 w-3.5 mr-1" /> View Report
                                   </Button>
                                 </>
+                              ) : r.status === 'error' ? (
+                                <div className="flex items-center gap-2">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => retryDDReport.mutate({ reportId: r.id, address: r.address })}
+                                    disabled={retryDDReport.isPending}
+                                  >
+                                    {retryDDReport.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <ArrowRight className="h-3.5 w-3.5 mr-1" />}
+                                    Retry
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="text-destructive hover:text-destructive"
+                                    onClick={() => deleteDDReport.mutate(r.id)}
+                                    disabled={deleteDDReport.isPending}
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </Button>
+                                </div>
                               ) : (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => setSelectedReportId(r.id)}
-                                  disabled={r.status === 'generating'}
-                                >
-                                  <ArrowRight className="h-3.5 w-3.5 mr-1" /> View Report
-                                </Button>
-                              )}
                             </div>
                           </div>
                         </CardContent>
