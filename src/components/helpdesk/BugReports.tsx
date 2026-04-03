@@ -263,22 +263,41 @@ export function BugReports() {
   };
 
   const saveDetail = async () => {
-    if (!selectedBug) return;
+    if (!selectedBug || savingRef.current) return;
+    savingRef.current = true;
 
+    const isMovedToInProgress = editStatus === "in_progress" && selectedBug.status !== "in_progress";
     const isReadyForReview = editStatus === "ready_for_review" && selectedBug.status !== "ready_for_review";
     const isNewlyResolved = editStatus === "resolved" && selectedBug.status !== "resolved";
+    const needsComment = isMovedToInProgress || isReadyForReview || isNewlyResolved;
 
-    if ((isReadyForReview || isNewlyResolved) && !statusComment.trim()) {
-      toast.error(`Please add a comment before marking as ${isReadyForReview ? "Ready for Review" : "Resolved"}.`);
+    if (needsComment && !statusComment.trim()) {
+      const label = isMovedToInProgress ? "In Progress" : isReadyForReview ? "Ready for Review" : "Resolved";
+      toast.error(`Please add a comment before marking as ${label}.`);
+      savingRef.current = false;
       return;
     }
 
-    // Post status comment first if needed
-    if ((isReadyForReview || isNewlyResolved) && statusComment.trim()) {
+    // Post status comment with optional attachments
+    if (needsComment && statusComment.trim()) {
+      let attachmentData: Array<{ url: string; name: string; type: string }> | null = null;
+      if (statusCommentFiles.length > 0) {
+        attachmentData = [];
+        for (const file of statusCommentFiles) {
+          const path = `${selectedBug.id}/comments/${Date.now()}-${file.name}`;
+          const { error: uploadErr } = await supabase.storage.from("bug-attachments").upload(path, file);
+          if (!uploadErr) {
+            const { data: urlData } = supabase.storage.from("bug-attachments").getPublicUrl(path);
+            attachmentData.push({ url: urlData.publicUrl, name: file.name, type: file.type });
+          }
+        }
+      }
+
       await supabase.from("bug_comments" as any).insert({
         bug_id: selectedBug.id,
         user_id: currentUser!.id,
         message: statusComment.trim(),
+        attachments: attachmentData,
       });
       queryClient.invalidateQueries({ queryKey: ["bug-comments", selectedBug.id] });
     }
@@ -288,7 +307,13 @@ export function BugReports() {
     if (editStatus !== "resolved") updates.resolved_at = null;
 
     updateBug.mutate({ id: selectedBug.id, updates }, {
-      onSuccess: () => setSelectedBug(null),
+      onSuccess: () => {
+        setSelectedBug(null);
+        savingRef.current = false;
+      },
+      onError: () => {
+        savingRef.current = false;
+      },
     });
   };
 
