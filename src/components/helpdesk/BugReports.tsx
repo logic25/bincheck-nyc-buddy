@@ -764,7 +764,7 @@ export function BugReports() {
                     <h4 className="font-semibold text-sm">Management</h4>
                     <div className="space-y-2">
                       <Label>Status</Label>
-                      <Select value={editStatus} onValueChange={(v) => { setEditStatus(v); setStatusComment(""); }}>
+                      <Select value={editStatus} onValueChange={(v) => { setEditStatus(v); setStatusComment(""); setStatusCommentFiles([]); }}>
                         <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="open">Open</SelectItem>
@@ -776,25 +776,69 @@ export function BugReports() {
                     </div>
 
                     {/* Required comment for status transitions */}
-                    {((editStatus === "ready_for_review" && selectedBug.status !== "ready_for_review") ||
+                    {((editStatus === "in_progress" && selectedBug.status !== "in_progress") ||
+                      (editStatus === "ready_for_review" && selectedBug.status !== "ready_for_review") ||
                       (editStatus === "resolved" && selectedBug.status !== "resolved")) && (
                       <div className="space-y-2 rounded-lg border border-accent/30 bg-accent/5 p-3">
                         <Label className="text-sm font-medium">
-                          {editStatus === "ready_for_review" ? "What was done?" : "Resolution summary"} <span className="text-destructive">*</span>
+                          {editStatus === "in_progress" ? "What are you working on?" :
+                           editStatus === "ready_for_review" ? "What was done?" : "Resolution summary"} <span className="text-destructive">*</span>
                         </Label>
                         <Textarea
                           value={statusComment}
                           onChange={(e) => setStatusComment(e.target.value)}
-                          placeholder={editStatus === "ready_for_review" ? "Describe what was fixed..." : "Summarize the resolution..."}
+                          placeholder={
+                            editStatus === "in_progress" ? "Describe what you're investigating or fixing..." :
+                            editStatus === "ready_for_review" ? "Describe what was fixed..." : "Summarize the resolution..."
+                          }
                           rows={3}
                           className="resize-none"
                         />
+                        {/* Status comment file attachments */}
+                        {statusCommentFiles.length > 0 && (
+                          <div className="flex flex-wrap gap-2">
+                            {statusCommentFiles.map((f, i) => (
+                              <div key={i} className="relative group">
+                                {f.type.startsWith("image/") ? (
+                                  <img src={URL.createObjectURL(f)} alt={f.name} className="h-14 w-14 object-cover rounded border" />
+                                ) : (
+                                  <div className="h-14 w-14 rounded border flex items-center justify-center bg-muted">
+                                    <FileIcon className="h-5 w-5 text-muted-foreground" />
+                                  </div>
+                                )}
+                                <button
+                                  className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                                  onClick={() => setStatusCommentFiles((prev) => prev.filter((_, j) => j !== i))}
+                                >
+                                  <X className="h-3 w-3" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        <div className="flex justify-end">
+                          <input
+                            ref={statusCommentFileRef}
+                            type="file"
+                            accept="image/*,.pdf,.doc,.docx"
+                            multiple
+                            className="hidden"
+                            onChange={(e) => {
+                              if (e.target.files) setStatusCommentFiles((prev) => [...prev, ...Array.from(e.target.files!)]);
+                              e.target.value = "";
+                            }}
+                          />
+                          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => statusCommentFileRef.current?.click()}>
+                            <Paperclip className="h-3 w-3 mr-1" /> Attach
+                          </Button>
+                        </div>
                       </div>
                     )}
 
                     <div className="flex gap-2">
                       <Button size="sm" onClick={saveDetail} disabled={updateBug.isPending}>
                         {updateBug.isPending ? "Saving..." :
+                          editStatus === "in_progress" && selectedBug.status !== "in_progress" ? "Mark In Progress" :
                           editStatus === "ready_for_review" && selectedBug.status !== "ready_for_review" ? "Mark Ready for Review" :
                           editStatus === "resolved" && selectedBug.status !== "resolved" ? "Mark Resolved" :
                           "Save Changes"}
