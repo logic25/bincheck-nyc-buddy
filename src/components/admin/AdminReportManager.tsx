@@ -304,8 +304,8 @@ const AdminReportManager = ({ userId, userEmail, userProfile }: AdminReportManag
           <TabsTrigger value="edit-review" className="gap-1.5 flex-1 sm:flex-none">
             <Pencil className="h-4 w-4" /> Edit Review
           </TabsTrigger>
-          <TabsTrigger value="architect-letters" className="gap-1.5 flex-1 sm:flex-none">
-            <Scale className="h-4 w-4" /> Architect Letters
+          <TabsTrigger value="service-requests" className="gap-1.5 flex-1 sm:flex-none">
+            <Scale className="h-4 w-4" /> Service Requests
           </TabsTrigger>
           <TabsTrigger value="ai-learning" className="gap-1.5 flex-1 sm:flex-none">
             <Brain className="h-4 w-4" /> AI Learning

@@ -60,10 +60,43 @@ const CloseoutRequestDialog = ({
       });
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       queryClient.invalidateQueries({ queryKey: ['closeout-requests'] });
       toast.success('Permit closeout request submitted');
       onOpenChange(false);
+
+      // Send notifications (fire-and-forget)
+      const idBase = `close-${reportId}-${Date.now()}`;
+      supabase.functions.invoke('send-transactional-email', {
+        body: {
+          templateName: 'gle-lead-notification',
+          idempotencyKey: `${idBase}-gle`,
+          templateData: {
+            requestType: 'Permit Closeout',
+            propertyAddress,
+            clientName: contactName.trim(),
+            clientEmail: contactEmail.trim(),
+            clientPhone: contactPhone.trim() || undefined,
+            items: selectedApplications,
+            urgency,
+            priceQuoted: price,
+            requestDescription: description.trim() || undefined,
+          },
+        },
+      }).catch(console.error);
+
+      supabase.functions.invoke('send-transactional-email', {
+        body: {
+          templateName: 'client-request-confirmation',
+          recipientEmail: contactEmail.trim(),
+          idempotencyKey: `${idBase}-confirm`,
+          templateData: {
+            clientName: contactName.trim(),
+            requestType: 'Permit Closeout',
+            propertyAddress,
+          },
+        },
+      }).catch(console.error);
     },
     onError: (err) => {
       toast.error('Failed to submit request: ' + (err instanceof Error ? err.message : 'Unknown error'));
