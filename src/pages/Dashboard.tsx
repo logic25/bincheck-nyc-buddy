@@ -288,6 +288,39 @@ const Dashboard = () => {
     }
   };
 
+  const deleteDDReport = useMutation({
+    mutationFn: async (reportId: string) => {
+      const { error } = await supabase.from('dd_reports').delete().eq('id', reportId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['dashboard-dd-reports'] });
+      toast.success('Report deleted');
+    },
+    onError: () => toast.error('Failed to delete report'),
+  });
+
+  const retryDDReport = useMutation({
+    mutationFn: async ({ reportId, address }: { reportId: string; address: string }) => {
+      await supabase.from('dd_reports').update({
+        status: 'generating',
+        generation_started_at: new Date().toISOString(),
+      } as any).eq('id', reportId);
+      supabase.functions.invoke('generate-dd-report', { body: { reportId, address } }).catch(() => {});
+      const maxPolls = 36;
+      for (let i = 0; i < maxPolls; i++) {
+        await new Promise(r => setTimeout(r, 5000));
+        const { data: check } = await supabase.from('dd_reports').select('status').eq('id', reportId).single();
+        if (check && check.status !== 'generating') break;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['dashboard-dd-reports'] });
+      toast.success('Report regenerated successfully!');
+    },
+    onError: () => toast.error('Failed to retry report generation'),
+  });
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     navigate("/");
