@@ -45,6 +45,7 @@ const CLIENT_STATUS_LABELS: Record<string, { label: string; variant: 'default' |
   pending_review: { label: 'Under Review', variant: 'outline' },
   approved: { label: 'Ready to Download', variant: 'default', className: 'bg-emerald-600 text-white border-transparent' },
   draft: { label: 'Draft', variant: 'outline' },
+  error: { label: 'Failed', variant: 'destructive' },
 };
 
 interface GeoSuggestion {
