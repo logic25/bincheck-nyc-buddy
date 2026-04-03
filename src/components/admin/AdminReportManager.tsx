@@ -540,8 +540,8 @@ const AdminReportManager = ({ userId, userEmail, userProfile }: AdminReportManag
         <TabsContent value="edit-review" className="mt-4">
           <EditReviewTab />
         </TabsContent>
-        <TabsContent value="architect-letters" className="mt-4">
-          <ArchitectLettersTab />
+        <TabsContent value="service-requests" className="mt-4">
+          <ServiceRequestsTab />
         </TabsContent>
         <TabsContent value="ai-learning" className="mt-4">
           <AILearningTab />
