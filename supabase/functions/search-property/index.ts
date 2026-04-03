@@ -47,6 +47,12 @@ const DOB_COMPLAINTS = "eabe-havv";
 const OATH_HEARINGS = "jz4z-kudi";
 const FDNY_VIOLATIONS = "avgm-ztsb";
 const PLUTO = "64uk-42ks";
+// DOB NOW datasets
+const DOB_NOW_BUILD = "w9ak-ipjd";
+const DOB_NOW_LIMITED_ALT = "xxbr-ypig";
+const DOB_NOW_ELECTRICAL = "dm9a-ab7w";
+const DOB_NOW_ELEVATOR = "kfp4-dz4h";
+const DOB_PERMIT_ISSUANCE = "ipu4-2q9a";
 
 const NYC_APP_TOKEN = Deno.env.get("NYC_APP_TOKEN") || "";
 
