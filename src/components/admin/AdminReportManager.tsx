@@ -21,7 +21,7 @@ import DDReportViewer from '@/components/dd-reports/DDReportViewer';
 import CreateDDReportDialog from '@/components/dd-reports/CreateDDReportDialog';
 import EditReviewTab from '@/components/admin/EditReviewTab';
 import AILearningTab from '@/components/admin/AILearningTab';
-import ArchitectLettersTab from '@/components/admin/ArchitectLettersTab';
+import ServiceRequestsTab from '@/components/admin/ServiceRequestsTab';
 import InviteCodesTab from '@/components/admin/InviteCodesTab';
 
 interface DDReport {
@@ -304,8 +304,8 @@ const AdminReportManager = ({ userId, userEmail, userProfile }: AdminReportManag
           <TabsTrigger value="edit-review" className="gap-1.5 flex-1 sm:flex-none">
             <Pencil className="h-4 w-4" /> Edit Review
           </TabsTrigger>
-          <TabsTrigger value="architect-letters" className="gap-1.5 flex-1 sm:flex-none">
-            <Scale className="h-4 w-4" /> Architect Letters
+          <TabsTrigger value="service-requests" className="gap-1.5 flex-1 sm:flex-none">
+            <Scale className="h-4 w-4" /> Service Requests
           </TabsTrigger>
           <TabsTrigger value="ai-learning" className="gap-1.5 flex-1 sm:flex-none">
             <Brain className="h-4 w-4" /> AI Learning
@@ -540,8 +540,8 @@ const AdminReportManager = ({ userId, userEmail, userProfile }: AdminReportManag
         <TabsContent value="edit-review" className="mt-4">
           <EditReviewTab />
         </TabsContent>
-        <TabsContent value="architect-letters" className="mt-4">
-          <ArchitectLettersTab />
+        <TabsContent value="service-requests" className="mt-4">
+          <ServiceRequestsTab />
         </TabsContent>
         <TabsContent value="ai-learning" className="mt-4">
           <AILearningTab />

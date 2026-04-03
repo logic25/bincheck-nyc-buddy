@@ -61,10 +61,43 @@ const ArchitectRequestDialog = ({
       });
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       queryClient.invalidateQueries({ queryKey: ['architect-requests'] });
       toast.success('Architect opinion letter request submitted');
       onOpenChange(false);
+
+      // Send notifications (fire-and-forget)
+      const idBase = `arch-${reportId}-${Date.now()}`;
+      supabase.functions.invoke('send-transactional-email', {
+        body: {
+          templateName: 'gle-lead-notification',
+          idempotencyKey: `${idBase}-gle`,
+          templateData: {
+            requestType: 'Architect Opinion Letter',
+            propertyAddress,
+            clientName: contactName.trim(),
+            clientEmail: contactEmail.trim(),
+            clientPhone: contactPhone.trim() || undefined,
+            items: selectedViolations,
+            urgency,
+            priceQuoted: price,
+            requestDescription: description.trim() || undefined,
+          },
+        },
+      }).catch(console.error);
+
+      supabase.functions.invoke('send-transactional-email', {
+        body: {
+          templateName: 'client-request-confirmation',
+          recipientEmail: contactEmail.trim(),
+          idempotencyKey: `${idBase}-confirm`,
+          templateData: {
+            clientName: contactName.trim(),
+            requestType: 'Architect Opinion Letter',
+            propertyAddress,
+          },
+        },
+      }).catch(console.error);
     },
     onError: (err) => {
       toast.error('Failed to submit request: ' + (err instanceof Error ? err.message : 'Unknown error'));

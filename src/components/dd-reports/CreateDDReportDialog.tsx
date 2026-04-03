@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Loader2, Building2, User, FileText } from 'lucide-react';
+import { Loader2, Building2, User, FileText, Mail } from 'lucide-react';
 
 interface CreateDDReportDialogProps {
   open: boolean;
@@ -29,6 +29,7 @@ const CreateDDReportDialog = ({ open, onOpenChange, onSuccess }: CreateDDReportD
   const [preparedFor, setPreparedFor] = useState('');
   const [preparedBy, setPreparedBy] = useState('');
   const [customerConcern, setCustomerConcern] = useState('');
+  const [clientEmail, setClientEmail] = useState('');
   const [defaultPreparedBy, setDefaultPreparedBy] = useState('');
 
   // Auto-fill "Prepared By" with the current user's display name
@@ -64,6 +65,7 @@ const CreateDDReportDialog = ({ open, onOpenChange, onSuccess }: CreateDDReportD
           address: address.trim(),
           prepared_for: preparedFor.trim(),
           prepared_by: preparedBy.trim() || null,
+          client_email: clientEmail.trim() || null,
           status: 'generating',
           report_date: reportDate,
         } as any)
@@ -108,6 +110,7 @@ const CreateDDReportDialog = ({ open, onOpenChange, onSuccess }: CreateDDReportD
       setPreparedFor('');
       setPreparedBy('');
       setCustomerConcern('');
+      setClientEmail('');
       onSuccess(report);
     },
     onError: (error: any) => {
@@ -179,6 +182,24 @@ const CreateDDReportDialog = ({ open, onOpenChange, onSuccess }: CreateDDReportD
               onChange={(e) => setPreparedBy(e.target.value)}
               disabled={createReport.isPending}
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="clientEmail" className="flex items-center gap-2">
+              <Mail className="w-4 h-4" />
+              Client Email (Optional)
+            </Label>
+            <Input
+              id="clientEmail"
+              type="email"
+              placeholder="client@example.com"
+              value={clientEmail}
+              onChange={(e) => setClientEmail(e.target.value)}
+              disabled={createReport.isPending}
+            />
+            <p className="text-xs text-muted-foreground">
+              Client will receive the report via email when approved
+            </p>
           </div>
 
           <div className="space-y-2">
