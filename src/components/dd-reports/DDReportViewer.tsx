@@ -326,9 +326,66 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
         .eq('id', report.id);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       queryClient.invalidateQueries({ queryKey: ['dd-reports'] });
       toast.success('Report approved and finalized');
+
+      // Send report-ready email if client email exists
+      if (report.client_email) {
+        const trackUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/track-cta-click`;
+        const hasOpenApps = (report.applications_data || []).some(
+          (a: any) => !['SIGNED OFF', 'CLOSED'].includes((a.current_status || '').toUpperCase())
+        );
+
+        // Log cross-sell impressions and build CTA URLs
+        const impressionIds: Record<string, string> = {};
+        if (report.citisignal_recommended) {
+          const id = crypto.randomUUID();
+          impressionIds.citisignal = id;
+          supabase.from('cross_sell_impressions' as any).insert({
+            id,
+            report_id: report.id,
+            client_email: report.client_email,
+            cta_type: 'citisignal',
+          }).then(({ error }) => { if (error) console.error('Failed to log citisignal impression:', error); });
+        }
+        if (hasOpenApps) {
+          const id = crypto.randomUUID();
+          impressionIds.gle = id;
+          supabase.from('cross_sell_impressions' as any).insert({
+            id,
+            report_id: report.id,
+            client_email: report.client_email,
+            cta_type: 'gle',
+          }).then(({ error }) => { if (error) console.error('Failed to log gle impression:', error); });
+        }
+
+        const citisignalDest = `https://citisignal.com?ref=bincheck&report_id=${report.id}`;
+        const gleDest = `https://greenlightexpediting.com?ref=bincheck&report_id=${report.id}`;
+
+        supabase.functions.invoke('send-transactional-email', {
+          body: {
+            templateName: 'report-ready',
+            recipientEmail: report.client_email,
+            idempotencyKey: `report-ready-${report.id}`,
+            templateData: {
+              address: report.address,
+              reportDate: report.report_date,
+              riskLevel: report.property_status_summary || 'Medium',
+              reportUrl: `${window.location.origin}/dashboard`,
+              citisignalRecommended: !!report.citisignal_recommended,
+              citisignalCtaUrl: impressionIds.citisignal
+                ? `${trackUrl}?id=${impressionIds.citisignal}&dest=${encodeURIComponent(citisignalDest)}`
+                : citisignalDest,
+              hasOpenApplications: hasOpenApps,
+              gleCtaUrl: impressionIds.gle
+                ? `${trackUrl}?id=${impressionIds.gle}&dest=${encodeURIComponent(gleDest)}`
+                : gleDest,
+              clientName: report.prepared_for,
+            },
+          },
+        }).catch(console.error);
+      }
     },
     onError: () => {
       toast.error('Failed to approve report');
