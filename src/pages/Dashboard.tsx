@@ -45,6 +45,7 @@ const CLIENT_STATUS_LABELS: Record<string, { label: string; variant: 'default' |
   pending_review: { label: 'Under Review', variant: 'outline' },
   approved: { label: 'Ready to Download', variant: 'default', className: 'bg-emerald-600 text-white border-transparent' },
   draft: { label: 'Draft', variant: 'outline' },
+  error: { label: 'Failed', variant: 'destructive' },
 };
 
 interface GeoSuggestion {
@@ -286,6 +287,39 @@ const Dashboard = () => {
       toast.success("Report deleted");
     }
   };
+
+  const deleteDDReport = useMutation({
+    mutationFn: async (reportId: string) => {
+      const { error } = await supabase.from('dd_reports').delete().eq('id', reportId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['dashboard-dd-reports'] });
+      toast.success('Report deleted');
+    },
+    onError: () => toast.error('Failed to delete report'),
+  });
+
+  const retryDDReport = useMutation({
+    mutationFn: async ({ reportId, address }: { reportId: string; address: string }) => {
+      await supabase.from('dd_reports').update({
+        status: 'generating',
+        generation_started_at: new Date().toISOString(),
+      } as any).eq('id', reportId);
+      supabase.functions.invoke('generate-dd-report', { body: { reportId, address } }).catch(() => {});
+      const maxPolls = 36;
+      for (let i = 0; i < maxPolls; i++) {
+        await new Promise(r => setTimeout(r, 5000));
+        const { data: check } = await supabase.from('dd_reports').select('status').eq('id', reportId).single();
+        if (check && check.status !== 'generating') break;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['dashboard-dd-reports'] });
+      toast.success('Report regenerated successfully!');
+    },
+    onError: () => toast.error('Failed to retry report generation'),
+  });
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -604,6 +638,27 @@ const Dashboard = () => {
                                     <ArrowRight className="h-3.5 w-3.5 mr-1" /> View Report
                                   </Button>
                                 </>
+                              ) : r.status === 'error' ? (
+                                <div className="flex items-center gap-2">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => retryDDReport.mutate({ reportId: r.id, address: r.address })}
+                                    disabled={retryDDReport.isPending}
+                                  >
+                                    {retryDDReport.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <ArrowRight className="h-3.5 w-3.5 mr-1" />}
+                                    Retry
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="text-destructive hover:text-destructive"
+                                    onClick={() => deleteDDReport.mutate(r.id)}
+                                    disabled={deleteDDReport.isPending}
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </Button>
+                                </div>
                               ) : (
                                 <Button
                                   variant="outline"
