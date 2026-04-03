@@ -102,6 +102,39 @@ export interface DOBPermit {
   bin__?: string;
 }
 
+export interface DOBNowApplication {
+  application_number: string;
+  application_type: string;
+  source: string;
+  status: string;
+  filing_date: string;
+  approval_date: string;
+  expiration_date: string;
+  work_type: string;
+  description: string;
+  applicant_name: string;
+  owner_name: string;
+  estimated_cost: string;
+  proposed_stories: string;
+  proposed_dwelling_units: string;
+}
+
+export interface PermitIssuance {
+  job__: string;
+  job_doc: string;
+  permit_type: string;
+  permit_status: string;
+  filing_status: string;
+  permit_sequence: string;
+  issuance_date: string;
+  expiration_date: string;
+  job_start_date: string;
+  permittee_name: string;
+  permittee_license_type: string;
+  permittee_license_number: string;
+  owner_name: string;
+}
+
 export interface PropertyData {
   bin: string;
   address: string;
@@ -114,6 +147,8 @@ export interface PropertyData {
   oathViolations: OATHViolation[];
   dobComplaints: DOBComplaint[];
   permits: DOBPermit[];
+  dobNowApplications?: DOBNowApplication[];
+  permitIssuance?: PermitIssuance[];
 }
 
 export interface CategoryScore {
