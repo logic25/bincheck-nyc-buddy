@@ -242,7 +242,7 @@ serve(async (req) => {
 
     const oathQuery = resolvedBbl ? fetchOATH(resolvedBbl) : Promise.resolve({ data: [], error: false });
 
-    const [dobResult, dobSafetyResult, ecbResult, hpdResult, permitsResult, complaintsResult, oathResult, fdnyResult] = await Promise.all([
+    const [dobResult, dobSafetyResult, ecbResult, hpdResult, permitsResult, complaintsResult, oathResult, fdnyResult, dobNowBuildResult, dobNowLimitedAltResult, dobNowElectricalResult, dobNowElevatorResult, permitIssuanceResult] = await Promise.all([
       fetchJSON(`${NYC_DATA_BASE}/${DOB_VIOLATIONS}.json?bin=${resolvedBin}&$limit=500`),
       fetchJSON(`${NYC_DATA_BASE}/${DOB_SAFETY_VIOLATIONS}.json?bin=${resolvedBin}&$limit=500`),
       fetchJSON(`${NYC_DATA_BASE}/${DOB_ECB_VIOLATIONS}.json?bin=${resolvedBin}&$limit=500`),
@@ -251,6 +251,11 @@ serve(async (req) => {
       fetchJSON(`${NYC_DATA_BASE}/${DOB_COMPLAINTS}.json?bin=${resolvedBin}&$limit=200&$order=date_entered DESC`),
       oathQuery,
       fetchJSON(`${NYC_DATA_BASE}/${FDNY_VIOLATIONS}.json?bin=${resolvedBin}&$limit=200&$order=inspection_date DESC`),
+      fetchJSON(`${NYC_DATA_BASE}/${DOB_NOW_BUILD}.json?bin=${resolvedBin}&$limit=300&$order=filing_date DESC`),
+      fetchJSON(`${NYC_DATA_BASE}/${DOB_NOW_LIMITED_ALT}.json?location_bin=${resolvedBin}&$limit=300&$order=filing_date DESC`),
+      fetchJSON(`${NYC_DATA_BASE}/${DOB_NOW_ELECTRICAL}.json?bin=${resolvedBin}&$limit=300&$order=filing_date DESC`),
+      fetchJSON(`${NYC_DATA_BASE}/${DOB_NOW_ELEVATOR}.json?bin=${resolvedBin}&$limit=300&$order=filing_date DESC`),
+      fetchJSON(`${NYC_DATA_BASE}/${DOB_PERMIT_ISSUANCE}.json?bin__=${resolvedBin}&$limit=300&$order=issuance_date DESC`),
     ]);
 
     const dobViolations = dobResult.data;
