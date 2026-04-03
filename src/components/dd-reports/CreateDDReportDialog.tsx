@@ -29,6 +29,7 @@ const CreateDDReportDialog = ({ open, onOpenChange, onSuccess }: CreateDDReportD
   const [preparedFor, setPreparedFor] = useState('');
   const [preparedBy, setPreparedBy] = useState('');
   const [customerConcern, setCustomerConcern] = useState('');
+  const [clientEmail, setClientEmail] = useState('');
   const [defaultPreparedBy, setDefaultPreparedBy] = useState('');
 
   // Auto-fill "Prepared By" with the current user's display name
