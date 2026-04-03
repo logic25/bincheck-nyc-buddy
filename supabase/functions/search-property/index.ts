@@ -413,6 +413,27 @@ serve(async (req) => {
         lot: p.lot || '',
         bin__: p.bin__ || '',
       })),
+      dobNowApplications: buildDobNowApplications(
+        dobNowBuildResult.data,
+        dobNowLimitedAltResult.data,
+        dobNowElectricalResult.data,
+        dobNowElevatorResult.data,
+      ),
+      permitIssuance: permitIssuanceResult.data.map((p: any) => ({
+        job__: p.job__ || '',
+        job_doc: p.job_doc___ || '',
+        permit_type: p.permit_type || '',
+        permit_status: p.permit_status || '',
+        filing_status: p.filing_status || '',
+        permit_sequence: p.permit_sequence___ || '',
+        issuance_date: p.issuance_date ? String(p.issuance_date).split('T')[0] : '',
+        expiration_date: p.expiration_date ? String(p.expiration_date).split('T')[0] : '',
+        job_start_date: p.job_start_date ? String(p.job_start_date).split('T')[0] : '',
+        permittee_name: [p.permittee_s_first_name, p.permittee_s_last_name].filter(Boolean).join(' ').trim() || p.permittee_s_business_name || '',
+        permittee_license_type: p.permittee_s_license_type || '',
+        permittee_license_number: p.permittee_s_license__ || '',
+        owner_name: [p.owner_s_first_name, p.owner_s_last_name].filter(Boolean).join(' ').trim() || p.owner_s_business_name || '',
+      })),
     };
 
     return new Response(JSON.stringify(result), {
