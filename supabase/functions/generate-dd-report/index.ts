@@ -189,6 +189,9 @@ const NYC_ENDPOINTS = {
   HPD_OMO: "https://data.cityofnewyork.us/resource/mdbu-nrqn.json",           // HPD Open Market Order (Emergency Repair) charges
   HPD_HWO: "https://data.cityofnewyork.us/resource/sbnd-xujn.json",           // HPD Handyman Work Order charges
   FDNY_VIOLATIONS_DD: "https://data.cityofnewyork.us/resource/avgm-ztsb.json",// FDNY violations (also queried in search-property)
+  // Agency-direct expansion (PR #5)
+  FDNY_VACATE: "https://data.cityofnewyork.us/resource/n5xc-7jfa.json",        // FDNY Building Vacate Orders
+  FDNY_BFP_ACTIVE: "https://data.cityofnewyork.us/resource/bi53-yph3.json",    // Bureau of Fire Prevention - Active Violation Orders (Historical)
 };
 
 // External deep-link builders (agency-direct PDFs and tools — clickable evidence in the report)
@@ -214,6 +217,31 @@ function buildACRISBblUrl(bbl: string): string {
   const block = bbl.substring(1, 6).replace(/^0+/, '');
   const lot = bbl.substring(6, 10).replace(/^0+/, '');
   return `https://a836-acris.nyc.gov/bblsearch/bblsearch.asp?borough=${borough}&block=${block}&lot=${lot}`;
+}
+// ACRIS per-document deep links — turn a doc_id into the agency's own pages
+function buildACRISDocDetailUrl(docId: string): string {
+  if (!docId) return '';
+  return `https://a836-acris.nyc.gov/DS/DocumentSearch/DocumentDetail?doc_id=${docId}`;
+}
+function buildACRISDocImageViewUrl(docId: string): string {
+  if (!docId) return '';
+  return `https://a836-acris.nyc.gov/DS/DocumentSearch/DocumentImageView?doc_id=${docId}`;
+}
+function buildACRISGetImageUrl(docId: string, page: number = 1): string {
+  if (!docId) return '';
+  return `https://a836-acris.nyc.gov/DS/DocumentSearch/GetImage?doc_id=${docId}&page=${page}`;
+}
+// Agency-direct portal deep links — let analysts/clients jump to the source system
+function buildDEPPortalUrl(): string {
+  // DEP customer portal landing (sign-in required for account-level data)
+  return `https://www.nyc.gov/site/dep/pay-my-bills/how-to-pay.page`;
+}
+function buildFDNYBusinessPortalUrl(): string {
+  // FDNY Business — permits, COFs, LOAs (sign-in required for account-level data)
+  return `https://fires.fdnycloud.org/CitizenAccess/Default.aspx`;
+}
+function buildACRISSearchUrl(): string {
+  return `https://a836-acris.nyc.gov/DS/DocumentSearch/Index`;
 }
 
 const BOROUGH_CODES: Record<string, string> = {
@@ -1507,8 +1535,9 @@ async function fetchACRISData(bbl: string): Promise<any> {
       const docParties = partiesMap[r.document_id] || [];
       const party1 = docParties.filter((p: any) => p.party_type === '1').map((p: any) => [p.name].filter(Boolean).join(' ')).join('; ') || null;
       const party2 = docParties.filter((p: any) => p.party_type === '2').map((p: any) => [p.name].filter(Boolean).join(' ')).join('; ') || null;
+      const docId = r.document_id;
       return {
-        document_id: r.document_id,
+        document_id: docId,
         document_type: r.doc_type || r.document_type || null,
         document_date: r.document_date || null,
         recorded_date: r.recorded_datetime || null,
@@ -1516,6 +1545,10 @@ async function fetchACRISData(bbl: string): Promise<any> {
         party1,
         party2,
         crfn: r.crfn || null,
+        // PR #5 — ACRIS agency-direct deep links per document
+        detail_url: docId ? buildACRISDocDetailUrl(docId) : null,
+        image_view_url: docId ? buildACRISDocImageViewUrl(docId) : null,
+        get_image_url: docId ? buildACRISGetImageUrl(docId, 1) : null,
       };
     });
 
@@ -1553,18 +1586,30 @@ async function fetchTaxLienData(bbl: string): Promise<any[]> {
     
     console.log(`Tax Lien Sale: ${records.length} records found`);
     
-    return records.map((r: any) => ({
-      borough: r.borough,
-      block: r.block,
-      lot: r.lot,
-      building_class: r.building_class || null,
-      tax_class_code: r.tax_class_code || null,
-      lien_sale_year: r.year || r.calendar_year || null,
-      eco_category: r.eco_category || null,
-      community_district: r.community_district || null,
-      council_district: r.council_district || null,
-      raw: r,
-    }));
+    return records.map((r: any) => {
+      // "Water Debt Only" is a Y/N flag on the lien sale dataset — surfaces DEP-only debt vs. mixed tax+water
+      const wdRaw = (r.water_debt_only || r.water_debt || '').toString().toUpperCase();
+      const waterDebtOnly = wdRaw === 'Y' || wdRaw === 'YES' || wdRaw === 'TRUE';
+      const house = (r.house_number || '').toString().trim();
+      const street = (r.street_name || '').toString().trim();
+      const address = [house, street].filter(Boolean).join(' ') || null;
+      return {
+        borough: r.borough,
+        block: r.block,
+        lot: r.lot,
+        address,
+        building_class: r.building_class || null,
+        tax_class_code: r.tax_class_code || null,
+        lien_sale_year: r.year || r.calendar_year || r.month || null,
+        cycle: r.cycle || null,
+        water_debt_only: waterDebtOnly,
+        eco_category: r.eco_category || null,
+        community_district: r.community_district || r.community_board || null,
+        council_district: r.council_district || null,
+        zip_code: r.zip_code || null,
+        raw: r,
+      };
+    });
   } catch (error) {
     console.error("Tax Lien Sale fetch error:", error);
     return [];
@@ -1891,6 +1936,90 @@ async function fetchFDNYViolationsDirect(bin: string): Promise<any> {
   }
 }
 
+/**
+ * FDNY Building Vacate Orders — buildings declared unsafe by FDNY Fire Ops or BFP.
+ * Critical — a vacate order means occupancy is legally prohibited until lifted.
+ * Queried by BIN preferred, BBL fallback. Filters by status_change_date in last 25 years.
+ */
+async function fetchFDNYVacateOrders(bin: string, bbl: string): Promise<any> {
+  if (!bin && !bbl) return { active: [], lifted: [], total: 0 };
+  try {
+    const filters: string[] = [];
+    if (bin) filters.push(`bin = '${bin}'`);
+    if (bbl) filters.push(`bbl = '${bbl}'`);
+    const whereClause = filters.length === 2 ? `(${filters[0]} OR ${filters[1]})` : filters[0];
+
+    const records = await fetchNYCData(NYC_ENDPOINTS.FDNY_VACATE, {
+      "$where": whereClause,
+      "$limit": "100",
+      "$order": "date_of_vac_order DESC",
+    }, 'FDNY-VACATE');
+
+    console.log(`FDNY Vacate Orders: ${records.length} records for BIN ${bin} / BBL ${bbl}`);
+
+    const mapped = records.map((r: any) => {
+      const description = (r.description || '').toString();
+      const occupancy = (r.ocpcy_desc || '').toString();
+      // Heuristic: if status_change_date exists AND is more recent than vacate date with terms like "lifted"/"rescind"/"resc" — treat as lifted
+      const desc = description.toLowerCase();
+      const isLifted = desc.includes('lifted') || desc.includes('rescind') || desc.includes('resc') || desc.includes('vacated lifted') || desc.includes('vac. lifted') || desc.includes('vacate lifted');
+      return {
+        description,
+        date_of_order: r.date_of_vac_order || null,
+        last_inspection_date: r.lst_compl_insp_date || null,
+        status_change_date: r.status_change_date || null,
+        occupancy_description: occupancy,
+        bin: r.bin || null,
+        bbl: r.bbl || null,
+        aka_address: r.aka_address || null,
+        community_district: r.bldg_community_dist || null,
+        council_district: r.council_district || null,
+        is_lifted: isLifted,
+      };
+    });
+    const active = mapped.filter((m: any) => !m.is_lifted);
+    const lifted = mapped.filter((m: any) => m.is_lifted);
+    return { active, lifted, total: mapped.length };
+  } catch (error) {
+    console.error("FDNY Vacate Orders fetch error:", error);
+    return { active: [], lifted: [], total: 0 };
+  }
+}
+
+/**
+ * Bureau of Fire Prevention — Active Violation Orders (Historical, bi53-yph3).
+ * Source database decommissioned 2024-03-14 but remains an authoritative archive
+ * of FDNY BFP violation orders — cross-references our live FDNY_VIOLATIONS feed
+ * and surfaces older orders the live API may not return.
+ */
+async function fetchFDNYBureauViolations(bin: string): Promise<any> {
+  if (!bin) return { items: [], total: 0 };
+  try {
+    const records = await fetchNYCData(NYC_ENDPOINTS.FDNY_BFP_ACTIVE, {
+      "$where": `bin = '${bin}'`,
+      "$limit": "200",
+      "$order": "violation_date DESC",
+    }, 'FDNY-BFP');
+
+    console.log(`FDNY BFP Active Violation Orders: ${records.length} records for BIN ${bin}`);
+
+    const items = records.map((r: any) => ({
+      account_number: r.account_num || r.acct_num || null,
+      violation_number: r.viol_id || r.violation_number || null,
+      violation_date: r.violation_date || r.viol_date || null,
+      violation_status: r.violation_status || r.viol_status || null,
+      violation_type: r.violation_type || null,
+      description: r.violation_description || r.viol_description || null,
+      premise_address: r.premise_address || r.address || null,
+      bin: r.bin || null,
+    }));
+    return { items, total: items.length };
+  } catch (error) {
+    console.error("FDNY BFP fetch error:", error);
+    return { items: [], total: 0 };
+  }
+}
+
 async function generateAIAnalysis(reportData: any, customerConcern: string | null, LOVABLE_API_KEY: string): Promise<string> {
   const { building, violations, applications, orders, taxLienData } = reportData;
   const openViolations = violations.filter((v: any) => v.status === 'open');
@@ -2076,6 +2205,8 @@ serve(async (req) => {
       allViolations, rawApplications, complaints, acrisData, taxLienData,
       // Coverage Exceed v1 — DataTrace parity
       dofCharges, fuelBurners, certificatesOfOccupancy, sidewalkViolations, hpdEmergencyRepair, fdnyDirectViolations,
+      // Coverage Exceed v2 (PR #5) — Vacate Orders + BFP archive
+      fdnyVacateData, fdnyBureauData,
     ] = await Promise.all([
       fetchViolations(bin, bbl, isResidentialProperty),
       fetchApplications(bin),
@@ -2089,6 +2220,9 @@ serve(async (req) => {
       fetchSidewalkViolations(building),
       fetchHPDEmergencyRepair(bin, bbl),
       fetchFDNYViolationsDirect(bin),
+      // Coverage Exceed v2
+      fetchFDNYVacateOrders(bin, bbl),
+      fetchFDNYBureauViolations(bin),
     ]);
 
     // Build agencies_queried tracking
@@ -2129,6 +2263,9 @@ serve(async (req) => {
       { agency: 'HPD-OMO', label: 'HPD Emergency Repair (OMO)', queried: !!(bin || bbl), results: hpdEmergencyRepair.omo.length, category: 'charges', error: agencyErrors.has('HPD-OMO') },
       { agency: 'HPD-HWO', label: 'HPD Handyman Work Orders', queried: !!(bin || bbl), results: hpdEmergencyRepair.hwo.length, category: 'charges', error: agencyErrors.has('HPD-HWO') },
       { agency: 'FDNY-DD', label: 'FDNY Violations (Direct)', queried: !!bin, results: fdnyDirectViolations.total, category: 'violations', error: agencyErrors.has('FDNY-DD') },
+      // Coverage Exceed v2 (PR #5)
+      { agency: 'FDNY-VACATE', label: 'FDNY Building Vacate Orders', queried: !!(bin || bbl), results: fdnyVacateData.total, category: 'orders', error: agencyErrors.has('FDNY-VACATE') },
+      { agency: 'FDNY-BFP', label: 'Bureau of Fire Prevention Orders', queried: !!bin, results: fdnyBureauData.total, category: 'violations', error: agencyErrors.has('FDNY-BFP') },
     ];
     const errorAgencies = agenciesQueried.filter(a => a.error);
     console.log(`Agencies queried: ${agenciesQueried.filter(a => a.queried).length}, with data: ${agenciesQueried.filter(a => a.results > 0).length}, with errors: ${errorAgencies.length} (${errorAgencies.map(a => a.agency).join(', ')})`);
@@ -2185,12 +2322,16 @@ serve(async (req) => {
     const citisignalRecommended = unitsRes > 3 || unitsTotal > 5 || numFloors > 3;
     console.log(`CitiSignal recommendation: ${citisignalRecommended} (units_res=${unitsRes}, units_total=${unitsTotal}, floors=${numFloors})`);
 
-    // Coverage Exceed v1 — build deep links for the report header
+    // Coverage Exceed — build agency-direct deep links for the report header
     const externalLinks = {
       co_lookup: bin ? buildCOPdfUrl(bin) : null,
       tax_map: bbl ? buildTaxMapUrl(bbl) : null,
       dof_account: bbl ? buildDOFAccountUrl(bbl) : null,
       acris_bbl: bbl ? buildACRISBblUrl(bbl) : null,
+      // PR #5 — portal landings for analyst follow-up
+      acris_search: buildACRISSearchUrl(),
+      dep_portal: buildDEPPortalUrl(),
+      fdny_business_portal: buildFDNYBusinessPortalUrl(),
     };
 
     const { error: updateError } = await supabase.from('dd_reports').update({
@@ -2207,6 +2348,9 @@ serve(async (req) => {
       sidewalk_data: sidewalkViolations,
       hpd_erp_data: hpdEmergencyRepair,
       fdny_direct_data: fdnyDirectViolations,
+      // Coverage Exceed v2 (PR #5)
+      fdny_vacate_data: fdnyVacateData,
+      fdny_bfp_data: fdnyBureauData,
       external_links: externalLinks,
       agencies_queried: agenciesQueried,
       ai_analysis: null,

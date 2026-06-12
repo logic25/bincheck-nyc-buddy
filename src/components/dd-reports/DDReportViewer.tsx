@@ -102,6 +102,8 @@ interface DDReportViewerProps {
     sidewalk_data?: any;
     hpd_erp_data?: any;
     fdny_direct_data?: any;
+    fdny_vacate_data?: any;
+    fdny_bfp_data?: any;
     external_links?: any;
   };
   onBack: () => void;
@@ -512,6 +514,8 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
   const sidewalkData = report.sidewalk_data || null;
   const hpdErp = report.hpd_erp_data || null;
   const fdnyDirect = report.fdny_direct_data || null;
+  const fdnyVacate = report.fdny_vacate_data || null;
+  const fdnyBfp = report.fdny_bfp_data || null;
   const externalLinks = report.external_links || {};
 
   const coverageCount =
@@ -520,7 +524,9 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
     (fuelTanks?.total || 0) +
     (sidewalkData?.total || 0) +
     (hpdErp?.total || 0) +
-    (fdnyDirect?.total || 0);
+    (fdnyDirect?.total || 0) +
+    (fdnyVacate?.total || 0) +
+    (fdnyBfp?.total || 0);
   const hasCoverage = coverageCount > 0 || Object.keys(externalLinks).length > 0;
 
   const sectionNav = [
@@ -1756,6 +1762,89 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
                   </Table>
                 )}
                 <p className="text-[10px] text-muted-foreground italic mt-3">Source: NYC FDNY Bureau of Fire Prevention Violations (avgm-ztsb)</p>
+              </div>
+            </div>
+          )}
+
+          {/* FDNY Building Vacate Orders (PR #5) */}
+          {fdnyVacate && fdnyVacate.total > 0 && (
+            <div className="border border-border rounded-xl bg-card">
+              <div className="p-4 border-b border-border">
+                <h3 className="text-base font-semibold">FDNY Building Vacate Orders</h3>
+                <p className="text-xs text-muted-foreground mt-1">
+                  <span className={fdnyVacate.active.length > 0 ? 'text-red-700 font-semibold' : 'text-emerald-700 font-semibold'}>{fdnyVacate.active.length} active</span> · {fdnyVacate.lifted.length} lifted · {fdnyVacate.total} total
+                </p>
+              </div>
+              <div className="p-4">
+                {fdnyVacate.active.length > 0 && (
+                  <div className="mb-3 p-3 rounded-md bg-red-50 border border-red-200">
+                    <p className="text-xs font-semibold text-red-900">
+                      Active vacate order in place — occupancy of the affected area(s) is legally prohibited until rescinded by FDNY.
+                    </p>
+                  </div>
+                )}
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Order Date</TableHead>
+                      <TableHead>Last Insp.</TableHead>
+                      <TableHead>Description</TableHead>
+                      <TableHead>Occupancy</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {[...fdnyVacate.active, ...fdnyVacate.lifted].slice(0, 20).map((v: any, idx: number) => (
+                      <TableRow key={idx}>
+                        <TableCell>
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${v.is_lifted ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'}`}>
+                            {v.is_lifted ? 'LIFTED' : 'ACTIVE'}
+                          </span>
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap text-xs">{v.date_of_order ? format(new Date(v.date_of_order), 'MMM d, yyyy') : '—'}</TableCell>
+                        <TableCell className="whitespace-nowrap text-xs">{v.last_inspection_date ? format(new Date(v.last_inspection_date), 'MMM d, yyyy') : '—'}</TableCell>
+                        <TableCell className="text-xs max-w-[320px] truncate" title={v.description || ''}>{v.description || '—'}</TableCell>
+                        <TableCell className="text-xs">{v.occupancy_description || '—'}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+                <p className="text-[10px] text-muted-foreground italic mt-3">Source: NYC FDNY Building Vacate List (n5xc-7jfa)</p>
+              </div>
+            </div>
+          )}
+
+          {/* FDNY Bureau of Fire Prevention archive (PR #5) */}
+          {fdnyBfp && fdnyBfp.total > 0 && (
+            <div className="border border-border rounded-xl bg-card">
+              <div className="p-4 border-b border-border">
+                <h3 className="text-base font-semibold">FDNY Bureau of Fire Prevention — Archive Orders</h3>
+                <p className="text-xs text-muted-foreground mt-1">{fdnyBfp.total} archive record{fdnyBfp.total !== 1 ? 's' : ''} from the historical BFP dataset (decommissioned 2024-03-14)</p>
+              </div>
+              <div className="p-4">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Violation #</TableHead>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Description</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {fdnyBfp.items.slice(0, 20).map((item: any, idx: number) => (
+                      <TableRow key={idx}>
+                        <TableCell className="font-mono text-xs">{item.violation_number || '—'}</TableCell>
+                        <TableCell className="whitespace-nowrap text-xs">{item.violation_date ? format(new Date(item.violation_date), 'MMM d, yyyy') : '—'}</TableCell>
+                        <TableCell className="text-xs">{item.violation_type || '—'}</TableCell>
+                        <TableCell className="text-xs">{item.violation_status || '—'}</TableCell>
+                        <TableCell className="text-xs max-w-[320px] truncate" title={item.description || ''}>{item.description || '—'}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+                <p className="text-[10px] text-muted-foreground italic mt-3">Source: NYC Open Data · Bureau of Fire Prevention archive (bi53-yph3)</p>
               </div>
             </div>
           )}
