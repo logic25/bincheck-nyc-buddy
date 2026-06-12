@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useUserRole } from '@/hooks/useUserRole';
 import { Skeleton } from '@/components/ui/skeleton';
 import TeamRolesTab from '@/components/admin/TeamRolesTab';
+import AdminNav from '@/components/admin/AdminNav';
 import { Shield } from 'lucide-react';
 
 /**
@@ -37,21 +38,24 @@ const AdminTeam = () => {
   }
 
   return (
-    <div className="container mx-auto py-10 space-y-6">
-      <div className="flex items-center gap-3">
-        <div className="rounded-lg bg-primary/10 p-2">
-          <Shield className="h-6 w-6 text-primary" />
+    <>
+      <AdminNav />
+      <div className="container mx-auto py-10 space-y-6">
+        <div className="flex items-center gap-3">
+          <div className="rounded-lg bg-primary/10 p-2">
+            <Shield className="h-6 w-6 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight">Team management</h1>
+            <p className="text-sm text-muted-foreground">
+              Grant analyst, sales, or admin access to BinCheckNYC staff.
+            </p>
+          </div>
         </div>
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Team management</h1>
-          <p className="text-sm text-muted-foreground">
-            Grant analyst, sales, or admin access to BinCheckNYC staff.
-          </p>
-        </div>
-      </div>
 
-      <TeamRolesTab />
-    </div>
+        <TeamRolesTab />
+      </div>
+    </>
   );
 };
 

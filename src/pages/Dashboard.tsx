@@ -19,6 +19,7 @@ import { format } from "date-fns";
 import ReportStatusTimeline from "@/components/dd-reports/ReportStatusTimeline";
 import DDReportViewer from "@/components/dd-reports/DDReportViewer";
 import AdminReportManager from "@/components/admin/AdminReportManager";
+import AdminNav from "@/components/admin/AdminNav";
 
 interface ReportRow {
   id: string;
@@ -446,6 +447,9 @@ const Dashboard = () => {
           </div>
         </div>
       </header>
+
+      {/* Staff secondary nav — hidden for clients, gated by role inside the component */}
+      <AdminNav />
 
       <main className="container py-6 sm:py-8 px-4 max-w-5xl space-y-6 sm:space-y-8">
         {/* Page title */}

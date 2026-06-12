@@ -67,24 +67,13 @@ const Order = () => {
   // Step 3 — Plan
   const [plan, setPlan] = useState<"one-time" | "professional">(initialPlan as any);
 
-  // Mock card form state
-  const [cardNumber, setCardNumber] = useState("");
-  const [cardExpiry, setCardExpiry] = useState("");
-  const [cardCvc, setCardCvc] = useState("");
-  const [cardName, setCardName] = useState("");
+  // Order confirmation state — buyer must acknowledge they'll receive an
+  // invoice after delivery. Card capture lives behind PR #10/Stripe; until
+  // then, we run invoice-on-delivery. No fake card form.
+  const [confirmedInvoice, setConfirmedInvoice] = useState(false);
 
-  const formatCardNumber = (value: string) => {
-    const digits = value.replace(/\D/g, "").slice(0, 16);
-    return digits.replace(/(\d{4})(?=\d)/g, "$1 ");
-  };
-
-  const formatExpiry = (value: string) => {
-    const digits = value.replace(/\D/g, "").slice(0, 4);
-    if (digits.length <= 2) return digits;
-    return `${digits.slice(0, 2)}/${digits.slice(2)}`;
-  };
-
-  const cardValid = cardNumber.replace(/\s/g, "").length === 16 && cardExpiry.length === 5 && cardCvc.length >= 3 && cardName.trim().length > 0;
+  // Order is valid to submit when the buyer has acknowledged the invoice terms.
+  const orderReady = confirmedInvoice;
 
   const fetchSuggestions = useCallback(async (text: string) => {
     if (text.length < 3 || /^\d+$/.test(text.trim())) { setSuggestions([]); return; }
@@ -162,13 +151,15 @@ const Order = () => {
     setStep(3);
   };
 
-  const handlePayAndOrder = async () => {
+  // Submit the order in invoice-on-delivery mode.
+  //
+  // We create the dd_report with payment_status='invoiced' (NOT 'paid') so the
+  // ops team knows to bill on delivery. The generator still runs immediately —
+  // we want the report ready when it's time to invoice. Until Stripe Checkout
+  // lands, payment is collected out-of-band (ACH / wire / Stripe invoice link).
+  const handleSubmitOrder = async () => {
     setIsProcessing(true);
     try {
-      // Simulate payment processing delay
-      await new Promise(r => setTimeout(r, 2500));
-
-      // Get or create user session
       const { data: sessionData } = await supabase.auth.getSession();
       const currentUserId = sessionData?.session?.user?.id;
 
@@ -178,7 +169,6 @@ const Order = () => {
         return;
       }
 
-      // Create a real DD report
       const { data: newReport, error: reportError } = await supabase.from("dd_reports").insert({
         user_id: currentUserId,
         address: address.trim(),
@@ -189,7 +179,8 @@ const Order = () => {
         customer_concern: concern.trim() || null,
         rush_requested: rush,
         requested_delivery_date: deliveryDate || null,
-        payment_status: "paid",
+        // invoice-on-delivery: report runs, ops bills on completion
+        payment_status: "invoiced",
         payment_amount: totalPrice,
         status: "generating",
         generation_started_at: new Date().toISOString(),
@@ -203,8 +194,23 @@ const Order = () => {
         await supabase.from("order_leads").update({ converted: true }).eq("id", leadId);
       }
 
-      // Fire report generation (don't await — it runs in background)
+      // Best-effort audit-log entry so ops can trace any order to its actor.
+      // RPC is fire-and-forget; failures don't block the order.
       if (newReport) {
+        supabase.rpc("log_audit", {
+          _action: "order.placed",
+          _target_type: "dd_report",
+          _target_id: newReport.id,
+          _metadata: {
+            plan,
+            amount: totalPrice,
+            payment_status: "invoiced",
+            client_email: email.trim(),
+            client_firm: company.trim() || null,
+          },
+        }).then(() => {}, () => {});
+
+        // Fire report generation (don't await — it runs in background)
         supabase.functions.invoke("generate-dd-report", {
           body: { reportId: newReport.id, address: address.trim() },
         }).catch(() => {});
@@ -235,10 +241,13 @@ const Order = () => {
               <CheckCircle className="h-8 w-8 text-primary" />
             </div>
             <div className="space-y-2">
-              <h1 className="font-display text-2xl font-bold">Order received!</h1>
+              <h1 className="font-display text-2xl font-bold">Order received</h1>
               <p className="text-muted-foreground text-sm leading-relaxed">
-                We're preparing your report for <span className="font-semibold text-foreground">{address}</span>.<br />
-                You'll receive an email at <span className="font-semibold text-foreground">{email}</span> when it's ready.
+                We’re preparing your report for <span className="font-semibold text-foreground">{address}</span>.<br />
+                The completed report and your invoice will go to <span className="font-semibold text-foreground">{email}</span>.
+              </p>
+              <p className="text-xs text-muted-foreground pt-1">
+                You’ll receive a Stripe invoice for <span className="font-medium text-foreground">{priceLabel}</span> on delivery (Net 7). You only owe if we deliver.
               </p>
             </div>
             {(deliveryDate || rush) && (
@@ -293,7 +302,7 @@ const Order = () => {
                 {s < step ? <CheckCircle className="h-4 w-4" /> : s}
               </div>
               <span className={cn("text-sm hidden sm:block", s === step ? "font-semibold text-foreground" : "text-muted-foreground")}>
-                {s === 1 ? "Property" : s === 2 ? "Contact" : "Payment"}
+                {s === 1 ? "Property" : s === 2 ? "Contact" : "Review"}
               </span>
               {s < 3 && <div className="flex-1 h-px bg-border mx-2 hidden sm:block w-8" />}
             </div>
@@ -408,13 +417,13 @@ const Order = () => {
                 <ArrowLeft className="h-4 w-4 mr-1" /> Back
               </Button>
               <Button className="flex-1" onClick={handleContinueToPayment} disabled={!step2Valid}>
-                Continue to Payment <ArrowRight className="h-4 w-4 ml-1" />
+                Continue to review <ArrowRight className="h-4 w-4 ml-1" />
               </Button>
             </div>
           </div>
         )}
 
-        {/* Step 3: Plan & Payment */}
+        {/* Step 3: Plan & Review (invoice on delivery) */}
         {step === 3 && (
           <div className="space-y-6">
             <div>
@@ -510,68 +519,52 @@ const Order = () => {
               </CardContent>
             </Card>
 
-            {/* Card Payment Form */}
+            {/* Invoice-on-delivery confirmation */}
             <Card className="border-border">
               <CardContent className="p-5 space-y-4">
                 <p className="text-sm font-semibold flex items-center gap-2">
-                  <Lock className="h-4 w-4 text-muted-foreground" /> Payment Details
+                  <Lock className="h-4 w-4 text-muted-foreground" /> Billing
                 </p>
-                <div className="space-y-3">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">Name on Card</Label>
-                    <Input
-                      placeholder="Jane Smith"
-                      value={cardName}
-                      onChange={(e) => setCardName(e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">Card Number</Label>
-                    <Input
-                      placeholder="4242 4242 4242 4242"
-                      value={cardNumber}
-                      onChange={(e) => setCardNumber(formatCardNumber(e.target.value))}
-                      maxLength={19}
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1.5">
-                      <Label className="text-xs">Expiry</Label>
-                      <Input
-                        placeholder="MM/YY"
-                        value={cardExpiry}
-                        onChange={(e) => setCardExpiry(formatExpiry(e.target.value))}
-                        maxLength={5}
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-xs">CVC</Label>
-                      <Input
-                        placeholder="123"
-                        value={cardCvc}
-                        onChange={(e) => setCardCvc(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                        maxLength={4}
-                      />
-                    </div>
-                  </div>
+                <div className="rounded-lg border border-border bg-muted/30 p-4 text-sm space-y-2">
+                  <p className="font-medium">Invoice on delivery</p>
+                  <p className="text-muted-foreground">
+                    We start your report immediately. Once the report is ready, our team sends a
+                    Stripe invoice to <span className="font-medium text-foreground">{email || "your email"}</span>{company ? <> for <span className="font-medium text-foreground">{company}</span></> : null}.
+                  </p>
+                  <p className="text-muted-foreground">
+                    Pay by card, ACH, or wire — Net 7. You only owe if we deliver.
+                  </p>
                 </div>
+
+                <label className="flex items-start gap-2 text-sm cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={confirmedInvoice}
+                    onChange={(e) => setConfirmedInvoice(e.target.checked)}
+                    className="mt-1 h-4 w-4 rounded border-border"
+                  />
+                  <span className="text-muted-foreground">
+                    I authorize BinCheckNYC to prepare this report and invoice my firm for <span className="font-medium text-foreground">{priceLabel}</span> on delivery.
+                  </span>
+                </label>
+
                 <div className="bg-muted/50 rounded-md px-3 py-2 text-xs text-muted-foreground flex items-start gap-2">
                   <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-                  <span>Beta mode — use test card <span className="font-mono font-medium text-foreground">4242 4242 4242 4242</span> with any expiry &amp; CVC. No real charges.</span>
+                  <span>Beta launch — card-on-file checkout is coming soon. For now, every order is invoiced after the report is QA’d and delivered.</span>
                 </div>
               </CardContent>
             </Card>
 
             <div className="space-y-3">
-              <Button className="w-full" size="lg" onClick={handlePayAndOrder} disabled={isProcessing || !cardValid}>
+              <Button className="w-full" size="lg" onClick={handleSubmitOrder} disabled={isProcessing || !orderReady}>
                 {isProcessing ? (
-                  <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Processing payment...</>
+                  <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Placing order…</>
                 ) : (
-                  <><Lock className="h-4 w-4 mr-2" /> Pay {priceLabel} &amp; Order Report</>
+                  <>Place order — invoice on delivery <ArrowRight className="h-4 w-4 ml-1" /></>
                 )}
               </Button>
               <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
-                <Lock className="h-3 w-3" /> 256-bit SSL encrypted
+                <Lock className="h-3 w-3" /> No card required. Encrypted in transit.
               </div>
               <Button variant="ghost" className="w-full" onClick={() => setStep(2)}>
                 <ArrowLeft className="h-4 w-4 mr-1" /> Back

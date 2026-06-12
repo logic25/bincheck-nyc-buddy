@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/dialog';
 import { ScrollText, Search, RefreshCw, Eye, ShieldAlert } from 'lucide-react';
 import type { Database } from '@/integrations/supabase/types';
+import AdminNav from '@/components/admin/AdminNav';
 
 type AuditRow = Database['public']['Tables']['audit_log']['Row'];
 
@@ -101,7 +102,9 @@ const AdminAudit = () => {
   if (!isAdmin) return null;
 
   return (
-    <div className="container mx-auto py-10 space-y-6">
+    <>
+      <AdminNav />
+      <div className="container mx-auto py-10 space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="rounded-lg bg-primary/10 p-2">
@@ -247,6 +250,7 @@ const AdminAudit = () => {
         </CardContent>
       </Card>
 
+      </div>
       <Dialog open={!!openRow} onOpenChange={(o) => !o && setOpenRow(null)}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
@@ -275,7 +279,7 @@ const AdminAudit = () => {
           )}
         </DialogContent>
       </Dialog>
-    </div>
+    </>
   );
 };
 
