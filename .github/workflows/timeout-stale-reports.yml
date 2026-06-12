@@ -1,0 +1,18 @@
+name: Timeout stale reports
+
+on:
+  schedule:
+    - cron: "*/10 * * * *" # every 10 minutes
+  workflow_dispatch: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call timeout-stale-reports edge function
+        run: |
+          curl -sS -X POST \
+            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json" \
+            --fail-with-body \
+            https://ohoutpkgkxfueyllgfvv.supabase.co/functions/v1/timeout-stale-reports
