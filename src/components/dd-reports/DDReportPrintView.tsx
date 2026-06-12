@@ -35,6 +35,16 @@ interface DDReportPrintViewProps {
     tax_lien_data?: any[];
     citisignal_recommended?: boolean;
     agencies_queried?: any[];
+    dof_charges_data?: any;
+    fuel_tank_data?: any;
+    co_data?: any;
+    sidewalk_data?: any;
+    hpd_erp_data?: any;
+    fdny_direct_data?: any;
+    fdny_vacate_data?: any;
+    fdny_bfp_data?: any;
+    external_links?: any;
+    generated_at?: string | null;
   };
   userProfile?: UserProfile;
 }
@@ -106,6 +116,15 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
   const building = report.building_data || {};
   const acris = report.acris_data || { documents: [], deeds: [], mortgages: [], liens: [] };
   const acrisDocuments = acris.documents || [];
+  const dofCharges = report.dof_charges_data || null;
+  const fuelTanks = report.fuel_tank_data || null;
+  const coData = report.co_data || null;
+  const sidewalkData = report.sidewalk_data || null;
+  const hpdErp = report.hpd_erp_data || null;
+  const fdnyDirect = report.fdny_direct_data || null;
+  const fdnyVacate = report.fdny_vacate_data || null;
+  const fdnyBfp = report.fdny_bfp_data || null;
+  const externalLinks = report.external_links || {};
   const reportId = generateReportId(report.report_date);
   const lineItemNotes = report.line_item_notes || [];
 
@@ -247,7 +266,19 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
     })),
   };
 
-  const complianceScore = calculateComplianceScore(propertyData);
+  // Derive property flags from orders + report-level fields so the headline
+  // risk score can be capped when severe conditions are present.
+  const propertyFlags = {
+    stop_work_order: (orders.stop_work?.length || 0) > 0 || (orders.partial_stop_work?.length || 0) > 0,
+    vacate_order: (orders.vacate?.length || 0) > 0,
+    unsafe_building: Boolean((report as any).flags?.unsafe_building),
+    closure_order: Boolean((report as any).flags?.closure_order),
+    emergency_declaration: Boolean((report as any).flags?.emergency_declaration),
+    compromised_structure: Boolean((report as any).flags?.compromised_structure),
+    vacant_structure: Boolean((report as any).flags?.vacant_structure),
+  };
+
+  const complianceScore = calculateComplianceScore(propertyData, propertyFlags);
 
   // ─── Extract KEY FINDINGS and MONITOR items from line_item_notes ─────────
   const actionItems: { note: string; agency: string; id: string }[] = [];
@@ -494,6 +525,32 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
         </div>
       </div>
 
+      {/* Property Status Banners — Vacate / SWO / Unsafe / Closure / Emergency / Compromised / Vacant */}
+      {(propertyFlags.vacate_order || propertyFlags.stop_work_order || propertyFlags.unsafe_building || propertyFlags.closure_order || propertyFlags.emergency_declaration || propertyFlags.compromised_structure || propertyFlags.vacant_structure) && (
+        <div style={{ marginBottom: '20px', pageBreakInside: 'avoid' }}>
+          {[
+            propertyFlags.vacate_order && { label: 'VACATE ORDER ACTIVE', text: 'All occupants must leave; building cannot be reoccupied until DOB rescinds the order.', level: 'red' as const },
+            propertyFlags.stop_work_order && { label: 'STOP WORK ORDER ACTIVE', text: 'Construction activity must cease; continuing work can result in criminal summonses and fines up to $25,000.', level: 'red' as const },
+            propertyFlags.unsafe_building && { label: 'UNSAFE BUILDING', text: 'Building declared unsafe by DOB. Immediate corrective action required.', level: 'red' as const },
+            propertyFlags.closure_order && { label: 'CLOSURE / PADLOCK ORDER', text: 'Building or portion thereof must remain closed until the order is rescinded.', level: 'red' as const },
+            propertyFlags.emergency_declaration && { label: 'EMERGENCY DECLARATION', text: 'Emergency declared at this property; remediation work may be in progress.', level: 'amber' as const },
+            propertyFlags.compromised_structure && { label: 'COMPROMISED STRUCTURE (LL33/08)', text: 'Structurally compromised; monitoring and remediation required.', level: 'amber' as const },
+            propertyFlags.vacant_structure && { label: 'VACANT / UNGUARDED STRUCTURE', text: 'Owner must secure the building to prevent unauthorized entry.', level: 'amber' as const },
+          ].filter(Boolean).map((banner: any, i: number) => (
+            <div key={i} style={{
+              padding: '12px 16px',
+              marginBottom: '8px',
+              border: `2px solid ${banner.level === 'red' ? '#dc2626' : '#d97706'}`,
+              backgroundColor: banner.level === 'red' ? '#fef2f2' : '#fffbeb',
+              borderRadius: '8px',
+            }}>
+              <p style={{ margin: 0, fontSize: '13px', fontWeight: 800, letterSpacing: '0.04em', color: banner.level === 'red' ? '#991b1b' : '#92400e' }}>{banner.label}</p>
+              <p style={{ margin: '4px 0 0', fontSize: '11px', lineHeight: '1.5', color: banner.level === 'red' ? '#7f1d1d' : '#78350f' }}>{banner.text}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Compliance Risk Score — Hero Card */}
       <div style={{
         backgroundColor: scoreStyle.bg,
@@ -607,15 +664,21 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
       )}
 
       {/* Tax Lien Alert */}
-      {(report.tax_lien_data || []).length > 0 && (
+      {(report.tax_lien_data || []).length > 0 && (() => {
+        const liens = report.tax_lien_data || [];
+        const waterOnly = liens.filter((l: any) => l.water_debt_only).length;
+        const taxMixed = liens.length - waterOnly;
+        return (
         <div style={{ padding: '12px 16px', backgroundColor: '#fef2f2', border: '2px solid #dc2626', borderRadius: '8px', marginBottom: '24px', pageBreakInside: 'avoid' }}>
           <p style={{ fontSize: '12px', fontWeight: 700, color: '#dc2626', margin: '0 0 4px' }}>⚠ Tax Lien Sale — Property Flagged</p>
           <p style={{ fontSize: '11px', color: '#7f1d1d', margin: 0, lineHeight: '1.5' }}>
-            This property appears on the NYC DOF Tax Lien Sale List with {(report.tax_lien_data || []).length} record{(report.tax_lien_data || []).length !== 1 ? 's' : ''}.
+            This property appears on the NYC DOF Tax Lien Sale List with {liens.length} record{liens.length !== 1 ? 's' : ''}
+            {waterOnly > 0 && taxMixed > 0 ? ` (${waterOnly} water/sewer·only, ${taxMixed} tax+water/other)` : waterOnly > 0 ? ` (${waterOnly} water/sewer debt only)` : ''}.
             Verify current status directly with DOF before proceeding.
           </p>
         </div>
-      )}
+        );
+      })()}
 
       {/* Sources Checked */}
       {queriedAgencies.length > 0 && (
@@ -704,17 +767,57 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
               <p style={{ fontSize: '12px', fontWeight: 600, color: '#111827', margin: '2px 0 0' }}>{building.owner_name}</p>
             </div>
           )}
+          {(externalLinks.co_lookup || externalLinks.tax_map || externalLinks.dof_account || externalLinks.acris_bbl || externalLinks.bis_property || externalLinks.acris_search || externalLinks.dep_portal || externalLinks.fdny_business_portal) && (
+            <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: `1px solid ${BORDER}` }}>
+              <span style={{ fontSize: '10px', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Agency Lookups</span>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '6px' }}>
+                {externalLinks.co_lookup && (
+                  <a href={externalLinks.co_lookup} target="_blank" rel="noreferrer" style={{ fontSize: '10px', color: NAVY, border: `1px solid ${NAVY}`, padding: '4px 8px', borderRadius: '4px', textDecoration: 'none', fontWeight: 600 }}>DOB BIS · Certificates of Occupancy</a>
+                )}
+                {externalLinks.bis_property && (
+                  <a href={externalLinks.bis_property} target="_blank" rel="noreferrer" style={{ fontSize: '10px', color: NAVY, border: `1px solid ${NAVY}`, padding: '4px 8px', borderRadius: '4px', textDecoration: 'none', fontWeight: 600 }}>DOB BIS · Property Profile</a>
+                )}
+                {externalLinks.tax_map && (
+                  <a href={externalLinks.tax_map} target="_blank" rel="noreferrer" style={{ fontSize: '10px', color: NAVY, border: `1px solid ${NAVY}`, padding: '4px 8px', borderRadius: '4px', textDecoration: 'none', fontWeight: 600 }}>DOF · Digital Tax Map</a>
+                )}
+                {externalLinks.dof_account && (
+                  <a href={externalLinks.dof_account} target="_blank" rel="noreferrer" style={{ fontSize: '10px', color: NAVY, border: `1px solid ${NAVY}`, padding: '4px 8px', borderRadius: '4px', textDecoration: 'none', fontWeight: 600 }}>DOF · Property Tax Account</a>
+                )}
+                {externalLinks.acris_bbl && (
+                  <a href={externalLinks.acris_bbl} target="_blank" rel="noreferrer" style={{ fontSize: '10px', color: NAVY, border: `1px solid ${NAVY}`, padding: '4px 8px', borderRadius: '4px', textDecoration: 'none', fontWeight: 600 }}>ACRIS · Recorded Documents</a>
+                )}
+                {externalLinks.acris_search && (
+                  <a href={externalLinks.acris_search} target="_blank" rel="noreferrer" style={{ fontSize: '10px', color: NAVY, border: `1px solid ${NAVY}`, padding: '4px 8px', borderRadius: '4px', textDecoration: 'none', fontWeight: 600 }}>ACRIS · Document Search</a>
+                )}
+                {externalLinks.dep_portal && (
+                  <a href={externalLinks.dep_portal} target="_blank" rel="noreferrer" style={{ fontSize: '10px', color: NAVY, border: `1px solid ${NAVY}`, padding: '4px 8px', borderRadius: '4px', textDecoration: 'none', fontWeight: 600 }}>DEP · Water/Sewer Portal</a>
+                )}
+                {externalLinks.fdny_business_portal && (
+                  <a href={externalLinks.fdny_business_portal} target="_blank" rel="noreferrer" style={{ fontSize: '10px', color: NAVY, border: `1px solid ${NAVY}`, padding: '4px 8px', borderRadius: '4px', textDecoration: 'none', fontWeight: 600 }}>FDNY Business · Permits/COFs</a>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </section>
 
-      {/* Property Status Summary */}
+      {/* Conclusion */}
       {report.property_status_summary && (
-        <section style={{ marginBottom: '32px' }}>
-          <h3 style={sectionHeaderStyle}>Property Status Summary</h3>
+        <section style={{ marginBottom: '32px', pageBreakInside: 'avoid' }}>
+          <h3 style={sectionHeaderStyle}>Conclusion</h3>
           <div style={{ fontSize: '12px', lineHeight: '1.7', color: '#111827' }}>
             {report.property_status_summary.split('\n\n').map((paragraph, i) => (
               <p key={i} style={{ margin: '0 0 12px' }}>{paragraph}</p>
             ))}
+            {complianceScore.overrideReasons && complianceScore.overrideReasons.length > 0 && (
+              <p style={{ margin: '0 0 12px', fontStyle: 'italic', color: '#7f1d1d' }}>
+                The headline risk score has been capped due to: {complianceScore.overrideReasons.join('; ')}.
+              </p>
+            )}
+          </div>
+          <div style={{ marginTop: '20px', paddingTop: '12px', borderTop: `1px solid ${BORDER}` }}>
+            <p style={{ fontSize: '11px', fontWeight: 700, color: NAVY, margin: 0 }}>BinCheckNYC Analyst Team</p>
+            <p style={{ fontSize: '10px', color: '#6b7280', margin: '2px 0 0' }}>Prepared from NYC public records on {report.generated_at ? formatShortDate(report.generated_at) : ''}</p>
           </div>
         </section>
       )}
@@ -823,12 +926,13 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
             <table className="w-full border-collapse">
               <thead>
                 <tr>
-                  <th className={tableHeaderStyle} style={{ width: '10%' }}>Date</th>
-                  <th className={tableHeaderStyle} style={{ width: '18%' }}>Document Type</th>
-                  <th className={tableHeaderStyle} style={{ width: '25%' }}>Party 1 (Grantor/Lender)</th>
-                  <th className={tableHeaderStyle} style={{ width: '25%' }}>Party 2 (Grantee/Borrower)</th>
-                  <th className={tableHeaderStyle} style={{ width: '12%' }}>Amount</th>
-                  <th className={tableHeaderStyle} style={{ width: '10%' }}>CRFN/Reel</th>
+                  <th className={tableHeaderStyle} style={{ width: '9%' }}>Date</th>
+                  <th className={tableHeaderStyle} style={{ width: '15%' }}>Document Type</th>
+                  <th className={tableHeaderStyle} style={{ width: '22%' }}>Party 1 (Grantor/Lender)</th>
+                  <th className={tableHeaderStyle} style={{ width: '22%' }}>Party 2 (Grantee/Borrower)</th>
+                  <th className={tableHeaderStyle} style={{ width: '11%' }}>Amount</th>
+                  <th className={tableHeaderStyle} style={{ width: '10%' }}>CRFN</th>
+                  <th className={tableHeaderStyle} style={{ width: '11%' }}>Image</th>
                 </tr>
               </thead>
               <tbody>
@@ -846,6 +950,13 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
                       {doc.document_amount ? formatCurrency(doc.document_amount) : '—'}
                     </td>
                     <td className={`${tableCellStyle} font-mono`} style={{ fontSize: '9px' }}>{doc.crfn || doc.reel_page || '—'}</td>
+                    <td className={tableCellStyle} style={{ whiteSpace: 'nowrap' }}>
+                      {doc.image_view_url ? (
+                        <a href={doc.image_view_url} target="_blank" rel="noreferrer" style={{ fontSize: '9px', color: NAVY, textDecoration: 'underline', fontWeight: 600 }}>
+                          View PDF
+                        </a>
+                      ) : '—'}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -856,11 +967,446 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
               </p>
             )}
             <p style={{ fontSize: '10px', color: '#6b7280', marginTop: '6px', fontStyle: 'italic' }}>
-              Source: NYC ACRIS — recorded documents only. Unrecorded agreements not included.
+              Source: NYC ACRIS — recorded documents only. Each "View PDF" link opens the agency-direct document image. Unrecorded agreements not included.
             </p>
           </>
         )}
       </section>
+
+      {/* Tax & Sidewalk Charges (DOF) */}
+      {dofCharges && (dofCharges.totals?.count > 0 || dofCharges.items?.length > 0) && (
+        <section style={{ marginBottom: '32px', pageBreakInside: 'avoid' }}>
+          <h3 style={sectionHeaderStyle}>Tax & Sidewalk Charges — DOF Account Balance</h3>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+            <div style={{ backgroundColor: CARD_BG, border: `1px solid ${BORDER}`, borderRadius: '6px', padding: '10px' }}>
+              <p style={{ fontSize: '10px', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0 }}>Outstanding Balance</p>
+              <p style={{ fontSize: '16px', fontWeight: 700, color: dofCharges.totals.outstanding > 0 ? '#b91c1c' : '#15803d', margin: '4px 0 0' }}>{formatCurrency(dofCharges.totals.outstanding)}</p>
+            </div>
+            <div style={{ backgroundColor: CARD_BG, border: `1px solid ${BORDER}`, borderRadius: '6px', padding: '10px' }}>
+              <p style={{ fontSize: '10px', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0 }}>Accrued Interest</p>
+              <p style={{ fontSize: '16px', fontWeight: 700, color: '#111827', margin: '4px 0 0' }}>{formatCurrency(dofCharges.totals.interest)}</p>
+            </div>
+            <div style={{ backgroundColor: CARD_BG, border: `1px solid ${BORDER}`, borderRadius: '6px', padding: '10px' }}>
+              <p style={{ fontSize: '10px', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0 }}>Open Line Items</p>
+              <p style={{ fontSize: '16px', fontWeight: 700, color: '#111827', margin: '4px 0 0' }}>{dofCharges.totals.count}</p>
+            </div>
+          </div>
+          {Object.keys(dofCharges.by_type || {}).length > 0 && (
+            <table className="w-full border-collapse" style={{ marginBottom: '12px' }}>
+              <thead>
+                <tr>
+                  <th className={tableHeaderStyle} style={{ width: '15%' }}>Code</th>
+                  <th className={tableHeaderStyle} style={{ width: '40%' }}>Charge Type</th>
+                  <th className={tableHeaderStyle} style={{ width: '15%' }}>Count</th>
+                  <th className={tableHeaderStyle} style={{ width: '15%' }}>Balance</th>
+                  <th className={tableHeaderStyle} style={{ width: '15%' }}>Oldest Due</th>
+                </tr>
+              </thead>
+              <tbody>
+                {Object.entries(dofCharges.by_type).map(([code, info]: [string, any], idx: number) => (
+                  <tr key={code} style={{ backgroundColor: idx % 2 === 0 ? '#ffffff' : CARD_BG }}>
+                    <td className={`${tableCellStyle} font-mono`} style={{ fontWeight: 600 }}>{code}</td>
+                    <td className={tableCellStyle}>{info.label}</td>
+                    <td className={tableCellStyle}>{info.count}</td>
+                    <td className={tableCellStyle} style={{ fontWeight: 600 }}>{formatCurrency(info.balance)}</td>
+                    <td className={tableCellStyle}>{formatShortDate(info.oldest_due)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+          {dofCharges.items && dofCharges.items.length > 0 && (
+            <>
+              <p style={{ fontSize: '11px', fontWeight: 600, color: '#374151', margin: '8px 0 6px' }}>Line Items (showing {Math.min(dofCharges.items.length, 15)} of {dofCharges.totals.count})</p>
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr>
+                    <th className={tableHeaderStyle}>Due Date</th>
+                    <th className={tableHeaderStyle}>Type</th>
+                    <th className={tableHeaderStyle}>Tax Yr</th>
+                    <th className={tableHeaderStyle}>Balance</th>
+                    <th className={tableHeaderStyle}>Interest</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {dofCharges.items.slice(0, 15).map((it: any, idx: number) => (
+                    <tr key={idx} style={{ backgroundColor: idx % 2 === 0 ? '#ffffff' : CARD_BG }}>
+                      <td className={tableCellStyle}>{formatShortDate(it.due_date)}</td>
+                      <td className={tableCellStyle}>{it.code_label}</td>
+                      <td className={tableCellStyle}>{it.tax_year || '—'}</td>
+                      <td className={tableCellStyle}>{formatCurrency(it.balance)}</td>
+                      <td className={tableCellStyle}>{formatCurrency(it.interest)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </>
+          )}
+          <p style={{ fontSize: '10px', color: '#6b7280', marginTop: '6px', fontStyle: 'italic' }}>
+            Source: NYC Department of Finance · Outstanding Charges (scjx-j6np). Includes property tax, sidewalk assessment (SAC/SAF), and emergency repair (EMR) charges. Verify current balance at the DOF Property Tax Account portal.
+          </p>
+        </section>
+      )}
+
+      {/* Certificates of Occupancy */}
+      {coData && (coData.total > 0 || coData.latest) && (
+        <section style={{ marginBottom: '32px', pageBreakInside: 'avoid' }}>
+          <h3 style={sectionHeaderStyle}>Certificates of Occupancy</h3>
+          {coData.latest && (
+            <div style={{ backgroundColor: CARD_BG, border: `1px solid ${BORDER}`, borderRadius: '6px', padding: '12px', marginBottom: '12px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '12px', fontSize: '11px' }}>
+                <div>
+                  <p style={{ fontSize: '10px', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0 }}>Latest CO</p>
+                  <p style={{ fontSize: '12px', fontWeight: 600, color: '#111827', margin: '2px 0 0' }}>{formatShortDate(coData.latest.issue_date)}</p>
+                </div>
+                <div>
+                  <p style={{ fontSize: '10px', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0 }}>Type</p>
+                  <p style={{ fontSize: '12px', fontWeight: 600, color: '#111827', margin: '2px 0 0' }}>{coData.latest.issue_type || '—'}</p>
+                </div>
+                <div>
+                  <p style={{ fontSize: '10px', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0 }}>Job Number</p>
+                  <p className="font-mono" style={{ fontSize: '11px', fontWeight: 600, color: '#111827', margin: '2px 0 0' }}>{coData.latest.job_number || '—'}</p>
+                </div>
+                <div>
+                  <p style={{ fontSize: '10px', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0 }}>Final CO on File</p>
+                  <p style={{ fontSize: '12px', fontWeight: 600, color: coData.has_final ? '#15803d' : '#b91c1c', margin: '2px 0 0' }}>{coData.has_final ? 'Yes' : 'No — Temporary only'}</p>
+                </div>
+              </div>
+              {coData.latest.pdf_url && (
+                <div style={{ marginTop: '10px' }}>
+                  <a href={coData.latest.pdf_url} target="_blank" rel="noreferrer" style={{ fontSize: '10px', color: NAVY, border: `1px solid ${NAVY}`, padding: '4px 10px', borderRadius: '4px', textDecoration: 'none', fontWeight: 600 }}>Open Latest CO PDF (BIS)</a>
+                </div>
+              )}
+            </div>
+          )}
+          {coData.all && coData.all.length > 1 && (
+            <table className="w-full border-collapse">
+              <thead>
+                <tr>
+                  <th className={tableHeaderStyle}>Issue Date</th>
+                  <th className={tableHeaderStyle}>Job Number</th>
+                  <th className={tableHeaderStyle}>Job Type</th>
+                  <th className={tableHeaderStyle}>Issue Type</th>
+                  <th className={tableHeaderStyle}>Status</th>
+                  <th className={tableHeaderStyle}>PDF</th>
+                </tr>
+              </thead>
+              <tbody>
+                {coData.all.slice(0, 15).map((co: any, idx: number) => (
+                  <tr key={idx} style={{ backgroundColor: idx % 2 === 0 ? '#ffffff' : CARD_BG }}>
+                    <td className={tableCellStyle}>{formatShortDate(co.issue_date)}</td>
+                    <td className={`${tableCellStyle} font-mono`} style={{ fontSize: '10px' }}>{co.job_number || '—'}</td>
+                    <td className={tableCellStyle}>{co.job_type || '—'}</td>
+                    <td className={tableCellStyle}>{co.issue_type || '—'}</td>
+                    <td className={tableCellStyle}>{co.application_status || '—'}</td>
+                    <td className={tableCellStyle}>{co.pdf_url ? (<a href={co.pdf_url} target="_blank" rel="noreferrer" style={{ color: NAVY, fontWeight: 600, textDecoration: 'underline' }}>View</a>) : '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+          <p style={{ fontSize: '10px', color: '#6b7280', marginTop: '6px', fontStyle: 'italic' }}>
+            Source: NYC Department of Buildings · Certificates of Occupancy (bs8b-p36w). PDFs served by DOB BIS.
+          </p>
+        </section>
+      )}
+
+      {/* Air Resources / Fuel-Burning Equipment */}
+      {fuelTanks && fuelTanks.total > 0 && (
+        <section style={{ marginBottom: '32px', pageBreakInside: 'avoid' }}>
+          <h3 style={sectionHeaderStyle}>Air Resources — Fuel-Burning Equipment</h3>
+          {fuelTanks.active && fuelTanks.active.length > 0 && (
+            <>
+              <p style={{ fontSize: '11px', fontWeight: 600, color: '#374151', margin: '0 0 6px' }}>Active Equipment ({fuelTanks.active.length})</p>
+              <table className="w-full border-collapse" style={{ marginBottom: '12px' }}>
+                <thead>
+                  <tr>
+                    <th className={tableHeaderStyle}>Device Type</th>
+                    <th className={tableHeaderStyle}>Primary Fuel</th>
+                    <th className={tableHeaderStyle}>Quantity</th>
+                    <th className={tableHeaderStyle}>Make / Model</th>
+                    <th className={tableHeaderStyle}>Issued</th>
+                    <th className={tableHeaderStyle}>Expires</th>
+                    <th className={tableHeaderStyle}>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {fuelTanks.active.map((t: any, idx: number) => (
+                    <tr key={idx} style={{ backgroundColor: idx % 2 === 0 ? '#ffffff' : CARD_BG }}>
+                      <td className={tableCellStyle}>{t.device_type || '—'}</td>
+                      <td className={tableCellStyle}>{t.primary_fuel || '—'}</td>
+                      <td className={tableCellStyle}>{t.quantity || '—'}</td>
+                      <td className={tableCellStyle}>{[t.make, t.model].filter(Boolean).join(' / ') || '—'}</td>
+                      <td className={tableCellStyle}>{formatShortDate(t.issue_date)}</td>
+                      <td className={tableCellStyle}>{formatShortDate(t.expiration_date)}</td>
+                      <td className={tableCellStyle}>{t.status || '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </>
+          )}
+          {fuelTanks.expired && fuelTanks.expired.length > 0 && (
+            <p style={{ fontSize: '10px', color: '#6b7280', margin: '0 0 6px', fontStyle: 'italic' }}>
+              {fuelTanks.expired.length} expired or cancelled record{fuelTanks.expired.length !== 1 ? 's' : ''} on file (not shown).
+            </p>
+          )}
+          <p style={{ fontSize: '10px', color: '#6b7280', marginTop: '6px', fontStyle: 'italic' }}>
+            Source: NYC Department of Buildings · Fuel-Burning Equipment registrations (f4rp-2kvy). Boilers, oil burners, and other combustion devices.
+          </p>
+        </section>
+      )}
+
+      {/* Sidewalk Violations (DOT) */}
+      {sidewalkData && sidewalkData.total > 0 && (
+        <section style={{ marginBottom: '32px', pageBreakInside: 'avoid' }}>
+          <h3 style={sectionHeaderStyle}>Highway / Sidewalk Violations (DOT)</h3>
+          <div style={{ display: 'flex', gap: '16px', marginBottom: '10px' }}>
+            <div style={{ fontSize: '11px', color: '#111827' }}><span style={{ fontWeight: 600 }}>Open:</span> <span style={{ color: sidewalkData.open.length > 0 ? '#b91c1c' : '#15803d', fontWeight: 600 }}>{sidewalkData.open.length}</span></div>
+            <div style={{ fontSize: '11px', color: '#111827' }}><span style={{ fontWeight: 600 }}>Dismissed:</span> {sidewalkData.dismissed.length}</div>
+            <div style={{ fontSize: '11px', color: '#111827' }}><span style={{ fontWeight: 600 }}>Total:</span> {sidewalkData.total}</div>
+          </div>
+          {sidewalkData.open && sidewalkData.open.length > 0 && (
+            <>
+              <p style={{ fontSize: '11px', fontWeight: 600, color: '#374151', margin: '0 0 6px' }}>Open Notices</p>
+              <table className="w-full border-collapse" style={{ marginBottom: '12px' }}>
+                <thead>
+                  <tr>
+                    <th className={tableHeaderStyle}>SWV #</th>
+                    <th className={tableHeaderStyle}>Issued</th>
+                    <th className={tableHeaderStyle}>Sq Ft</th>
+                    <th className={tableHeaderStyle}>Defects</th>
+                    <th className={tableHeaderStyle}>Location</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sidewalkData.open.slice(0, 15).map((s: any, idx: number) => (
+                    <tr key={idx} style={{ backgroundColor: idx % 2 === 0 ? '#ffffff' : CARD_BG }}>
+                      <td className={`${tableCellStyle} font-mono`} style={{ fontSize: '10px' }}>{s.swv_number || s.violation_id || '—'}</td>
+                      <td className={tableCellStyle}>{formatShortDate(s.issue_date)}</td>
+                      <td className={tableCellStyle}>{s.sq_feet || '—'}</td>
+                      <td className={tableCellStyle} style={{ fontSize: '10px' }}>{[...(s.defects || []), s.other_defects].filter(Boolean).join(', ') || '—'}</td>
+                      <td className={tableCellStyle} style={{ fontSize: '10px' }}>{[s.house_num, s.on_street].filter(Boolean).join(' ')}{s.from_street ? ` btw ${s.from_street}` : ''}{s.to_street ? ` & ${s.to_street}` : ''}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </>
+          )}
+          {sidewalkData.dismissed && sidewalkData.dismissed.length > 0 && (
+            <p style={{ fontSize: '10px', color: '#6b7280', margin: '6px 0 0', fontStyle: 'italic' }}>
+              {sidewalkData.dismissed.length} dismissed notice{sidewalkData.dismissed.length !== 1 ? 's' : ''} on file (not shown).
+            </p>
+          )}
+          <p style={{ fontSize: '10px', color: '#6b7280', marginTop: '6px', fontStyle: 'italic' }}>
+            Source: NYC Department of Transportation · Sidewalk Violations (6kbp-uz6m). Defective sidewalk flags trigger DOF assessment (SAC/SAF) liens if not cured.
+          </p>
+        </section>
+      )}
+
+      {/* HPD Emergency Repair Charges */}
+      {hpdErp && hpdErp.total > 0 && (
+        <section style={{ marginBottom: '32px', pageBreakInside: 'avoid' }}>
+          <h3 style={sectionHeaderStyle}>HPD Emergency Repair Charges</h3>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+            <div style={{ backgroundColor: CARD_BG, border: `1px solid ${BORDER}`, borderRadius: '6px', padding: '10px' }}>
+              <p style={{ fontSize: '10px', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0 }}>Total Charged</p>
+              <p style={{ fontSize: '16px', fontWeight: 700, color: '#b91c1c', margin: '4px 0 0' }}>{formatCurrency(hpdErp.total_charged)}</p>
+            </div>
+            <div style={{ backgroundColor: CARD_BG, border: `1px solid ${BORDER}`, borderRadius: '6px', padding: '10px' }}>
+              <p style={{ fontSize: '10px', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0 }}>Open Market Orders</p>
+              <p style={{ fontSize: '16px', fontWeight: 700, color: '#111827', margin: '4px 0 0' }}>{hpdErp.omo?.length || 0}</p>
+            </div>
+            <div style={{ backgroundColor: CARD_BG, border: `1px solid ${BORDER}`, borderRadius: '6px', padding: '10px' }}>
+              <p style={{ fontSize: '10px', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0 }}>Handyman Work Orders</p>
+              <p style={{ fontSize: '16px', fontWeight: 700, color: '#111827', margin: '4px 0 0' }}>{hpdErp.hwo?.length || 0}</p>
+            </div>
+          </div>
+          {hpdErp.omo && hpdErp.omo.length > 0 && (
+            <>
+              <p style={{ fontSize: '11px', fontWeight: 600, color: '#374151', margin: '8px 0 6px' }}>Open Market Orders</p>
+              <table className="w-full border-collapse" style={{ marginBottom: '12px' }}>
+                <thead>
+                  <tr>
+                    <th className={tableHeaderStyle}>OMO #</th>
+                    <th className={tableHeaderStyle}>Date</th>
+                    <th className={tableHeaderStyle}>Work Type</th>
+                    <th className={tableHeaderStyle}>Award</th>
+                    <th className={tableHeaderStyle}>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {hpdErp.omo.slice(0, 10).map((o: any, idx: number) => (
+                    <tr key={idx} style={{ backgroundColor: idx % 2 === 0 ? '#ffffff' : CARD_BG }}>
+                      <td className={`${tableCellStyle} font-mono`} style={{ fontSize: '10px' }}>{o.omo_number || '—'}</td>
+                      <td className={tableCellStyle}>{formatShortDate(o.create_date)}</td>
+                      <td className={tableCellStyle}>{o.work_type || '—'}</td>
+                      <td className={tableCellStyle}>{formatCurrency(o.award_amount)}</td>
+                      <td className={tableCellStyle}>{o.lifecycle || '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </>
+          )}
+          {hpdErp.hwo && hpdErp.hwo.length > 0 && (
+            <>
+              <p style={{ fontSize: '11px', fontWeight: 600, color: '#374151', margin: '8px 0 6px' }}>Handyman Work Orders</p>
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr>
+                    <th className={tableHeaderStyle}>HWO #</th>
+                    <th className={tableHeaderStyle}>Date</th>
+                    <th className={tableHeaderStyle}>Work Type</th>
+                    <th className={tableHeaderStyle}>Charge</th>
+                    <th className={tableHeaderStyle}>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {hpdErp.hwo.slice(0, 10).map((h: any, idx: number) => (
+                    <tr key={idx} style={{ backgroundColor: idx % 2 === 0 ? '#ffffff' : CARD_BG }}>
+                      <td className={`${tableCellStyle} font-mono`} style={{ fontSize: '10px' }}>{h.hwo_number || '—'}</td>
+                      <td className={tableCellStyle}>{formatShortDate(h.create_date)}</td>
+                      <td className={tableCellStyle}>{h.work_type || '—'}</td>
+                      <td className={tableCellStyle}>{formatCurrency(h.charge_amount)}</td>
+                      <td className={tableCellStyle}>{h.lifecycle || h.status_reason || '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </>
+          )}
+          <p style={{ fontSize: '10px', color: '#6b7280', marginTop: '6px', fontStyle: 'italic' }}>
+            Source: NYC Housing Preservation & Development · Open Market Orders (mdbu-nrqn) + Handyman Work Orders (sbnd-xujn). HPD emergency repair work billed back to the property as a tax lien.
+          </p>
+        </section>
+      )}
+
+      {/* FDNY Violations (Direct) */}
+      {fdnyDirect && fdnyDirect.total > 0 && (
+        <section style={{ marginBottom: '32px', pageBreakInside: 'avoid' }}>
+          <h3 style={sectionHeaderStyle}>Fire Department Violations (FDNY)</h3>
+          <div style={{ display: 'flex', gap: '16px', marginBottom: '10px' }}>
+            <div style={{ fontSize: '11px', color: '#111827' }}><span style={{ fontWeight: 600 }}>Open:</span> <span style={{ color: fdnyDirect.open.length > 0 ? '#b91c1c' : '#15803d', fontWeight: 600 }}>{fdnyDirect.open.length}</span></div>
+            <div style={{ fontSize: '11px', color: '#111827' }}><span style={{ fontWeight: 600 }}>Resolved:</span> {fdnyDirect.closed.length}</div>
+            <div style={{ fontSize: '11px', color: '#111827' }}><span style={{ fontWeight: 600 }}>Open Penalty Total:</span> <span style={{ fontWeight: 600, color: '#b91c1c' }}>{formatCurrency(fdnyDirect.total_penalty)}</span></div>
+          </div>
+          {fdnyDirect.open && fdnyDirect.open.length > 0 && (
+            <table className="w-full border-collapse">
+              <thead>
+                <tr>
+                  <th className={tableHeaderStyle}>Violation #</th>
+                  <th className={tableHeaderStyle}>Date</th>
+                  <th className={tableHeaderStyle}>Code</th>
+                  <th className={tableHeaderStyle}>Description</th>
+                  <th className={tableHeaderStyle}>Category</th>
+                  <th className={tableHeaderStyle}>Penalty</th>
+                </tr>
+              </thead>
+              <tbody>
+                {fdnyDirect.open.slice(0, 15).map((v: any, idx: number) => (
+                  <tr key={idx} style={{ backgroundColor: idx % 2 === 0 ? '#ffffff' : CARD_BG }}>
+                    <td className={`${tableCellStyle} font-mono`} style={{ fontSize: '10px' }}>{v.violation_number || '—'}</td>
+                    <td className={tableCellStyle}>{formatShortDate(v.inspection_date)}</td>
+                    <td className={`${tableCellStyle} font-mono`} style={{ fontSize: '10px' }}>{v.violation_code || '—'}</td>
+                    <td className={tableCellStyle} style={{ fontSize: '10px' }}>{v.description || '—'}</td>
+                    <td className={tableCellStyle}>{v.category || '—'}</td>
+                    <td className={tableCellStyle}>{formatCurrency(v.penalty_amount)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+          <p style={{ fontSize: '10px', color: '#6b7280', marginTop: '6px', fontStyle: 'italic' }}>
+            Source: NYC Fire Department · Bureau of Fire Prevention Violations (avgm-ztsb). Additional fuel-oil and certificate-of-fitness records require FDNY Business Portal lookup.
+          </p>
+        </section>
+      )}
+
+      {/* FDNY Building Vacate Orders (Coverage Exceed v2) */}
+      {fdnyVacate && fdnyVacate.total > 0 && (
+        <section style={{ marginBottom: '32px', pageBreakInside: 'avoid' }}>
+          <h3 style={sectionHeaderStyle}>FDNY Building Vacate Orders</h3>
+          {fdnyVacate.active.length > 0 && (
+            <div style={{ backgroundColor: '#fef2f2', border: '1px solid #fecaca', borderRadius: '6px', padding: '10px', marginBottom: '12px' }}>
+              <p style={{ fontSize: '11px', fontWeight: 700, color: '#991b1b', margin: 0 }}>
+                {fdnyVacate.active.length} active vacate order{fdnyVacate.active.length !== 1 ? 's' : ''} — occupancy of the affected area(s) is legally prohibited until rescinded by FDNY.
+              </p>
+            </div>
+          )}
+          <table className="w-full border-collapse">
+            <thead>
+              <tr>
+                <th className={tableHeaderStyle} style={{ width: '10%' }}>Status</th>
+                <th className={tableHeaderStyle} style={{ width: '10%' }}>Order Date</th>
+                <th className={tableHeaderStyle} style={{ width: '10%' }}>Last Insp.</th>
+                <th className={tableHeaderStyle} style={{ width: '40%' }}>Description</th>
+                <th className={tableHeaderStyle} style={{ width: '15%' }}>Occupancy</th>
+                <th className={tableHeaderStyle} style={{ width: '15%' }}>Address</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[...fdnyVacate.active, ...fdnyVacate.lifted].slice(0, 15).map((v: any, idx: number) => (
+                <tr key={idx} style={{ backgroundColor: idx % 2 === 0 ? '#ffffff' : CARD_BG, pageBreakInside: 'avoid' }}>
+                  <td className={tableCellStyle}>
+                    <span style={{ fontSize: '9px', fontWeight: 700, padding: '2px 6px', borderRadius: '3px', backgroundColor: v.is_lifted ? '#dcfce7' : '#fee2e2', color: v.is_lifted ? '#166534' : '#991b1b' }}>
+                      {v.is_lifted ? 'LIFTED' : 'ACTIVE'}
+                    </span>
+                  </td>
+                  <td className={tableCellStyle} style={{ whiteSpace: 'nowrap' }}>{formatShortDate(v.date_of_order)}</td>
+                  <td className={tableCellStyle} style={{ whiteSpace: 'nowrap' }}>{formatShortDate(v.last_inspection_date)}</td>
+                  <td className={tableCellStyle} style={{ fontSize: '10px' }}>{v.description || '—'}</td>
+                  <td className={tableCellStyle} style={{ fontSize: '10px' }}>{v.occupancy_description || '—'}</td>
+                  <td className={tableCellStyle} style={{ fontSize: '10px' }}>{v.aka_address || '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <p style={{ fontSize: '10px', color: '#6b7280', marginTop: '6px', fontStyle: 'italic' }}>
+            Source: NYC Fire Department · Building Vacate List (n5xc-7jfa). Status is inferred from the order description — verify lift status directly with FDNY Bureau of Fire Prevention.
+          </p>
+        </section>
+      )}
+
+      {/* FDNY Bureau of Fire Prevention — Archive (Coverage Exceed v2) */}
+      {fdnyBfp && fdnyBfp.total > 0 && (
+        <section style={{ marginBottom: '32px', pageBreakInside: 'avoid' }}>
+          <h3 style={sectionHeaderStyle}>FDNY Bureau of Fire Prevention — Archive Orders</h3>
+          <p style={{ fontSize: '11px', color: '#374151', marginBottom: '8px' }}>
+            {fdnyBfp.total} archive record{fdnyBfp.total !== 1 ? 's' : ''} from the historical BFP Active Violation Orders dataset (decommissioned 2024-03-14). Cross-reference with current FDNY violations above.
+          </p>
+          <table className="w-full border-collapse">
+            <thead>
+              <tr>
+                <th className={tableHeaderStyle} style={{ width: '15%' }}>Violation #</th>
+                <th className={tableHeaderStyle} style={{ width: '10%' }}>Date</th>
+                <th className={tableHeaderStyle} style={{ width: '15%' }}>Type</th>
+                <th className={tableHeaderStyle} style={{ width: '12%' }}>Status</th>
+                <th className={tableHeaderStyle} style={{ width: '48%' }}>Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              {fdnyBfp.items.slice(0, 15).map((item: any, idx: number) => (
+                <tr key={idx} style={{ backgroundColor: idx % 2 === 0 ? '#ffffff' : CARD_BG, pageBreakInside: 'avoid' }}>
+                  <td className={`${tableCellStyle} font-mono`} style={{ fontSize: '10px' }}>{item.violation_number || '—'}</td>
+                  <td className={tableCellStyle} style={{ whiteSpace: 'nowrap' }}>{formatShortDate(item.violation_date)}</td>
+                  <td className={tableCellStyle} style={{ fontSize: '10px' }}>{item.violation_type || '—'}</td>
+                  <td className={tableCellStyle} style={{ fontSize: '10px' }}>{item.violation_status || '—'}</td>
+                  <td className={tableCellStyle} style={{ fontSize: '10px' }}>{item.description || '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {fdnyBfp.items.length > 15 && (
+            <p style={{ fontSize: '10px', color: '#374151', marginTop: '6px', fontStyle: 'italic' }}>
+              Showing 15 of {fdnyBfp.items.length} BFP records.
+            </p>
+          )}
+          <p style={{ fontSize: '10px', color: '#6b7280', marginTop: '6px', fontStyle: 'italic' }}>
+            Source: NYC Open Data · Bureau of Fire Prevention Active Violation Orders archive (bi53-yph3).
+          </p>
+        </section>
+      )}
 
       {/* General Notes */}
       {report.general_notes && (

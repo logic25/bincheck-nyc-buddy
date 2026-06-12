@@ -163,7 +163,7 @@ const Index = () => {
                 </p>
                 <div className="flex items-center justify-center gap-3 flex-wrap">
                   <Button size="lg" onClick={() => navigate("/order")} className="font-semibold">
-                    Order a Report — $199 <ArrowRight className="h-4 w-4 ml-1" />
+                    Order a Report — $499 <ArrowRight className="h-4 w-4 ml-1" />
                   </Button>
                   <Button size="lg" variant="outline" onClick={() => navigate("/auth")}>
                     Sign In
@@ -275,11 +275,11 @@ const Index = () => {
                   <div className="p-6 rounded-lg border border-border bg-card space-y-5">
                     <div>
                       <p className="text-sm font-medium text-muted-foreground">One-Time Report</p>
-                      <p className="font-display text-4xl font-extrabold mt-1">$199</p>
-                      <p className="text-xs text-muted-foreground mt-1">+ $75 for rush delivery</p>
+                      <p className="font-display text-4xl font-extrabold mt-1">$499</p>
+                      <p className="text-xs text-muted-foreground mt-1">Flat price · no rush fee</p>
                     </div>
                     <ul className="space-y-2 text-sm">
-                      {["8-agency violation search", "AI line-item notes", "Attorney-ready PDF", "24hr delivery", "Rush option available"].map(f => (
+                      {["8-agency violation search", "AI line-item notes", "Attorney-ready PDF", "24–48 hr delivery", "One-time purchase, no subscription"].map(f => (
                         <li key={f} className="flex items-center gap-2">
                           <CheckCircle className="h-3.5 w-3.5 text-primary shrink-0" />
                           <span className="text-muted-foreground">{f}</span>
@@ -296,11 +296,11 @@ const Index = () => {
                     </div>
                     <div>
                       <p className="text-sm font-medium text-muted-foreground">Professional</p>
-                      <p className="font-display text-4xl font-extrabold mt-1">$599<span className="text-lg font-normal text-muted-foreground">/mo</span></p>
-                      <p className="text-xs text-muted-foreground mt-1">5 reports · $120/report</p>
+                      <p className="font-display text-4xl font-extrabold mt-1">$2,499<span className="text-lg font-normal text-muted-foreground">/mo</span></p>
+                      <p className="text-xs text-muted-foreground mt-1">10 reports · $249/report effective</p>
                     </div>
                     <ul className="space-y-2 text-sm">
-                      {["8-agency violation search", "AI line-item notes", "Attorney-ready PDF", "Priority processing queue", "Rush at no extra charge", "White-label PDF option", "Rollover unused reports", "Dedicated support"].map(f => (
+                      {["8-agency violation search", "AI line-item notes", "Attorney-ready PDF", "Priority processing queue", "Same-day delivery on most reports", "White-label PDF option", "Rollover unused reports", "Dedicated support"].map(f => (
                         <li key={f} className="flex items-center gap-2">
                           <CheckCircle className="h-3.5 w-3.5 text-primary shrink-0" />
                           <span className="text-muted-foreground">{f}</span>
