@@ -96,7 +96,7 @@ const AdminDocuments = () => {
   const { data: docs = [], isLoading } = useQuery({
     queryKey: ['report-documents-queue'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await supabase as any
         .from('report_documents')
         .select(`
           *,
@@ -165,7 +165,7 @@ const AdminDocuments = () => {
   const claimMutation = useMutation({
     mutationFn: async (docId: string) => {
       if (!userId) throw new Error('Not signed in');
-      const { error } = await supabase
+      const { error } = await supabase as any
         .from('report_documents')
         .update({
           status: 'in_progress',
@@ -184,7 +184,7 @@ const AdminDocuments = () => {
 
   const releaseMutation = useMutation({
     mutationFn: async (docId: string) => {
-      const { error } = await supabase
+      const { error } = await supabase as any
         .from('report_documents')
         .update({
           status: 'needs_manual_pull',
@@ -205,7 +205,7 @@ const AdminDocuments = () => {
     mutationFn: async ({ docId, status, notes }: { docId: string; status: DocStatus; notes?: string }) => {
       const update: any = { status };
       if (notes !== undefined) update.notes = notes;
-      const { error } = await supabase
+      const { error } = await supabase as any
         .from('report_documents')
         .update(update)
         .eq('id', docId);
@@ -232,7 +232,7 @@ const AdminDocuments = () => {
         .upload(path, file, { upsert: true, contentType: file.type || 'application/pdf' });
       if (upErr) throw upErr;
 
-      const { error: rowErr } = await supabase
+      const { error: rowErr } = await supabase as any
         .from('report_documents')
         .update({
           status: 'attached',
