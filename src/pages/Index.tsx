@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Building2, Shield, FileText, ArrowRight, AlertTriangle, MapPin, LogOut, Settings, CheckCircle, Clock, Download, Zap, Star, Lock } from "lucide-react";
+import { Search, Building2, Shield, FileText, ArrowRight, AlertTriangle, MapPin, LogOut, Settings, CheckCircle, Clock, Download, Zap, Star, Lock, Landmark } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
@@ -152,14 +152,14 @@ const Index = () => {
             ) : (
               <div className="space-y-5">
                 <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-border/60 bg-card text-xs text-muted-foreground font-medium mb-2">
-                  <Star className="h-3 w-3 text-primary" /> Trusted by NYC real estate attorneys & investors
+                  <Star className="h-3 w-3 text-primary" /> Title-company depth at attorney-friendly pricing
                 </div>
                 <h1 className="font-display text-5xl md:text-6xl font-extrabold tracking-tight leading-[1.1]">
-                  Due diligence,{" "}
+                  NYC due diligence,{" "}
                   <span className="text-primary">delivered.</span>
                 </h1>
                 <p className="text-lg text-muted-foreground max-w-xl mx-auto leading-relaxed">
-                  Transaction-ready NYC property compliance reports for attorneys, investors, and deal teams. Open violations, stop work orders, and comprehensive analysis across city agencies.
+                  Transaction-ready property reports pulling from <span className="text-foreground font-semibold">14+ NYC agency datasets</span>—violations, certificates of occupancy, tax balances, sidewalk, fuel burners, HPD emergency repair, and ACRIS. The same coverage title companies sell for $1,200+, delivered in 24–48 hours.
                 </p>
                 <div className="flex items-center justify-center gap-3 flex-wrap">
                   <Button size="lg" onClick={() => navigate("/order")} className="font-semibold">
@@ -220,17 +220,23 @@ const Index = () => {
             {/* What's Included */}
             <section className="border-t border-border/40 py-16 px-4">
               <div className="container max-w-5xl">
-                <h2 className="font-display text-2xl font-bold text-center mb-10">
-                  Everything your transaction team needs
+                <h2 className="font-display text-2xl font-bold text-center mb-3">
+                  Title-company coverage. Attorney-ready format.
                 </h2>
+                <p className="text-sm text-muted-foreground text-center max-w-2xl mx-auto mb-10">
+                  Every section a New York title company puts in a $1,200+ due diligence report—pulled directly from the same NYC agency systems, formatted for your closing file.
+                </p>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   {[
-                    { icon: Building2, title: "DOB & ECB Violations", desc: "Open Department of Buildings and Environmental Control Board violations with penalty balances and hearing status" },
-                    { icon: AlertTriangle, title: "Stop Work & Vacate Orders", desc: "Stop work orders, partial stop work, and vacate orders that can block title closing or financing" },
-                    { icon: Shield, title: "HPD Violations", desc: "Housing Preservation & Development violations by class — A, B, and C (immediately hazardous)" },
-                    { icon: FileText, title: "Permit Activity", desc: "BIS and DOB NOW permit applications — partial, pending, and in-progress filings flagged for attorney review" },
-                    { icon: Zap, title: "FDNY, DSNY, DOT, LPC, DOF", desc: "OATH hearing records for all city agencies — open fines, default judgments, and enforcement actions" },
-                    { icon: CheckCircle, title: "AI Risk Analysis", desc: "Gemini-powered attorney notes on every line item — prefixed [ACTION REQUIRED], [MONITOR], or [RESOLVED]" },
+                    { icon: Building2, title: "DOB · ECB · HPD Violations", desc: "All open Department of Buildings, ECB/OATH, and HPD violations—with penalty balances, class (A/B/C), and hearing status" },
+                    { icon: AlertTriangle, title: "Stop Work & Vacate Orders", desc: "Active stop-work, partial stop-work, and vacate orders that block closing, financing, or occupancy" },
+                    { icon: FileText, title: "Certificates of Occupancy", desc: "Full CO history with direct links to the DOB BIS PDFs—flags properties with only a Temporary CO on file" },
+                    { icon: Shield, title: "Tax & Sidewalk Charges (DOF)", desc: "Outstanding tax, sidewalk assessment (SAC/SAF), and emergency-repair charges on the DOF account, with the full code breakdown" },
+                    { icon: Zap, title: "FDNY Violations & Fuel Burners", desc: "Open FDNY Bureau of Fire Prevention violations plus DOB-registered boilers and fuel-burning equipment—the data title companies separately surcharge for" },
+                    { icon: Search, title: "Sidewalk & HPD Emergency Repair", desc: "DOT sidewalk violations and HPD Open Market / Handyman Work Orders—the liens that quietly hit the tax bill" },
+                    { icon: Landmark, title: "ACRIS, Tax Map & Permits", desc: "Recorded deeds, mortgages, liens, satisfactions, plus deep links to the Digital Tax Map and DOB BIS permit applications" },
+                    { icon: CheckCircle, title: "AI-Powered Attorney Notes", desc: "Every line item is reviewed by AI and tagged [ACTION REQUIRED], [MONITOR], or [CLEAR]—so your team doesn't read 27 pages cold" },
+                    { icon: Star, title: "Severity-First Risk Score", desc: "A single 0–100 score weighted by severity and recency—plus an analyst conclusion summarizing what would actually block closing" },
                   ].map((f) => (
                     <div key={f.title} className="p-6 rounded-lg bg-card/50 text-left space-y-3 hover:bg-card transition-colors border border-border/40">
                       <f.icon className="h-5 w-5 text-primary" />
@@ -238,6 +244,14 @@ const Index = () => {
                       <p className="text-sm text-muted-foreground leading-relaxed">{f.desc}</p>
                     </div>
                   ))}
+                </div>
+
+                {/* Coverage comparison strip */}
+                <div className="mt-10 p-5 rounded-lg border border-border/60 bg-card/30">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 text-center">Data sources we query directly</p>
+                  <p className="text-xs text-muted-foreground leading-relaxed text-center">
+                    DOB · DOB NOW · DOB Safety · ECB / OATH · HPD · HPD OMO · HPD HWO · FDNY · DSNY · DOT Sidewalk · LPC Landmarks · DOF Outstanding Charges · DOF Tax Lien Sale List · ACRIS · DOB Certificates of Occupancy · DOB Fuel-Burning Equipment
+                  </p>
                 </div>
               </div>
             </section>
@@ -248,9 +262,9 @@ const Index = () => {
                 <h2 className="font-display text-2xl font-bold text-center mb-10">How it works</h2>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
                   {[
-                    { step: "01", icon: MapPin, title: "Submit Your Property", desc: "Enter the NYC address and tell us what you need — buying a unit, closing a deal, a specific concern." },
-                    { step: "02", icon: Clock, title: "We Prepare Your Report", desc: "Our team runs 8-agency searches, AI flags every item, and our analysts review before delivery." },
-                    { step: "03", icon: Download, title: "Download & Close", desc: "Receive your attorney-ready PDF with line-item notes, risk ratings, and a signed-off summary." },
+                    { step: "01", icon: MapPin, title: "Submit your property", desc: "Enter any NYC address or BIN. Tell us the deal context—purchase, refi, listing prep, or a specific concern to investigate." },
+                    { step: "02", icon: Clock, title: "We run the full search", desc: "Parallel pulls across 14+ NYC datasets, AI tags every line item, and a human analyst reviews before the report leaves our queue." },
+                    { step: "03", icon: Download, title: "Closing-ready PDF in 24–48 hrs", desc: "Branded, signed-off PDF with risk score, conclusion, action items, and direct links back to every agency record cited." },
                   ].map((s) => (
                     <div key={s.step} className="text-center space-y-3">
                       <div className="w-12 h-12 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto">
@@ -279,7 +293,7 @@ const Index = () => {
                       <p className="text-xs text-muted-foreground mt-1">Flat price · no rush fee</p>
                     </div>
                     <ul className="space-y-2 text-sm">
-                      {["8-agency violation search", "AI line-item notes", "Attorney-ready PDF", "24–48 hr delivery", "One-time purchase, no subscription"].map(f => (
+                      {["14+ agency datasets queried", "Certificates of Occupancy + BIS PDF links", "DOF tax / sidewalk / ERP charges", "AI analyst notes on every line item", "24–48 hr delivery", "One-time purchase, no subscription"].map(f => (
                         <li key={f} className="flex items-center gap-2">
                           <CheckCircle className="h-3.5 w-3.5 text-primary shrink-0" />
                           <span className="text-muted-foreground">{f}</span>
@@ -300,7 +314,7 @@ const Index = () => {
                       <p className="text-xs text-muted-foreground mt-1">10 reports · $249/report effective</p>
                     </div>
                     <ul className="space-y-2 text-sm">
-                      {["8-agency violation search", "AI line-item notes", "Attorney-ready PDF", "Priority processing queue", "Same-day delivery on most reports", "White-label PDF option", "Rollover unused reports", "Dedicated support"].map(f => (
+                      {["Everything in One-Time", "Priority processing queue", "Same-day delivery on most reports", "White-label PDF for your firm", "Rollover unused reports", "Dedicated analyst support"].map(f => (
                         <li key={f} className="flex items-center gap-2">
                           <CheckCircle className="h-3.5 w-3.5 text-primary shrink-0" />
                           <span className="text-muted-foreground">{f}</span>

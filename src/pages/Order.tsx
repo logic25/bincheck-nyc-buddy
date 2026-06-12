@@ -442,10 +442,11 @@ const Order = () => {
                   </div>
                   <ul className="space-y-1.5 text-sm text-muted-foreground">
                     {[
-                      "8-agency violation search (DOB, ECB, HPD, FDNY, DSNY, DOT, LPC, DOF)",
-                      "AI analyst notes on every line item",
-                      "Attorney-ready PDF report",
-                      "24–48 business-hour delivery",
+                      "14+ NYC agency datasets (DOB, ECB, HPD, FDNY, DSNY, DOT, LPC, DOF, ACRIS…)",
+                      "Certificates of Occupancy with BIS PDF deep links",
+                      "Tax & sidewalk charges, HPD emergency repair, fuel burners",
+                      "AI analyst notes · severity-first risk score",
+                      "Attorney-ready PDF · 24–48 business-hour delivery",
                       "One-time purchase, no subscription"
                     ].map(f => (
                       <li key={f} className="flex items-start gap-2"><CheckCircle className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" /> {f}</li>
@@ -476,10 +477,10 @@ const Order = () => {
                   </div>
                   <ul className="space-y-1.5 text-sm text-muted-foreground">
                     {[
-                      "Everything in One-Time (all 8 agencies, AI notes, PDF)",
+                      "Everything in One-Time (full agency coverage, AI notes, PDF)",
                       "Priority processing queue — moves to front",
                       "Same-day delivery on most reports",
-                      "White-label PDF option",
+                      "White-label PDF for your firm",
                       "Rollover unused reports"
                     ].map(f => (
                       <li key={f} className="flex items-start gap-2"><CheckCircle className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" /> {f}</li>
@@ -584,7 +585,7 @@ const Order = () => {
       {/* Footer disclaimer */}
       <footer className="border-t border-border/40 py-6 mt-8">
         <div className="container max-w-2xl text-center text-xs text-muted-foreground space-y-1">
-          <p>Reports draw from NYC DOB, ECB, HPD, FDNY, DSNY, DOT, LPC, DOF, and DEP public records.</p>
+          <p>Reports draw from NYC DOB, DOB NOW, ECB/OATH, HPD, HPD OMO/HWO, FDNY, DSNY, DOT Sidewalk, LPC, DOF Outstanding Charges & Tax Lien Sale, DOB Certificates of Occupancy, DOB Fuel-Burning Equipment, and ACRIS public records.</p>
           <p>Results depend on the completeness of public agency records at time of search. Verify all findings with the relevant city agencies.</p>
         </div>
       </footer>
