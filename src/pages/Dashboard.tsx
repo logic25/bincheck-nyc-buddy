@@ -54,9 +54,12 @@ interface GeoSuggestion {
 const Dashboard = () => {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const { isAdmin, isLoading: roleLoading } = useUserRole();
+  const { isAdmin, isAnalyst, isStaff, isLoading: roleLoading } = useUserRole();
   const [viewAsClient, setViewAsClient] = useState(false);
-  const showClientView = !isAdmin || viewAsClient;
+  // Analysts run the back-office workflow same as admins, so they see the
+  // admin manager too. Sales stays on client view (read-only via RLS).
+  const showAdminManager = isAdmin || isAnalyst;
+  const showClientView = !showAdminManager || viewAsClient;
   const [savedReports, setSavedReports] = useState<ReportRow[]>([]);
   const [loadingSaved, setLoadingSaved] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);

@@ -952,6 +952,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_staff: {
+        Args: { _user_id: string }
+        Returns: boolean
+      }
       move_to_dlq: {
         Args: {
           dlq_name: string
@@ -971,7 +975,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "user"
+      app_role: "admin" | "analyst" | "sales" | "user"
       edit_error_category:
         | "too_vague"
         | "wrong_severity"
@@ -1115,7 +1119,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "user"],
+      app_role: ["admin", "analyst", "sales", "user"],
       edit_error_category: [
         "too_vague",
         "wrong_severity",
