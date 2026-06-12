@@ -2,6 +2,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
+import { checkRateLimit } from "../_shared/rate-limit.ts";
 
 // ━━━ NYC API RESPONSE VALIDATION SCHEMAS ━━━
 // Validates the shape of external API responses to prevent corrupted data in reports
@@ -2133,6 +2134,18 @@ serve(async (req) => {
     }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Rate limit: 5 report generations / hour per user. Protects against runaway
+    // LLM gateway costs from a buggy retry loop or a malicious actor with a
+    // valid token. Admins are still subject to the limit; raise the cap if it's
+    // ever a problem.
+    const rl = await checkRateLimit(supabase, {
+      key: `report:${userId}`,
+      limit: 5,
+      windowMinutes: 60,
+      corsHeaders,
+    });
+    if (rl.limited) return rl.response;
 
     // Ownership check: caller must own the report (or be an admin).
     // Prevents authenticated user A from regenerating/overwriting user B's report.

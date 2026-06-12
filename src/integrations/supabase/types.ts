@@ -924,6 +924,132 @@ export type Database = {
         }
         Relationships: []
       }
+      audit_log: {
+        Row: {
+          id: number
+          occurred_at: string
+          actor_id: string | null
+          actor_email: string | null
+          action: string
+          target_type: string | null
+          target_id: string | null
+          ip_address: string | null
+          user_agent: string | null
+          metadata: Json
+        }
+        Insert: {
+          id?: number
+          occurred_at?: string
+          actor_id?: string | null
+          actor_email?: string | null
+          action: string
+          target_type?: string | null
+          target_id?: string | null
+          ip_address?: string | null
+          user_agent?: string | null
+          metadata?: Json
+        }
+        Update: {
+          id?: number
+          occurred_at?: string
+          actor_id?: string | null
+          actor_email?: string | null
+          action?: string
+          target_type?: string | null
+          target_id?: string | null
+          ip_address?: string | null
+          user_agent?: string | null
+          metadata?: Json
+        }
+        Relationships: []
+      }
+      rate_limit_buckets: {
+        Row: {
+          key: string
+          window_start_minute: string
+          count: number
+          created_at: string
+        }
+        Insert: {
+          key: string
+          window_start_minute: string
+          count?: number
+          created_at?: string
+        }
+        Update: {
+          key?: string
+          window_start_minute?: string
+          count?: number
+          created_at?: string
+        }
+        Relationships: []
+      }
+      report_documents: {
+        Row: {
+          id: string
+          report_id: string
+          agency: string
+          doc_type: string
+          doc_ref: string | null
+          title: string | null
+          source_url: string | null
+          status: string
+          file_path: string | null
+          file_size_bytes: number | null
+          mime_type: string | null
+          claimed_by: string | null
+          claimed_at: string | null
+          fetched_by: string | null
+          fetched_at: string | null
+          notes: string | null
+          priority: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          report_id: string
+          agency: string
+          doc_type: string
+          doc_ref?: string | null
+          title?: string | null
+          source_url?: string | null
+          status?: string
+          file_path?: string | null
+          file_size_bytes?: number | null
+          mime_type?: string | null
+          claimed_by?: string | null
+          claimed_at?: string | null
+          fetched_by?: string | null
+          fetched_at?: string | null
+          notes?: string | null
+          priority?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          report_id?: string
+          agency?: string
+          doc_type?: string
+          doc_ref?: string | null
+          title?: string | null
+          source_url?: string | null
+          status?: string
+          file_path?: string | null
+          file_size_bytes?: number | null
+          mime_type?: string | null
+          claimed_by?: string | null
+          claimed_at?: string | null
+          fetched_by?: string | null
+          fetched_at?: string | null
+          notes?: string | null
+          priority?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -952,6 +1078,35 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_staff: {
+        Args: { _user_id: string }
+        Returns: boolean
+      }
+      seed_report_documents: {
+        Args: { _report_id: string; _docs: Json }
+        Returns: number
+      }
+      check_rate_limit: {
+        Args: {
+          _key: string
+          _max_in_window: number
+          _window_minutes?: number
+        }
+        Returns: Json
+      }
+      cleanup_rate_limit_buckets: {
+        Args: never
+        Returns: number
+      }
+      log_audit: {
+        Args: {
+          _action: string
+          _target_type?: string | null
+          _target_id?: string | null
+          _metadata?: Json
+        }
+        Returns: number
+      }
       move_to_dlq: {
         Args: {
           dlq_name: string
@@ -971,7 +1126,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "user"
+      app_role: "admin" | "analyst" | "sales" | "user"
       edit_error_category:
         | "too_vague"
         | "wrong_severity"
@@ -1115,7 +1270,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "user"],
+      app_role: ["admin", "analyst", "sales", "user"],
       edit_error_category: [
         "too_vague",
         "wrong_severity",
