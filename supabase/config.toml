@@ -1,36 +1,16 @@
 project_id = "ohoutpkgkxfueyllgfvv"
 
+# Public functions (intentionally callable without auth)
+# - search-property: pre-auth address lookup on Order page
+# - track-cta-click: marketing telemetry beacon
+# - handle-email-unsubscribe / handle-email-suppression: email webhooks
+# - preview-transactional-email: uses LOVABLE_API_KEY shared-secret
+# - timeout-stale-reports: cron-invoked, uses CRON_SECRET shared-secret
+
 [functions.search-property]
 verify_jwt = false
 
-[functions.generate-dd-report]
-verify_jwt = false
-
-[functions.analyze-telemetry]
-verify_jwt = false
-
-[functions.get-learning-examples]
-verify_jwt = false
-
-[functions.detect-knowledge-gaps]
-verify_jwt = false
-
-[functions.generate-knowledge-entry]
-verify_jwt = false
-
-[functions.refresh-accuracy-stats]
-verify_jwt = false
-
-[functions.timeout-stale-reports]
-verify_jwt = false
-
-[functions.process-email-queue]
-verify_jwt = true
-
-[functions.send-transactional-email]
-verify_jwt = true
-
-[functions.preview-transactional-email]
+[functions.track-cta-click]
 verify_jwt = false
 
 [functions.handle-email-unsubscribe]
@@ -39,5 +19,34 @@ verify_jwt = false
 [functions.handle-email-suppression]
 verify_jwt = false
 
-[functions.track-cta-click]
+[functions.preview-transactional-email]
 verify_jwt = false
+
+[functions.timeout-stale-reports]
+verify_jwt = false
+
+# User-authenticated functions
+[functions.generate-dd-report]
+verify_jwt = true
+
+[functions.process-email-queue]
+verify_jwt = true
+
+[functions.send-transactional-email]
+verify_jwt = true
+
+# Admin-only functions (verify_jwt + requireAdmin() in code)
+[functions.analyze-telemetry]
+verify_jwt = true
+
+[functions.get-learning-examples]
+verify_jwt = true
+
+[functions.detect-knowledge-gaps]
+verify_jwt = true
+
+[functions.generate-knowledge-entry]
+verify_jwt = true
+
+[functions.refresh-accuracy-stats]
+verify_jwt = true

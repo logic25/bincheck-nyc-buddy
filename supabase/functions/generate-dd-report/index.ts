@@ -1651,6 +1651,33 @@ serve(async (req) => {
     }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Ownership check: caller must own the report (or be an admin).
+    // Prevents authenticated user A from regenerating/overwriting user B's report.
+    const { data: reportRow, error: reportLookupError } = await supabase
+      .from('dd_reports')
+      .select('id, user_id')
+      .eq('id', reportId)
+      .maybeSingle();
+
+    if (reportLookupError || !reportRow) {
+      return new Response(JSON.stringify({ error: "Report not found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    if (reportRow.user_id !== userId) {
+      // Allow admins to regenerate any report
+      const { data: adminCheck } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId)
+        .eq('role', 'admin')
+        .maybeSingle();
+      if (!adminCheck) {
+        console.warn(`Ownership violation: user ${userId} attempted to regenerate report ${reportId} owned by ${reportRow.user_id}`);
+        return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+    }
+
     console.log(`=== Generating DD report for: ${address} ===`);
 
     // Set generation_started_at and save customer concern
