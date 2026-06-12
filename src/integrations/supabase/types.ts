@@ -924,6 +924,72 @@ export type Database = {
         }
         Relationships: []
       }
+      report_documents: {
+        Row: {
+          id: string
+          report_id: string
+          agency: string
+          doc_type: string
+          doc_ref: string | null
+          title: string | null
+          source_url: string | null
+          status: string
+          file_path: string | null
+          file_size_bytes: number | null
+          mime_type: string | null
+          claimed_by: string | null
+          claimed_at: string | null
+          fetched_by: string | null
+          fetched_at: string | null
+          notes: string | null
+          priority: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          report_id: string
+          agency: string
+          doc_type: string
+          doc_ref?: string | null
+          title?: string | null
+          source_url?: string | null
+          status?: string
+          file_path?: string | null
+          file_size_bytes?: number | null
+          mime_type?: string | null
+          claimed_by?: string | null
+          claimed_at?: string | null
+          fetched_by?: string | null
+          fetched_at?: string | null
+          notes?: string | null
+          priority?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          report_id?: string
+          agency?: string
+          doc_type?: string
+          doc_ref?: string | null
+          title?: string | null
+          source_url?: string | null
+          status?: string
+          file_path?: string | null
+          file_size_bytes?: number | null
+          mime_type?: string | null
+          claimed_by?: string | null
+          claimed_at?: string | null
+          fetched_by?: string | null
+          fetched_at?: string | null
+          notes?: string | null
+          priority?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -955,6 +1021,10 @@ export type Database = {
       is_staff: {
         Args: { _user_id: string }
         Returns: boolean
+      }
+      seed_report_documents: {
+        Args: { _report_id: string; _docs: Json }
+        Returns: number
       }
       move_to_dlq: {
         Args: {

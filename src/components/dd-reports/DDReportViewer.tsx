@@ -3,6 +3,7 @@ import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useUserRole } from '@/hooks/useUserRole';
+import ReportAttachments from '@/components/dd-reports/ReportAttachments';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -612,6 +613,13 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
           </div>
         </div>
       )}
+
+      {/* PR #7 — Source documents (attached PDFs from agency portals).
+          ReportAttachments renders nothing when no docs are attached, so
+          this is invisible until the analyst attaches something. */}
+      <div className="mb-6">
+        <ReportAttachments reportId={report.id} showAllStatuses={false} />
+      </div>
 
       {/* Report Title Block */}
       <div className="border border-border rounded-xl p-4 sm:p-6 bg-card mb-6">

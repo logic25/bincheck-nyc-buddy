@@ -2363,6 +2363,84 @@ serve(async (req) => {
     if (updateError) throw updateError;
     console.log(`=== Report generated successfully with ${lineItemNotes.length} line-item notes ===`);
 
+    // PR #7 — seed manual-pull document tickets for the analyst queue.
+    // Every NYC agency we cover blocks automated PDF retrieval (ACRIS
+    // bandwidth policy + DOB BIS Akamai 403), so each document becomes
+    // a ticket the analyst opens via the source_url, downloads manually,
+    // and uploads back through the /admin/documents queue.
+    try {
+      const docTickets: Array<{
+        agency: string;
+        doc_type: string;
+        doc_ref?: string | null;
+        title?: string | null;
+        source_url?: string | null;
+        priority?: number;
+      }> = [];
+
+      // ACRIS documents (deeds, mortgages, liens, etc.)
+      const acrisDocs = (acrisData?.documents || []) as any[];
+      for (const d of acrisDocs) {
+        if (!d?.document_id) continue;
+        const dt = (d.document_type || 'document').toLowerCase();
+        const isLien = ['lien', 'fedl', 'mech', 'judgm', 'ucc1', 'ucc3'].some(t => dt.includes(t));
+        const isDeed = ['deed', 'rptt'].some(t => dt.includes(t));
+        docTickets.push({
+          agency: 'ACRIS',
+          doc_type: isLien ? 'lien' : isDeed ? 'deed' : dt.includes('mtge') ? 'mortgage' : 'document',
+          doc_ref: d.document_id,
+          title: `ACRIS ${d.document_type || 'doc'} - ${d.recorded_date || d.document_date || ''}`.trim(),
+          source_url: d.image_view_url || d.detail_url,
+          // Liens are highest priority for due-diligence buyers.
+          priority: isLien ? 1 : isDeed ? 3 : 5,
+        });
+      }
+
+      // DOB Certificates of Occupancy (PDFs live behind BIS).
+      const coDocs = (certificatesOfOccupancy?.records || []) as any[];
+      for (const c of coDocs) {
+        if (!c?.job_number) continue;
+        docTickets.push({
+          agency: 'DOB',
+          doc_type: 'co',
+          doc_ref: String(c.job_number),
+          title: `DOB Certificate of Occupancy - job ${c.job_number}`,
+          source_url: `http://a810-bisweb.nyc.gov/bisweb/CofoJobDocumentServlet?passjobnumber=${c.job_number}&fillerdata=A`,
+          priority: 2,
+        });
+      }
+
+      // FDNY Vacate Orders - if there's an active vacate, that's a buyer-killer.
+      const vacateOrders = (fdnyVacateData?.orders || []) as any[];
+      for (const v of vacateOrders) {
+        const ref = v.vacate_order_number || v.violation_number || v.acct_num;
+        if (!ref) continue;
+        docTickets.push({
+          agency: 'FDNY',
+          doc_type: 'vacate_order',
+          doc_ref: String(ref),
+          title: `FDNY Vacate Order ${ref}`,
+          source_url: 'https://fires.fdnycloud.org/CitizenAccess/Default.aspx',
+          priority: 1, // Vacate orders block sales — highest priority.
+        });
+      }
+
+      if (docTickets.length > 0) {
+        const { error: seedErr } = await supabase.rpc('seed_report_documents' as any, {
+          _report_id: reportId,
+          _docs: docTickets,
+        });
+        if (seedErr) {
+          console.warn('Failed to seed report documents:', seedErr);
+        } else {
+          console.log(`Seeded ${docTickets.length} document tickets for analyst queue`);
+        }
+      }
+    } catch (seedException) {
+      // Never let the document-seeding step fail the whole report.
+      console.warn('Document seeding skipped due to error:', seedException);
+    }
+
     // Log AI usage (best-effort)
     try {
       const totalTokens = 2000;
