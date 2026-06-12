@@ -1,5 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getCorsHeaders } from '../_shared/cors.ts';
+import { checkRateLimit, clientIp } from '../_shared/rate-limit.ts';
 
 const EXTRA_HEADERS = [
   'x-supabase-client-platform',
@@ -28,6 +29,16 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
+
+    // Rate limit: 10 attempts / hour per IP to slow brute-force of invite codes.
+    const ip = clientIp(req);
+    const rl = await checkRateLimit(supabaseAdmin, {
+      key: `invite:${ip}`,
+      limit: 10,
+      windowMinutes: 60,
+      corsHeaders,
+    });
+    if (rl.limited) return rl.response;
 
     // Validate invite code (case-insensitive)
     const normalizedCode = inviteCode.trim().toUpperCase();
