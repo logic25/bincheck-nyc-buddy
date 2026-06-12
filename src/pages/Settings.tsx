@@ -190,8 +190,8 @@ const Settings = () => {
 
                   <div className="space-y-3">
                     {[
-                      { plan: "One-Time Report", price: "$199/report", desc: "Single report with 24hr delivery" },
-                      { plan: "Professional", price: "$599/mo", desc: "5 reports · priority queue · rush included" },
+                      { plan: "One-Time Report", price: "$499/report", desc: "Single report with 24hr delivery" },
+                      { plan: "Professional", price: "$2,499/mo", desc: "10 reports · priority queue · rush included" },
                     ].map((p) => (
                       <div key={p.plan} className="flex items-center justify-between p-4 rounded-lg border border-border">
                         <div>
