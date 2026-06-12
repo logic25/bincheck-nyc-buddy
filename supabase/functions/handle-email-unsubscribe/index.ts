@@ -1,5 +1,10 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
 
+// CORS intentionally permissive: this endpoint is hit by email clients
+// (Gmail, Apple Mail, Outlook) implementing RFC 8058 one-click unsubscribe.
+// Email-client requests do not include a recognizable Origin header, so an
+// allowlist would break the unsubscribe link. The endpoint is rate-limited
+// and authenticated by token in the URL/body, not by Origin.
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers':

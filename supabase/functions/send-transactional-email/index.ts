@@ -2,6 +2,7 @@ import * as React from 'npm:react@18.3.1'
 import { renderAsync } from 'npm:@react-email/components@0.0.22'
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { TEMPLATES } from '../_shared/transactional-email-templates/registry.ts'
+import { getCorsHeaders } from '../_shared/cors.ts'
 
 // Configuration baked in at scaffold time — do NOT change these manually.
 // To update, re-run the email domain setup flow.
@@ -14,12 +15,6 @@ const SENDER_DOMAIN = "notify.www.binchecknyc.com"
 // When display_from_root is enabled, this can be the root domain for cleaner branding,
 // even though actual sending uses the subdomain above.
 const FROM_DOMAIN = "www.binchecknyc.com"
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers':
-    'authorization, x-client-info, apikey, content-type',
-}
 
 // Generate a cryptographically random 32-byte hex token
 function generateToken(): string {
@@ -35,6 +30,7 @@ function generateToken(): string {
 // reaches this code. No in-function auth check is needed.
 
 Deno.serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req)
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })

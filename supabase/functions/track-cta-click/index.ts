@@ -1,5 +1,9 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
 
+// CORS=* is intentional here: this endpoint is hit by email clients as a
+// redirect (GET ?id=&dest=) when a recipient clicks a CTA. There is no
+// browser/Origin context to validate, and the side effect is only logging an
+// impression — no data is leaked back to the caller.
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',

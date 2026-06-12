@@ -2,6 +2,9 @@ import * as React from 'npm:react@18.3.1'
 import { renderAsync } from 'npm:@react-email/components@0.0.22'
 import { TEMPLATES } from '../_shared/transactional-email-templates/registry.ts'
 
+// CORS intentionally permissive: this endpoint is server-to-server only,
+// authenticated by LOVABLE_API_KEY bearer token. It is never called from
+// a browser, so an Origin allowlist provides no additional protection.
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, content-type',
