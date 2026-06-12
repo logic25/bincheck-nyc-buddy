@@ -181,7 +181,40 @@ const NYC_ENDPOINTS = {
   ACRIS_PARTIES: "https://data.cityofnewyork.us/resource/636b-3b5g.json",
   ACRIS_LEGALS: "https://data.cityofnewyork.us/resource/8h5j-fqxa.json",
   TAX_LIEN_SALE: "https://data.cityofnewyork.us/resource/9rz4-mjek.json",
+  // Coverage Exceed v1 — DataTrace parity sources
+  DOF_CHARGES: "https://data.cityofnewyork.us/resource/scjx-j6np.json",       // DOF Property Charges (tax + DEP balances)
+  FUEL_BURNERS: "https://data.cityofnewyork.us/resource/f4rp-2kvy.json",      // DOB Fuel Burning Permits / Air Resources
+  DOB_CO: "https://data.cityofnewyork.us/resource/bs8b-p36w.json",            // DOB Certificates of Occupancy
+  DOT_SIDEWALK: "https://data.cityofnewyork.us/resource/6kbp-uz6m.json",      // DOT Sidewalk Violations
+  HPD_OMO: "https://data.cityofnewyork.us/resource/mdbu-nrqn.json",           // HPD Open Market Order (Emergency Repair) charges
+  HPD_HWO: "https://data.cityofnewyork.us/resource/sbnd-xujn.json",           // HPD Handyman Work Order charges
+  FDNY_VIOLATIONS_DD: "https://data.cityofnewyork.us/resource/avgm-ztsb.json",// FDNY violations (also queried in search-property)
 };
+
+// External deep-link builders (agency-direct PDFs and tools — clickable evidence in the report)
+function buildCOPdfUrl(bin: string): string {
+  // BIS Certificates of Occupancy lookup page (lists all CO PDFs for the BIN)
+  return `http://a810-bisweb.nyc.gov/bisweb/COsByLocationServlet?requestid=1&allbin=${bin}`;
+}
+function buildBISJobPdfUrl(jobNumber: string): string {
+  // Per-job CO document; works for both signed-off COs and open ALT jobs
+  return `http://a810-bisweb.nyc.gov/bisweb/CofoJobDocumentServlet?passjobnumber=${jobNumber}&fillerdata=A`;
+}
+function buildTaxMapUrl(bbl: string): string {
+  // NYC Property Information Portal — parcel view (includes tax map)
+  return `https://propertyinformationportal.nyc.gov/parcels/parcel/${bbl}`;
+}
+function buildDOFAccountUrl(bbl: string): string {
+  // DOF Property Tax Public Access portal
+  return `https://a836-pts-access.nyc.gov/care/forms/htmlframe.aspx?mode=content/home.htm`;
+}
+function buildACRISBblUrl(bbl: string): string {
+  if (!bbl || bbl.length < 10) return '';
+  const borough = bbl.substring(0, 1);
+  const block = bbl.substring(1, 6).replace(/^0+/, '');
+  const lot = bbl.substring(6, 10).replace(/^0+/, '');
+  return `https://a836-acris.nyc.gov/bblsearch/bblsearch.asp?borough=${borough}&block=${block}&lot=${lot}`;
+}
 
 const BOROUGH_CODES: Record<string, string> = {
   "MANHATTAN": "1", "MN": "1", "NEW YORK": "1",
@@ -1538,6 +1571,326 @@ async function fetchTaxLienData(bbl: string): Promise<any[]> {
   }
 }
 
+// ============================================================================
+// Coverage Exceed v1 — DataTrace parity fetch functions
+// ============================================================================
+
+/**
+ * DOF Property Charges — outstanding tax / DEP / sidewalk / SAC charges by BBL.
+ * Mirrors DataTrace's "Account Balance" and "Tax Search" sections.
+ * Returns aggregated totals + raw line items grouped by charge type.
+ */
+async function fetchDOFCharges(bbl: string): Promise<any> {
+  if (!bbl || bbl.length < 10) return { totals: { outstanding: 0, interest: 0, count: 0 }, by_type: {}, items: [] };
+  try {
+    // parid is 10-digit BBL same format we already use internally
+    const records = await fetchNYCData(NYC_ENDPOINTS.DOF_CHARGES, {
+      "$where": `parid = '${bbl}' AND sum_bal > 0`,
+      "$limit": "200",
+      "$order": "due_date DESC",
+    }, 'DOF-CHARGES');
+
+    console.log(`DOF Charges: ${records.length} outstanding records for BBL ${bbl}`);
+
+    // Code dictionary — covers the codes that actually appear in scjx-j6np
+    const CODE_LABELS: Record<string, string> = {
+      'TAX': 'Property Tax',
+      'SAC': 'Sidewalk Assessment Charge',
+      'SAF': 'Sidewalk Repair (DOT Lien)',
+      'EMR': 'Emergency Repair Charge',
+      'ALT': 'Alteration Fee',
+      'ALTOR': 'Alteration Order',
+      'AB': 'Abated Building',
+      'BID': 'Business Improvement District',
+      'WAT': 'Water Charge (DEP)',
+      'SEW': 'Sewer Charge (DEP)',
+      'WTR': 'Water (DEP)',
+      'IMP': 'Improvement',
+      'INT': 'Interest',
+    };
+
+    let outstandingTotal = 0;
+    let interestTotal = 0;
+    const byType: Record<string, { label: string; count: number; balance: number; oldest_due: string | null }> = {};
+    const items = records.map((r: any) => {
+      const code = (r.code || 'UNK').toUpperCase();
+      const balance = parseFloat(r.sum_bal || '0') || 0;
+      const interest = parseFloat(r.sum_int || '0') || 0;
+      outstandingTotal += balance;
+      interestTotal += interest;
+      const dueDate = r.due_date || null;
+      if (!byType[code]) {
+        byType[code] = { label: CODE_LABELS[code] || code, count: 0, balance: 0, oldest_due: dueDate };
+      }
+      byType[code].count += 1;
+      byType[code].balance += balance;
+      if (dueDate && (!byType[code].oldest_due || dueDate < byType[code].oldest_due)) {
+        byType[code].oldest_due = dueDate;
+      }
+      return {
+        code,
+        code_label: CODE_LABELS[code] || code,
+        account_id: r.account_id || null,
+        balance,
+        interest,
+        liability: parseFloat(r.sum_liab || '0') || 0,
+        collected: parseFloat(r.sum_coll || '0') || 0,
+        due_date: dueDate,
+        tax_year: r.taxyear || null,
+        project_no: r.projno || null,
+        cycle: r.cycle || null,
+      };
+    });
+
+    return {
+      totals: {
+        outstanding: Math.round(outstandingTotal * 100) / 100,
+        interest: Math.round(interestTotal * 100) / 100,
+        count: records.length,
+      },
+      by_type: byType,
+      items: items.slice(0, 50),  // cap rendered line items
+    };
+  } catch (error) {
+    console.error("DOF Charges fetch error:", error);
+    return { totals: { outstanding: 0, interest: 0, count: 0 }, by_type: {}, items: [] };
+  }
+}
+
+/**
+ * DOB Fuel Burning Equipment — mirrors DataTrace "Air Resources Information Search".
+ * Returns active (non-EXPIRED) records with fuel type, quantity, status.
+ */
+async function fetchFuelBurners(bin: string): Promise<any> {
+  if (!bin) return { active: [], expired: [], total: 0 };
+  try {
+    const records = await fetchNYCData(NYC_ENDPOINTS.FUEL_BURNERS, {
+      "bin": bin,
+      "$limit": "100",
+      "$order": "expirationdate DESC",
+    }, 'DEP-FUEL');
+
+    console.log(`Fuel Burners: ${records.length} records for BIN ${bin}`);
+
+    const mapped = records.map((r: any) => ({
+      record_id: r.record_id || r.recordid || null,
+      primary_fuel: r.primaryfuel || r.primary_fuel || null,
+      secondary_fuel: r.secondaryfuel || null,
+      quantity: r.quantity || null,
+      make: r.make || null,
+      model: r.model || null,
+      status: r.status || null,
+      issue_date: r.issuedate || r.issue_date || null,
+      expiration_date: r.expirationdate || r.expiration_date || null,
+      installer: r.installer || null,
+      device_type: r.devicetype || null,
+    }));
+    const active = mapped.filter((r: any) => {
+      const s = (r.status || '').toUpperCase();
+      return !s.includes('EXPIRED') && !s.includes('CANCEL');
+    });
+    const expired = mapped.filter((r: any) => !active.includes(r));
+    return { active, expired, total: mapped.length };
+  } catch (error) {
+    console.error("Fuel Burners fetch error:", error);
+    return { active: [], expired: [], total: 0 };
+  }
+}
+
+/**
+ * DOB Certificates of Occupancy — mirrors DataTrace "CO with Open Permit Search".
+ * Returns most recent CO, all historic COs, and BIS PDF deep links per job.
+ */
+async function fetchCertificatesOfOccupancy(bin: string): Promise<any> {
+  if (!bin) return { latest: null, all: [], total: 0, bis_lookup_url: null };
+  try {
+    const records = await fetchNYCData(NYC_ENDPOINTS.DOB_CO, {
+      "bin_number": bin,
+      "$limit": "50",
+      "$order": "c_o_issue_date DESC",
+    }, 'DOB-CO');
+
+    console.log(`Certificates of Occupancy: ${records.length} records for BIN ${bin}`);
+
+    const mapped = records.map((r: any) => ({
+      job_number: r.job_number || null,
+      job_type: r.job_type || null,
+      issue_date: r.c_o_issue_date || null,
+      issue_type: r.issue_type || null,            // Final / Temporary
+      application_status: r.application_status_raw || null,
+      filing_status: r.filing_status_raw || null,
+      item_number: r.item_number || null,
+      pdf_url: r.job_number ? buildBISJobPdfUrl(r.job_number) : null,
+    }));
+
+    return {
+      latest: mapped[0] || null,
+      all: mapped,
+      total: mapped.length,
+      bis_lookup_url: buildCOPdfUrl(bin),
+      has_final: mapped.some((m: any) => (m.issue_type || '').toLowerCase().includes('final')),
+      latest_temp: mapped.find((m: any) => (m.issue_type || '').toLowerCase().includes('temp')) || null,
+    };
+  } catch (error) {
+    console.error("Certificates of Occupancy fetch error:", error);
+    return { latest: null, all: [], total: 0, bis_lookup_url: null };
+  }
+}
+
+/**
+ * DOT Sidewalk Violations — mirrors DataTrace "Highway / Sidewalk Violation Search".
+ * The bblid in this dataset is a DOT-internal id (NOT our BBL), so we query by
+ * address (house_num + onstname) which is what DataTrace itself does.
+ */
+async function fetchSidewalkViolations(building: any): Promise<any> {
+  const houseNumber = (building?.house_number || building?.address?.split(' ')[0] || '').trim();
+  const street = (building?.street_name || '').trim().toUpperCase();
+  if (!houseNumber || !street) return { open: [], dismissed: [], total: 0 };
+  try {
+    // Match house number on either onstname or frstname (cross-street); DataTrace shows notices against both
+    const records = await fetchNYCData(NYC_ENDPOINTS.DOT_SIDEWALK, {
+      "$where": `house_num = '${houseNumber}' AND (upper(onstname) like '%${street.replace(/'/g, "''")}%' OR upper(frstname) like '%${street.replace(/'/g, "''")}%')`,
+      "$limit": "100",
+      "$order": "vissuedate DESC",
+    }, 'DOT-SIDEWALK');
+
+    console.log(`Sidewalk Violations: ${records.length} records for ${houseNumber} ${street}`);
+
+    const mapped = records.map((r: any) => ({
+      violation_id: r.violationid || null,
+      swv_number: r.swv_number || null,
+      issue_date: r.vissuedate || null,
+      certified_date: r.certi_date || null,
+      dismiss_date: r.vdismissdate || null,
+      sq_feet: r.sq_feet || null,
+      defects: [
+        r.broken ? 'Broken' : null,
+        r.trip_haz ? 'Trip hazard' : null,
+        r.patchwork ? 'Patchwork' : null,
+        r.sw_missing ? 'Sidewalk missing' : null,
+        r.undermined ? 'Undermined' : null,
+        r.slope ? 'Slope' : null,
+        r.hardware ? 'Hardware' : null,
+        r.integrity ? 'Integrity' : null,
+      ].filter(Boolean),
+      other_defects: r.other_def || null,
+      from_street: r.frstname || null,
+      to_street: r.tostname || null,
+      on_street: r.onstname || null,
+      house_num: r.house_num || null,
+      contract: r.contract || null,
+      grace_period: r.grace_pd || null,
+    }));
+    const open = mapped.filter((m: any) => !m.dismiss_date);
+    const dismissed = mapped.filter((m: any) => !!m.dismiss_date);
+    return { open, dismissed, total: mapped.length };
+  } catch (error) {
+    console.error("Sidewalk Violations fetch error:", error);
+    return { open: [], dismissed: [], total: 0 };
+  }
+}
+
+/**
+ * HPD Emergency Repair charges — mirrors DataTrace "Emergency Repairs Violation Search".
+ * Combines Open Market Orders and Handyman Work Orders (both are ERP lien types).
+ */
+async function fetchHPDEmergencyRepair(bin: string, bbl: string): Promise<any> {
+  if (!bin && !bbl) return { omo: [], hwo: [], total: 0, total_charged: 0, lien_book_amount: 0 };
+  try {
+    const params: Record<string, string> = { "$limit": "100", "$order": "omocreatedate DESC" };
+    if (bin) params['bin'] = bin;
+    else if (bbl) params['bbl'] = bbl;
+
+    const hwoParams: Record<string, string> = { "$limit": "100", "$order": "hwocreatedate DESC" };
+    if (bin) hwoParams['bin'] = bin;
+    else if (bbl) hwoParams['bbl'] = bbl;
+
+    const [omoRecords, hwoRecords] = await Promise.all([
+      fetchNYCData(NYC_ENDPOINTS.HPD_OMO, params, 'HPD-OMO'),
+      fetchNYCData(NYC_ENDPOINTS.HPD_HWO, hwoParams, 'HPD-HWO'),
+    ]);
+
+    console.log(`HPD ERP: ${omoRecords.length} OMOs, ${hwoRecords.length} HWOs for BIN ${bin}`);
+
+    const omo = omoRecords.map((r: any) => ({
+      omo_number: r.omonumber || null,
+      work_type: r.worktypegeneral || null,
+      description: r.omodescription || null,
+      award_amount: parseFloat(r.omoawardamount || '0') || 0,
+      net_change_orders: parseFloat(r.netchangeorders || '0') || 0,
+      create_date: r.omocreatedate || null,
+      award_date: r.omoawarddate || null,
+      lifecycle: r.lifecycle || null,
+    }));
+    const hwo = hwoRecords.map((r: any) => ({
+      hwo_number: r.hwonumber || null,
+      work_type: r.worktypegeneral || null,
+      description: r.hwodescription || null,
+      charge_amount: parseFloat(r.chargeamount || '0') || 0,
+      approved_amount: parseFloat(r.hwoapprovedamount || '0') || 0,
+      admin_fee: parseFloat(r.adminfee || '0') || 0,
+      sales_tax: parseFloat(r.salestax || '0') || 0,
+      create_date: r.hwocreatedate || null,
+      status_reason: r.hwostatusreason || null,
+      lifecycle: r.lifecycle || null,
+    }));
+
+    const totalCharged =
+      omo.reduce((sum: number, r: any) => sum + r.award_amount + r.net_change_orders, 0) +
+      hwo.reduce((sum: number, r: any) => sum + r.charge_amount, 0);
+
+    return {
+      omo,
+      hwo,
+      total: omo.length + hwo.length,
+      total_charged: Math.round(totalCharged * 100) / 100,
+      lien_book_amount: 0,  // pre-1999 ERP liens — not in this dataset (DataTrace separate book)
+    };
+  } catch (error) {
+    console.error("HPD Emergency Repair fetch error:", error);
+    return { omo: [], hwo: [], total: 0, total_charged: 0, lien_book_amount: 0 };
+  }
+}
+
+/**
+ * FDNY Violations — already in search-property, plumb into DD report.
+ * Mirrors DataTrace "Record of existing Fire Department Violations".
+ */
+async function fetchFDNYViolationsDirect(bin: string): Promise<any> {
+  if (!bin) return { open: [], closed: [], total: 0, total_penalty: 0 };
+  try {
+    const records = await fetchNYCData(NYC_ENDPOINTS.FDNY_VIOLATIONS_DD, {
+      "bin": bin,
+      "$limit": "200",
+      "$order": "inspection_date DESC",
+    }, 'FDNY-DD');
+
+    console.log(`FDNY Violations (DD): ${records.length} records for BIN ${bin}`);
+
+    const mapped = records.map((r: any) => {
+      const status = (r.status || r.violation_status || '').toLowerCase();
+      const isResolved = status.includes('close') || status.includes('resolved') || status.includes('cured') || status.includes('complied');
+      return {
+        violation_number: r.violation_number || r.issuance_number || null,
+        violation_code: r.violation_code || null,
+        description: r.violation_code_description || null,
+        category: r.violation_category || null,
+        inspection_date: r.inspection_date || r.violation_date || null,
+        penalty_amount: parseFloat(r.penalty_amount || '0') || 0,
+        status: isResolved ? 'closed' : 'open',
+        comments: r.comments || null,
+      };
+    });
+    const open = mapped.filter((m: any) => m.status === 'open');
+    const closed = mapped.filter((m: any) => m.status === 'closed');
+    const totalPenalty = open.reduce((sum: number, m: any) => sum + m.penalty_amount, 0);
+    return { open, closed, total: mapped.length, total_penalty: Math.round(totalPenalty * 100) / 100 };
+  } catch (error) {
+    console.error("FDNY Violations (DD) fetch error:", error);
+    return { open: [], closed: [], total: 0, total_penalty: 0 };
+  }
+}
+
 async function generateAIAnalysis(reportData: any, customerConcern: string | null, LOVABLE_API_KEY: string): Promise<string> {
   const { building, violations, applications, orders, taxLienData } = reportData;
   const openViolations = violations.filter((v: any) => v.status === 'open');
@@ -1718,13 +2071,24 @@ serve(async (req) => {
     const isResidentialProperty = ['01', '02', '03'].includes(landuse);
     console.log(`Property type: landuse=${landuse}, isResidential=${isResidentialProperty}`);
 
-    // Fetch violations, applications, complaints, ACRIS, and tax liens in parallel
-    const [allViolations, rawApplications, complaints, acrisData, taxLienData] = await Promise.all([
+    // Fetch violations, applications, complaints, ACRIS, tax liens, and Coverage Exceed sources in parallel
+    const [
+      allViolations, rawApplications, complaints, acrisData, taxLienData,
+      // Coverage Exceed v1 — DataTrace parity
+      dofCharges, fuelBurners, certificatesOfOccupancy, sidewalkViolations, hpdEmergencyRepair, fdnyDirectViolations,
+    ] = await Promise.all([
       fetchViolations(bin, bbl, isResidentialProperty),
       fetchApplications(bin),
       fetchDOBComplaints(bin),
       fetchACRISData(bbl),
       fetchTaxLienData(bbl),
+      // Coverage Exceed v1
+      fetchDOFCharges(bbl),
+      fetchFuelBurners(bin),
+      fetchCertificatesOfOccupancy(bin),
+      fetchSidewalkViolations(building),
+      fetchHPDEmergencyRepair(bin, bbl),
+      fetchFDNYViolationsDirect(bin),
     ]);
 
     // Build agencies_queried tracking
@@ -1757,6 +2121,14 @@ serve(async (req) => {
       { agency: 'DOB-COMPLAINTS', label: 'DOB Complaints', queried: !!bin, results: complaints.length, category: 'complaints', error: agencyErrors.has('DOB-COMPLAINTS') },
       { agency: 'ACRIS', label: 'ACRIS Property Records', queried: !!bbl, results: acrisDocs, category: 'transfers', error: agencyErrors.has('ACRIS') },
       { agency: 'DOF-LIEN', label: 'Tax Lien Sale List', queried: !!bbl, results: taxLienData.length, category: 'tax_liens', error: agencyErrors.has('DOF-LIEN') },
+      // Coverage Exceed v1 — DataTrace parity
+      { agency: 'DOF-CHARGES', label: 'DOF Property Charges', queried: !!bbl, results: dofCharges.totals.count, category: 'charges', error: agencyErrors.has('DOF-CHARGES') },
+      { agency: 'DEP-FUEL', label: 'DEP Air Resources / Fuel Burners', queried: !!bin, results: fuelBurners.total, category: 'equipment', error: agencyErrors.has('DEP-FUEL') },
+      { agency: 'DOB-CO', label: 'Certificates of Occupancy', queried: !!bin, results: certificatesOfOccupancy.total, category: 'certificates', error: agencyErrors.has('DOB-CO') },
+      { agency: 'DOT-SIDEWALK', label: 'DOT Sidewalk Violations', queried: !!building?.street_name, results: sidewalkViolations.total, category: 'violations', error: agencyErrors.has('DOT-SIDEWALK') },
+      { agency: 'HPD-OMO', label: 'HPD Emergency Repair (OMO)', queried: !!(bin || bbl), results: hpdEmergencyRepair.omo.length, category: 'charges', error: agencyErrors.has('HPD-OMO') },
+      { agency: 'HPD-HWO', label: 'HPD Handyman Work Orders', queried: !!(bin || bbl), results: hpdEmergencyRepair.hwo.length, category: 'charges', error: agencyErrors.has('HPD-HWO') },
+      { agency: 'FDNY-DD', label: 'FDNY Violations (Direct)', queried: !!bin, results: fdnyDirectViolations.total, category: 'violations', error: agencyErrors.has('FDNY-DD') },
     ];
     const errorAgencies = agenciesQueried.filter(a => a.error);
     console.log(`Agencies queried: ${agenciesQueried.filter(a => a.queried).length}, with data: ${agenciesQueried.filter(a => a.results > 0).length}, with errors: ${errorAgencies.length} (${errorAgencies.map(a => a.agency).join(', ')})`);
@@ -1813,6 +2185,14 @@ serve(async (req) => {
     const citisignalRecommended = unitsRes > 3 || unitsTotal > 5 || numFloors > 3;
     console.log(`CitiSignal recommendation: ${citisignalRecommended} (units_res=${unitsRes}, units_total=${unitsTotal}, floors=${numFloors})`);
 
+    // Coverage Exceed v1 — build deep links for the report header
+    const externalLinks = {
+      co_lookup: bin ? buildCOPdfUrl(bin) : null,
+      tax_map: bbl ? buildTaxMapUrl(bbl) : null,
+      dof_account: bbl ? buildDOFAccountUrl(bbl) : null,
+      acris_bbl: bbl ? buildACRISBblUrl(bbl) : null,
+    };
+
     const { error: updateError } = await supabase.from('dd_reports').update({
       bin: bin || null, bbl: bbl || null,
       building_data: building || { address: resolvedAddress, bin, bbl },
@@ -1820,6 +2200,14 @@ serve(async (req) => {
       complaints_data: complaints,
       acris_data: acrisData,
       tax_lien_data: taxLienData,
+      // Coverage Exceed v1 — DataTrace parity
+      dof_charges_data: dofCharges,
+      fuel_tank_data: fuelBurners,
+      co_data: certificatesOfOccupancy,
+      sidewalk_data: sidewalkViolations,
+      hpd_erp_data: hpdEmergencyRepair,
+      fdny_direct_data: fdnyDirectViolations,
+      external_links: externalLinks,
       agencies_queried: agenciesQueried,
       ai_analysis: null,
       line_item_notes: lineItemNotes,

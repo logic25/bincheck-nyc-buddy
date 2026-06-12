@@ -96,6 +96,13 @@ interface DDReportViewerProps {
     property_status_summary?: string | null;
     client_email?: string | null;
     citisignal_recommended?: boolean | null;
+    dof_charges_data?: any;
+    fuel_tank_data?: any;
+    co_data?: any;
+    sidewalk_data?: any;
+    hpd_erp_data?: any;
+    fdny_direct_data?: any;
+    external_links?: any;
   };
   onBack: () => void;
   onDelete: () => void;
@@ -124,7 +131,7 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
   );
   const [applicationFilter, setApplicationFilter] = useState<string>('all');
   const [violationFilter, setViolationFilter] = useState<string>('all');
-  const [activeSection, setActiveSection] = useState<'violations' | 'applications' | 'complaints' | 'acris' | 'notes'>('violations');
+  const [activeSection, setActiveSection] = useState<'violations' | 'applications' | 'complaints' | 'acris' | 'coverage' | 'notes'>('violations');
   const [architectDialogOpen, setArchitectDialogOpen] = useState(false);
   const [closeoutDialogOpen, setCloseoutDialogOpen] = useState(false);
 
@@ -498,11 +505,30 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
     return db - da; // newest first
   });
 
+  // ─── DataTrace Coverage accessors ─────────────────────────────────────────
+  const dofCharges = report.dof_charges_data || null;
+  const fuelTanks = report.fuel_tank_data || null;
+  const coData = report.co_data || null;
+  const sidewalkData = report.sidewalk_data || null;
+  const hpdErp = report.hpd_erp_data || null;
+  const fdnyDirect = report.fdny_direct_data || null;
+  const externalLinks = report.external_links || {};
+
+  const coverageCount =
+    (dofCharges?.totals?.count || 0) +
+    (coData?.total || 0) +
+    (fuelTanks?.total || 0) +
+    (sidewalkData?.total || 0) +
+    (hpdErp?.total || 0) +
+    (fdnyDirect?.total || 0);
+  const hasCoverage = coverageCount > 0 || Object.keys(externalLinks).length > 0;
+
   const sectionNav = [
     { key: 'violations' as const, label: 'Violations', count: violations.length, icon: AlertTriangle },
     { key: 'applications' as const, label: 'Applications', count: applications.length, icon: FileStack },
     ...(openComplaints.length > 0 ? [{ key: 'complaints' as const, label: 'Complaints', count: openComplaints.length, icon: MessageSquareWarning }] : []),
     { key: 'acris' as const, label: 'ACRIS', count: acrisDocuments.length, icon: Landmark },
+    ...(hasCoverage ? [{ key: 'coverage' as const, label: 'Agency Records', count: coverageCount, icon: FileCheck }] : []),
     { key: 'notes' as const, label: 'Notes', icon: StickyNote },
   ];
 
@@ -1424,6 +1450,315 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
               </p>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* DataTrace Coverage Section — agency-direct records */}
+      {activeSection === 'coverage' && (
+        <div className="space-y-4">
+          {/* Agency lookups */}
+          {Object.keys(externalLinks).length > 0 && (
+            <div className="border border-border rounded-xl p-4 bg-card">
+              <h3 className="text-sm font-semibold mb-3 uppercase tracking-wide text-muted-foreground">Agency Lookups</h3>
+              <div className="flex flex-wrap gap-2">
+                {externalLinks.co_lookup && <a href={externalLinks.co_lookup} target="_blank" rel="noreferrer" className="text-xs font-medium px-3 py-1.5 rounded border border-border hover:bg-muted">DOB BIS · Certificates of Occupancy</a>}
+                {externalLinks.bis_property && <a href={externalLinks.bis_property} target="_blank" rel="noreferrer" className="text-xs font-medium px-3 py-1.5 rounded border border-border hover:bg-muted">DOB BIS · Property Profile</a>}
+                {externalLinks.tax_map && <a href={externalLinks.tax_map} target="_blank" rel="noreferrer" className="text-xs font-medium px-3 py-1.5 rounded border border-border hover:bg-muted">DOF · Digital Tax Map</a>}
+                {externalLinks.dof_account && <a href={externalLinks.dof_account} target="_blank" rel="noreferrer" className="text-xs font-medium px-3 py-1.5 rounded border border-border hover:bg-muted">DOF · Property Tax Account</a>}
+                {externalLinks.acris_bbl && <a href={externalLinks.acris_bbl} target="_blank" rel="noreferrer" className="text-xs font-medium px-3 py-1.5 rounded border border-border hover:bg-muted">ACRIS · Recorded Documents</a>}
+              </div>
+            </div>
+          )}
+
+          {/* DOF Charges */}
+          {dofCharges && (dofCharges.totals?.count > 0) && (
+            <div className="border border-border rounded-xl bg-card">
+              <div className="p-4 border-b border-border">
+                <h3 className="text-base font-semibold">Tax & Sidewalk Charges — DOF Account Balance</h3>
+                <p className="text-xs text-muted-foreground mt-1">{dofCharges.totals.count} open line item{dofCharges.totals.count !== 1 ? 's' : ''}</p>
+              </div>
+              <div className="p-4">
+                <div className="grid grid-cols-3 gap-3 mb-4">
+                  <div className="p-3 rounded-md bg-muted/50">
+                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Outstanding</p>
+                    <p className={`text-lg font-bold ${dofCharges.totals.outstanding > 0 ? 'text-red-700' : 'text-emerald-700'}`}>${Number(dofCharges.totals.outstanding).toLocaleString()}</p>
+                  </div>
+                  <div className="p-3 rounded-md bg-muted/50">
+                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Interest</p>
+                    <p className="text-lg font-bold">${Number(dofCharges.totals.interest).toLocaleString()}</p>
+                  </div>
+                  <div className="p-3 rounded-md bg-muted/50">
+                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Open Items</p>
+                    <p className="text-lg font-bold">{dofCharges.totals.count}</p>
+                  </div>
+                </div>
+                {Object.keys(dofCharges.by_type || {}).length > 0 && (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Code</TableHead>
+                        <TableHead>Charge Type</TableHead>
+                        <TableHead className="text-right">Count</TableHead>
+                        <TableHead className="text-right">Balance</TableHead>
+                        <TableHead>Oldest Due</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {Object.entries(dofCharges.by_type).map(([code, info]: [string, any]) => (
+                        <TableRow key={code}>
+                          <TableCell className="font-mono font-semibold">{code}</TableCell>
+                          <TableCell>{info.label}</TableCell>
+                          <TableCell className="text-right">{info.count}</TableCell>
+                          <TableCell className="text-right font-semibold">${Number(info.balance).toLocaleString()}</TableCell>
+                          <TableCell>{info.oldest_due ? format(new Date(info.oldest_due), 'MMM d, yyyy') : '—'}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+                <p className="text-[10px] text-muted-foreground italic mt-3">Source: NYC DOF Outstanding Charges (scjx-j6np)</p>
+              </div>
+            </div>
+          )}
+
+          {/* Certificates of Occupancy */}
+          {coData && (coData.total > 0 || coData.latest) && (
+            <div className="border border-border rounded-xl bg-card">
+              <div className="p-4 border-b border-border">
+                <h3 className="text-base font-semibold">Certificates of Occupancy</h3>
+                <p className="text-xs text-muted-foreground mt-1">{coData.total} CO record{coData.total !== 1 ? 's' : ''} on file</p>
+              </div>
+              <div className="p-4">
+                {coData.latest && (
+                  <div className="grid grid-cols-4 gap-3 mb-4 p-3 rounded-md bg-muted/50">
+                    <div>
+                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Latest CO</p>
+                      <p className="text-sm font-semibold">{coData.latest.issue_date ? format(new Date(coData.latest.issue_date), 'MMM d, yyyy') : '—'}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Type</p>
+                      <p className="text-sm font-semibold">{coData.latest.issue_type || '—'}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Job #</p>
+                      <p className="text-sm font-mono font-semibold">{coData.latest.job_number || '—'}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Final on File</p>
+                      <p className={`text-sm font-semibold ${coData.has_final ? 'text-emerald-700' : 'text-red-700'}`}>{coData.has_final ? 'Yes' : 'No — Temp only'}</p>
+                    </div>
+                  </div>
+                )}
+                {coData.all && coData.all.length > 0 && (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Issue Date</TableHead>
+                        <TableHead>Job #</TableHead>
+                        <TableHead>Type</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>PDF</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {coData.all.slice(0, 20).map((co: any, idx: number) => (
+                        <TableRow key={idx}>
+                          <TableCell>{co.issue_date ? format(new Date(co.issue_date), 'MMM d, yyyy') : '—'}</TableCell>
+                          <TableCell className="font-mono text-xs">{co.job_number || '—'}</TableCell>
+                          <TableCell>{co.issue_type || '—'}</TableCell>
+                          <TableCell className="text-xs">{co.application_status || '—'}</TableCell>
+                          <TableCell>{co.pdf_url ? <a href={co.pdf_url} target="_blank" rel="noreferrer" className="text-primary underline text-xs font-semibold">View</a> : '—'}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+                <p className="text-[10px] text-muted-foreground italic mt-3">Source: NYC DOB Certificates of Occupancy (bs8b-p36w)</p>
+              </div>
+            </div>
+          )}
+
+          {/* Fuel-Burning Equipment */}
+          {fuelTanks && fuelTanks.total > 0 && (
+            <div className="border border-border rounded-xl bg-card">
+              <div className="p-4 border-b border-border">
+                <h3 className="text-base font-semibold">Air Resources — Fuel-Burning Equipment</h3>
+                <p className="text-xs text-muted-foreground mt-1">{fuelTanks.active?.length || 0} active · {fuelTanks.expired?.length || 0} expired</p>
+              </div>
+              <div className="p-4">
+                {fuelTanks.active && fuelTanks.active.length > 0 && (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Device</TableHead>
+                        <TableHead>Fuel</TableHead>
+                        <TableHead>Quantity</TableHead>
+                        <TableHead>Make / Model</TableHead>
+                        <TableHead>Issued</TableHead>
+                        <TableHead>Expires</TableHead>
+                        <TableHead>Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {fuelTanks.active.map((t: any, idx: number) => (
+                        <TableRow key={idx}>
+                          <TableCell>{t.device_type || '—'}</TableCell>
+                          <TableCell>{t.primary_fuel || '—'}</TableCell>
+                          <TableCell>{t.quantity || '—'}</TableCell>
+                          <TableCell className="text-xs">{[t.make, t.model].filter(Boolean).join(' / ') || '—'}</TableCell>
+                          <TableCell>{t.issue_date ? format(new Date(t.issue_date), 'MMM d, yyyy') : '—'}</TableCell>
+                          <TableCell>{t.expiration_date ? format(new Date(t.expiration_date), 'MMM d, yyyy') : '—'}</TableCell>
+                          <TableCell className="text-xs">{t.status || '—'}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+                <p className="text-[10px] text-muted-foreground italic mt-3">Source: NYC DOB Fuel-Burning Equipment (f4rp-2kvy)</p>
+              </div>
+            </div>
+          )}
+
+          {/* Sidewalk Violations */}
+          {sidewalkData && sidewalkData.total > 0 && (
+            <div className="border border-border rounded-xl bg-card">
+              <div className="p-4 border-b border-border">
+                <h3 className="text-base font-semibold">Highway / Sidewalk Violations (DOT)</h3>
+                <p className="text-xs text-muted-foreground mt-1"><span className={sidewalkData.open.length > 0 ? 'text-red-700 font-semibold' : 'text-emerald-700 font-semibold'}>{sidewalkData.open.length} open</span> · {sidewalkData.dismissed.length} dismissed</p>
+              </div>
+              <div className="p-4">
+                {sidewalkData.open && sidewalkData.open.length > 0 && (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>SWV #</TableHead>
+                        <TableHead>Issued</TableHead>
+                        <TableHead>Sq Ft</TableHead>
+                        <TableHead>Defects</TableHead>
+                        <TableHead>Location</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {sidewalkData.open.slice(0, 20).map((s: any, idx: number) => (
+                        <TableRow key={idx}>
+                          <TableCell className="font-mono text-xs">{s.swv_number || s.violation_id || '—'}</TableCell>
+                          <TableCell>{s.issue_date ? format(new Date(s.issue_date), 'MMM d, yyyy') : '—'}</TableCell>
+                          <TableCell>{s.sq_feet || '—'}</TableCell>
+                          <TableCell className="text-xs">{[...(s.defects || []), s.other_defects].filter(Boolean).join(', ') || '—'}</TableCell>
+                          <TableCell className="text-xs">{[s.house_num, s.on_street].filter(Boolean).join(' ')}{s.from_street ? ` btw ${s.from_street}` : ''}{s.to_street ? ` & ${s.to_street}` : ''}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+                <p className="text-[10px] text-muted-foreground italic mt-3">Source: NYC DOT Sidewalk Violations (6kbp-uz6m)</p>
+              </div>
+            </div>
+          )}
+
+          {/* HPD Emergency Repair Charges */}
+          {hpdErp && hpdErp.total > 0 && (
+            <div className="border border-border rounded-xl bg-card">
+              <div className="p-4 border-b border-border">
+                <h3 className="text-base font-semibold">HPD Emergency Repair Charges</h3>
+                <p className="text-xs text-muted-foreground mt-1">{hpdErp.omo?.length || 0} OMO · {hpdErp.hwo?.length || 0} HWO · <span className="font-semibold text-red-700">${Number(hpdErp.total_charged).toLocaleString()}</span> total charged</p>
+              </div>
+              <div className="p-4 space-y-4">
+                {hpdErp.omo && hpdErp.omo.length > 0 && (
+                  <div>
+                    <p className="text-xs font-semibold mb-2">Open Market Orders</p>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>OMO #</TableHead>
+                          <TableHead>Date</TableHead>
+                          <TableHead>Work</TableHead>
+                          <TableHead className="text-right">Award</TableHead>
+                          <TableHead>Status</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {hpdErp.omo.slice(0, 15).map((o: any, idx: number) => (
+                          <TableRow key={idx}>
+                            <TableCell className="font-mono text-xs">{o.omo_number || '—'}</TableCell>
+                            <TableCell>{o.create_date ? format(new Date(o.create_date), 'MMM d, yyyy') : '—'}</TableCell>
+                            <TableCell className="text-xs">{o.work_type || '—'}</TableCell>
+                            <TableCell className="text-right font-semibold">${Number(o.award_amount).toLocaleString()}</TableCell>
+                            <TableCell className="text-xs">{o.lifecycle || '—'}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+                {hpdErp.hwo && hpdErp.hwo.length > 0 && (
+                  <div>
+                    <p className="text-xs font-semibold mb-2">Handyman Work Orders</p>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>HWO #</TableHead>
+                          <TableHead>Date</TableHead>
+                          <TableHead>Work</TableHead>
+                          <TableHead className="text-right">Charge</TableHead>
+                          <TableHead>Status</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {hpdErp.hwo.slice(0, 15).map((h: any, idx: number) => (
+                          <TableRow key={idx}>
+                            <TableCell className="font-mono text-xs">{h.hwo_number || '—'}</TableCell>
+                            <TableCell>{h.create_date ? format(new Date(h.create_date), 'MMM d, yyyy') : '—'}</TableCell>
+                            <TableCell className="text-xs">{h.work_type || '—'}</TableCell>
+                            <TableCell className="text-right font-semibold">${Number(h.charge_amount).toLocaleString()}</TableCell>
+                            <TableCell className="text-xs">{h.lifecycle || h.status_reason || '—'}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+                <p className="text-[10px] text-muted-foreground italic">Source: HPD OMO (mdbu-nrqn) + HWO (sbnd-xujn)</p>
+              </div>
+            </div>
+          )}
+
+          {/* FDNY Direct */}
+          {fdnyDirect && fdnyDirect.total > 0 && (
+            <div className="border border-border rounded-xl bg-card">
+              <div className="p-4 border-b border-border">
+                <h3 className="text-base font-semibold">Fire Department Violations (FDNY)</h3>
+                <p className="text-xs text-muted-foreground mt-1"><span className={fdnyDirect.open.length > 0 ? 'text-red-700 font-semibold' : 'text-emerald-700 font-semibold'}>{fdnyDirect.open.length} open</span> · {fdnyDirect.closed.length} resolved · <span className="font-semibold text-red-700">${Number(fdnyDirect.total_penalty).toLocaleString()}</span> open penalty</p>
+              </div>
+              <div className="p-4">
+                {fdnyDirect.open && fdnyDirect.open.length > 0 && (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Violation #</TableHead>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Code</TableHead>
+                        <TableHead>Description</TableHead>
+                        <TableHead className="text-right">Penalty</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {fdnyDirect.open.slice(0, 20).map((v: any, idx: number) => (
+                        <TableRow key={idx}>
+                          <TableCell className="font-mono text-xs">{v.violation_number || '—'}</TableCell>
+                          <TableCell>{v.inspection_date ? format(new Date(v.inspection_date), 'MMM d, yyyy') : '—'}</TableCell>
+                          <TableCell className="font-mono text-xs">{v.violation_code || '—'}</TableCell>
+                          <TableCell className="text-xs max-w-[280px] truncate" title={v.description || ''}>{v.description || '—'}</TableCell>
+                          <TableCell className="text-right font-semibold">${Number(v.penalty_amount || 0).toLocaleString()}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+                <p className="text-[10px] text-muted-foreground italic mt-3">Source: NYC FDNY Bureau of Fire Prevention Violations (avgm-ztsb)</p>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
