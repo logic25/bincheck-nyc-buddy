@@ -247,7 +247,19 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
     })),
   };
 
-  const complianceScore = calculateComplianceScore(propertyData);
+  // Derive property flags from orders + report-level fields so the headline
+  // risk score can be capped when severe conditions are present.
+  const propertyFlags = {
+    stop_work_order: (orders.stop_work?.length || 0) > 0 || (orders.partial_stop_work?.length || 0) > 0,
+    vacate_order: (orders.vacate?.length || 0) > 0,
+    unsafe_building: Boolean((report as any).flags?.unsafe_building),
+    closure_order: Boolean((report as any).flags?.closure_order),
+    emergency_declaration: Boolean((report as any).flags?.emergency_declaration),
+    compromised_structure: Boolean((report as any).flags?.compromised_structure),
+    vacant_structure: Boolean((report as any).flags?.vacant_structure),
+  };
+
+  const complianceScore = calculateComplianceScore(propertyData, propertyFlags);
 
   // ─── Extract KEY FINDINGS and MONITOR items from line_item_notes ─────────
   const actionItems: { note: string; agency: string; id: string }[] = [];
@@ -494,6 +506,32 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
         </div>
       </div>
 
+      {/* Property Status Banners — Vacate / SWO / Unsafe / Closure / Emergency / Compromised / Vacant */}
+      {(propertyFlags.vacate_order || propertyFlags.stop_work_order || propertyFlags.unsafe_building || propertyFlags.closure_order || propertyFlags.emergency_declaration || propertyFlags.compromised_structure || propertyFlags.vacant_structure) && (
+        <div style={{ marginBottom: '20px', pageBreakInside: 'avoid' }}>
+          {[
+            propertyFlags.vacate_order && { label: 'VACATE ORDER ACTIVE', text: 'All occupants must leave; building cannot be reoccupied until DOB rescinds the order.', level: 'red' as const },
+            propertyFlags.stop_work_order && { label: 'STOP WORK ORDER ACTIVE', text: 'Construction activity must cease; continuing work can result in criminal summonses and fines up to $25,000.', level: 'red' as const },
+            propertyFlags.unsafe_building && { label: 'UNSAFE BUILDING', text: 'Building declared unsafe by DOB. Immediate corrective action required.', level: 'red' as const },
+            propertyFlags.closure_order && { label: 'CLOSURE / PADLOCK ORDER', text: 'Building or portion thereof must remain closed until the order is rescinded.', level: 'red' as const },
+            propertyFlags.emergency_declaration && { label: 'EMERGENCY DECLARATION', text: 'Emergency declared at this property; remediation work may be in progress.', level: 'amber' as const },
+            propertyFlags.compromised_structure && { label: 'COMPROMISED STRUCTURE (LL33/08)', text: 'Structurally compromised; monitoring and remediation required.', level: 'amber' as const },
+            propertyFlags.vacant_structure && { label: 'VACANT / UNGUARDED STRUCTURE', text: 'Owner must secure the building to prevent unauthorized entry.', level: 'amber' as const },
+          ].filter(Boolean).map((banner: any, i: number) => (
+            <div key={i} style={{
+              padding: '12px 16px',
+              marginBottom: '8px',
+              border: `2px solid ${banner.level === 'red' ? '#dc2626' : '#d97706'}`,
+              backgroundColor: banner.level === 'red' ? '#fef2f2' : '#fffbeb',
+              borderRadius: '8px',
+            }}>
+              <p style={{ margin: 0, fontSize: '13px', fontWeight: 800, letterSpacing: '0.04em', color: banner.level === 'red' ? '#991b1b' : '#92400e' }}>{banner.label}</p>
+              <p style={{ margin: '4px 0 0', fontSize: '11px', lineHeight: '1.5', color: banner.level === 'red' ? '#7f1d1d' : '#78350f' }}>{banner.text}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Compliance Risk Score — Hero Card */}
       <div style={{
         backgroundColor: scoreStyle.bg,
@@ -707,14 +745,23 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
         </div>
       </section>
 
-      {/* Property Status Summary */}
+      {/* Conclusion */}
       {report.property_status_summary && (
-        <section style={{ marginBottom: '32px' }}>
-          <h3 style={sectionHeaderStyle}>Property Status Summary</h3>
+        <section style={{ marginBottom: '32px', pageBreakInside: 'avoid' }}>
+          <h3 style={sectionHeaderStyle}>Conclusion</h3>
           <div style={{ fontSize: '12px', lineHeight: '1.7', color: '#111827' }}>
             {report.property_status_summary.split('\n\n').map((paragraph, i) => (
               <p key={i} style={{ margin: '0 0 12px' }}>{paragraph}</p>
             ))}
+            {complianceScore.overrideReasons && complianceScore.overrideReasons.length > 0 && (
+              <p style={{ margin: '0 0 12px', fontStyle: 'italic', color: '#7f1d1d' }}>
+                The headline risk score has been capped due to: {complianceScore.overrideReasons.join('; ')}.
+              </p>
+            )}
+          </div>
+          <div style={{ marginTop: '20px', paddingTop: '12px', borderTop: `1px solid ${BORDER}` }}>
+            <p style={{ fontSize: '11px', fontWeight: 700, color: NAVY, margin: 0 }}>BinCheckNYC Analyst Team</p>
+            <p style={{ fontSize: '10px', color: '#6b7280', margin: '2px 0 0' }}>Prepared from NYC public records on {report.generated_at ? formatShortDate(report.generated_at) : ''}</p>
           </div>
         </section>
       )}
