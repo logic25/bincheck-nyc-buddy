@@ -68,7 +68,7 @@ const ReportAttachments = ({ reportId, showAllStatuses = false }: ReportAttachme
   const { data: docs = [], isLoading } = useQuery({
     queryKey: ['report-attachments', reportId, showAllStatuses],
     queryFn: async () => {
-      let q = supabase
+      let q = (supabase as any)
         .from('report_documents')
         .select('id, agency, doc_type, doc_ref, title, source_url, status, file_path, file_size_bytes, fetched_at, notes')
         .eq('report_id', reportId)
@@ -79,7 +79,7 @@ const ReportAttachments = ({ reportId, showAllStatuses = false }: ReportAttachme
       }
       const { data, error } = await q;
       if (error) throw error;
-      return (data as DocRow[]) || [];
+      return ((data ?? []) as DocRow[]);
     },
   });
 
