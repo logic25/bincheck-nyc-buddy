@@ -1,6 +1,30 @@
 import { PropertyData, ComplianceScore, CategoryScore } from "@/types/property";
 
-export function calculateComplianceScore(data: PropertyData): ComplianceScore {
+/**
+ * Severe property flags that should override the headline risk score.
+ * These come from DOB BIS complaint disposition codes (decoded in the
+ * edge function) and are passed in alongside PropertyData.
+ */
+export interface PropertyFlags {
+  vacate_order?: boolean;
+  stop_work_order?: boolean;
+  unsafe_building?: boolean;
+  closure_order?: boolean;
+  emergency_declaration?: boolean;
+  compromised_structure?: boolean;
+  vacant_structure?: boolean;
+}
+
+export interface ScoreOverride {
+  applied: boolean;
+  reason?: string;
+  capAt?: number;
+}
+
+export function calculateComplianceScore(
+  data: PropertyData,
+  flags: PropertyFlags = {}
+): ComplianceScore {
   const safeData: PropertyData = {
     ...data,
     dobViolations: data.dobViolations || [],
@@ -16,11 +40,56 @@ export function calculateComplianceScore(data: PropertyData): ComplianceScore {
   const oathScore = calculateOATHScore(safeData);
 
   // Weights: HPD=0.35, DOB=0.30, ECB=0.20, OATH=0.15
-  const overall = Math.round(
+  let overall = Math.round(
     hpdScore.score * 0.35 + dobScore.score * 0.30 + ecbScore.score * 0.20 + oathScore.score * 0.15
   );
 
-  const riskLevel = overall >= 80 ? 'low' : overall >= 50 ? 'medium' : 'high';
+  // ---- Override rules (severity-first) ----
+  // Any open ECB penalty bucket cannot be hidden behind weighted averaging.
+  const activeECB = safeData.ecbViolations.filter(v =>
+    v.status?.toLowerCase() !== 'resolved' && v.status?.toLowerCase() !== 'closed'
+  );
+  const totalECBPenalty = activeECB.reduce(
+    (sum, v) => sum + (parseFloat(v.penalty_balance_due || '0') || 0),
+    0
+  );
+  const maxECBPenalty = activeECB.reduce(
+    (max, v) => Math.max(max, parseFloat(v.penalty_balance_due || '0') || 0),
+    0
+  );
+
+  const overrides: string[] = [];
+
+  // Critical property flags (Vacate / SWO / Unsafe / Closure) — cap at 40 (High Risk)
+  if (
+    flags.vacate_order ||
+    flags.stop_work_order ||
+    flags.unsafe_building ||
+    flags.closure_order
+  ) {
+    if (overall > 40) {
+      overall = 40;
+      if (flags.vacate_order) overrides.push('Vacate Order active');
+      if (flags.stop_work_order) overrides.push('Stop Work Order active');
+      if (flags.unsafe_building) overrides.push('Unsafe Building declared');
+      if (flags.closure_order) overrides.push('Closure/Padlock Order active');
+    }
+  }
+
+  // Total open ECB > $5,000 — cap at 55 (Elevated)
+  if (totalECBPenalty > 5000 && overall > 55) {
+    overall = 55;
+    overrides.push(`$${Math.round(totalECBPenalty).toLocaleString()} in unpaid ECB penalties`);
+  }
+
+  // Any single open ECB > $1,000 — cap at 70 (Moderate)
+  if (maxECBPenalty > 1000 && overall > 70) {
+    overall = 70;
+    overrides.push(`Open ECB violation with $${Math.round(maxECBPenalty).toLocaleString()} unpaid`);
+  }
+
+  const riskLevel: 'low' | 'medium' | 'high' =
+    overall >= 80 ? 'low' : overall >= 50 ? 'medium' : 'high';
   const color = overall >= 80 ? 'green' : overall >= 50 ? 'yellow' : 'red';
 
   return {
@@ -28,7 +97,9 @@ export function calculateComplianceScore(data: PropertyData): ComplianceScore {
     categories: [dobScore, ecbScore, hpdScore, oathScore],
     riskLevel,
     color,
-  };
+    // Surfaced for the UI/report — non-breaking optional field
+    ...(overrides.length > 0 && { overrideReasons: overrides }),
+  } as ComplianceScore;
 }
 
 function calculateDOBScore(data: PropertyData): CategoryScore {

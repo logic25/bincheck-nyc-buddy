@@ -153,8 +153,9 @@ const Order = () => {
   const step1Valid = address.trim().length > 5;
   const step2Valid = firstName.trim() && lastName.trim() && email.trim().includes("@") && company.trim();
 
-  const totalPrice = plan === "professional" ? 599 : rush ? 274 : 199;
-  const priceLabel = plan === "professional" ? "$599/mo" : rush ? "$274" : "$199";
+  // Pricing: One-Time = $499 flat (no rush fee). Pro = $2,499/mo (10 reports).
+  const totalPrice = plan === "professional" ? 2499 : 499;
+  const priceLabel = plan === "professional" ? "$2,499/mo" : "$499";
 
   const handleContinueToPayment = () => {
     saveLead(3);
@@ -358,29 +359,6 @@ const Order = () => {
               <p className="text-xs text-muted-foreground">Typical turnaround is 24–48 business hours without rush</p>
             </div>
 
-            {/* Rush toggle */}
-            <Card className={cn("cursor-pointer border-2 transition-colors", rush ? "border-primary bg-primary/5" : "border-border hover:border-border/80")}
-              onClick={() => setRush(!rush)}>
-              <CardContent className="p-4 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center", rush ? "bg-primary/15" : "bg-muted")}>
-                    <Zap className={cn("h-4 w-4", rush ? "text-primary" : "text-muted-foreground")} />
-                  </div>
-                  <div>
-                    <p className="font-semibold text-sm">Rush Delivery</p>
-                    <p className="text-xs text-muted-foreground">Guaranteed within 4 business hours of order confirmation</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Badge variant={rush ? "default" : "outline"} className="text-xs">+$75</Badge>
-                  <div className={cn("w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors",
-                    rush ? "border-primary bg-primary" : "border-muted-foreground")}>
-                    {rush && <div className="w-2 h-2 rounded-full bg-primary-foreground" />}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
             <Button className="w-full" onClick={() => setStep(2)} disabled={!step1Valid}>
               Continue to Contact Info <ArrowRight className="h-4 w-4 ml-1" />
             </Button>
@@ -454,8 +432,8 @@ const Order = () => {
                   <div className="flex items-start justify-between">
                     <div>
                       <p className="font-semibold">One-Time Report</p>
-                      <p className="font-display text-3xl font-extrabold mt-1">{rush ? "$274" : "$199"}</p>
-                      {rush && <p className="text-xs text-primary font-medium">Includes $75 rush fee</p>}
+                      <p className="font-display text-3xl font-extrabold mt-1">$499</p>
+                      <p className="text-xs text-muted-foreground">Flat price — no rush fee</p>
                     </div>
                     <div className={cn("w-5 h-5 rounded-full border-2 mt-1 flex items-center justify-center transition-colors",
                       plan === "one-time" ? "border-primary bg-primary" : "border-muted-foreground")}>
@@ -467,7 +445,7 @@ const Order = () => {
                       "8-agency violation search (DOB, ECB, HPD, FDNY, DSNY, DOT, LPC, DOF)",
                       "AI analyst notes on every line item",
                       "Attorney-ready PDF report",
-                      `${rush ? "4-hour rush" : "24–48 hr"} delivery`,
+                      "24–48 business-hour delivery",
                       "One-time purchase, no subscription"
                     ].map(f => (
                       <li key={f} className="flex items-start gap-2"><CheckCircle className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" /> {f}</li>
@@ -488,8 +466,8 @@ const Order = () => {
                   <div className="flex items-start justify-between">
                     <div>
                       <p className="font-semibold">Professional</p>
-                      <p className="font-display text-3xl font-extrabold mt-1">$599<span className="text-base font-normal text-muted-foreground">/mo</span></p>
-                      <p className="text-xs text-muted-foreground">5 reports · $120/report</p>
+                      <p className="font-display text-3xl font-extrabold mt-1">$2,499<span className="text-base font-normal text-muted-foreground">/mo</span></p>
+                      <p className="text-xs text-muted-foreground">10 reports · $249/report effective</p>
                     </div>
                     <div className={cn("w-5 h-5 rounded-full border-2 mt-1 flex items-center justify-center transition-colors",
                       plan === "professional" ? "border-primary bg-primary" : "border-muted-foreground")}>
@@ -500,7 +478,7 @@ const Order = () => {
                     {[
                       "Everything in One-Time (all 8 agencies, AI notes, PDF)",
                       "Priority processing queue — moves to front",
-                      "Rush delivery at no extra charge",
+                      "Same-day delivery on most reports",
                       "White-label PDF option",
                       "Rollover unused reports"
                     ].map(f => (
@@ -519,14 +497,11 @@ const Order = () => {
                   <div className="flex justify-between"><span>{address}</span></div>
                   {concern && <div className="text-xs italic">"{concern.slice(0, 80)}{concern.length > 80 ? '...' : ''}"</div>}
                   <div className="flex justify-between"><span>Prepared for:</span><span className="font-medium text-foreground">{firstName} {lastName} · {company}</span></div>
-                  {deliveryDate && !rush && <div className="flex justify-between"><span>Requested by:</span><span>{deliveryDate}</span></div>}
-                  {rush && <div className="flex justify-between text-primary font-medium"><span>Rush delivery (4 hrs)</span><span>+$75</span></div>}
-                  {!rush && (
-                    <div className="flex items-center gap-1 text-xs">
-                      <Clock className="h-3 w-3" />
-                      <span>Typical turnaround: 24–48 business hours</span>
-                    </div>
-                  )}
+                  {deliveryDate && <div className="flex justify-between"><span>Requested by:</span><span>{deliveryDate}</span></div>}
+                  <div className="flex items-center gap-1 text-xs">
+                    <Clock className="h-3 w-3" />
+                    <span>Typical turnaround: 24–48 business hours</span>
+                  </div>
                 </div>
                 <div className="border-t border-border pt-2 flex justify-between font-semibold">
                   <span>Total</span>

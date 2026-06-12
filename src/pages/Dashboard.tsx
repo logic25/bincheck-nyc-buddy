@@ -19,7 +19,6 @@ import { format } from "date-fns";
 import ReportStatusTimeline from "@/components/dd-reports/ReportStatusTimeline";
 import DDReportViewer from "@/components/dd-reports/DDReportViewer";
 import AdminReportManager from "@/components/admin/AdminReportManager";
-import CreateDDReportDialog from "@/components/dd-reports/CreateDDReportDialog";
 
 interface ReportRow {
   id: string;
@@ -63,7 +62,6 @@ const Dashboard = () => {
   const [userId, setUserId] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
-  const [showCreateDialog, setShowCreateDialog] = useState(false);
 
   // Quick search state
   const [searchQuery, setSearchQuery] = useState("");
@@ -482,22 +480,12 @@ const Dashboard = () => {
         ) : (
           <>
             {/* ── CLIENT VIEW ── */}
-            {/* New Report Button */}
+            {/* New Report Button — routes to the 3-step Order wizard (single canonical entry point) */}
             <div className="flex justify-end">
-              <Button onClick={() => setShowCreateDialog(true)}>
+              <Button onClick={() => navigate("/order")}>
                 <Plus className="h-4 w-4 mr-2" /> New Report
               </Button>
             </div>
-
-            <CreateDDReportDialog
-              open={showCreateDialog}
-              onOpenChange={setShowCreateDialog}
-              onSuccess={(report) => {
-                setShowCreateDialog(false);
-                queryClient.invalidateQueries({ queryKey: ['dashboard-dd-reports'] });
-                setSelectedReportId(report.id);
-              }}
-            />
 
             {/* Stat Cards */}
             <div className="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-3">

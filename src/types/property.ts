@@ -163,6 +163,8 @@ export interface ComplianceScore {
   categories: CategoryScore[];
   riskLevel: 'low' | 'medium' | 'high';
   color: string;
+  /** Human-readable reasons the headline score was capped below the weighted average. */
+  overrideReasons?: string[];
 }
 
 export interface SavedReport {

@@ -670,10 +670,28 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
         )}
       </div>
 
-      {/* Property Status Summary */}
+      {/* Property Status Banners — Vacate / SWO / Unsafe surface above the conclusion */}
+      {hasCriticalOrders && (
+        <div className="mb-6 space-y-2">
+          {hasVacateOrder && (
+            <div className="border-2 border-destructive rounded-lg p-3 bg-destructive/5">
+              <p className="text-sm font-bold uppercase tracking-wide text-destructive">Vacate Order Active</p>
+              <p className="text-xs text-foreground/80 mt-1">All occupants must leave; building cannot be reoccupied until DOB rescinds the order.</p>
+            </div>
+          )}
+          {(hasStopWorkOrder || hasPartialStopWork) && (
+            <div className="border-2 border-destructive rounded-lg p-3 bg-destructive/5">
+              <p className="text-sm font-bold uppercase tracking-wide text-destructive">Stop Work Order Active</p>
+              <p className="text-xs text-foreground/80 mt-1">Construction activity must cease; continuing work can result in criminal summonses and fines up to $25,000.</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Conclusion */}
       {(report as any).property_status_summary && (
         <div className="border border-border rounded-xl p-5 bg-muted/20 mb-6">
-          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Property Status Summary</h3>
+          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Conclusion</h3>
           <div className="flex flex-wrap gap-2 mb-3 pb-3 border-b border-border">
             <Badge variant="outline" className="text-[10px] px-2 py-0.5">DOB Violations: {dobViolations.length}</Badge>
             <Badge variant="outline" className="text-[10px] px-2 py-0.5">ECB: {ecbViolations.length}</Badge>
@@ -682,9 +700,10 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
             {openComplaints.length > 0 && <Badge variant="outline" className="text-[10px] px-2 py-0.5">Open Complaints: {openComplaints.length}</Badge>}
           </div>
           <p className="text-sm leading-relaxed text-foreground/85 whitespace-pre-line">{(report as any).property_status_summary}</p>
-          <p className="text-[10px] text-muted-foreground mt-3 pt-2 border-t border-border/40 italic">
-            All findings are derived from publicly available municipal records which may contain errors, omissions, or delays. Information should be independently verified with the relevant city agencies.
-          </p>
+          <div className="mt-4 pt-3 border-t border-border">
+            <p className="text-xs font-semibold text-foreground">BinCheckNYC Analyst Team</p>
+            <p className="text-[10px] text-muted-foreground mt-1">Prepared from NYC public records. All findings may contain errors, omissions, or delays; verify with the relevant city agencies before relying on them.</p>
+          </div>
         </div>
       )}
 
