@@ -329,9 +329,9 @@ const Index = () => {
                     { icon: Building2, title: "DOB & ECB Violations", desc: "Open Department of Buildings and Environmental Control Board violations with penalty balances and hearing status" },
                     { icon: AlertTriangle, title: "Stop Work & Vacate Orders", desc: "Stop work orders, partial stop work, and vacate orders that can block title closing or financing" },
                     { icon: Shield, title: "HPD Violations", desc: "Housing Preservation & Development violations by class — A, B, and C (immediately hazardous)" },
-                    { icon: FileText, title: "Permit Activity", desc: "BIS and DOB NOW permit applications — partial, pending, and in-progress filings flagged for attorney review" },
+                    { icon: FileText, title: "Permit Activity", desc: "BIS and DOB NOW permit applications — partial, pending, and in-progress filings flagged for pre-closing review" },
                     { icon: Zap, title: "FDNY, DSNY, DOT, LPC, DOF", desc: "OATH hearing records for all city agencies — open fines, default judgments, and enforcement actions" },
-                    { icon: CheckCircle, title: "AI Risk Analysis", desc: "Gemini-powered attorney notes on every line item — prefixed [ACTION REQUIRED], [MONITOR], or [RESOLVED]" },
+                    { icon: CheckCircle, title: "AI Line-Item Analysis", desc: "AI-generated analyst notes on every item, scored by impact on the subject unit or whole building, then reviewed by a human analyst." },
                   ].map((f) => (
                     <div key={f.title} className="p-6 rounded-lg bg-card/50 text-left space-y-3 hover:bg-card transition-colors border border-border/40">
                       <f.icon className="h-5 w-5 text-primary" />
@@ -351,7 +351,7 @@ const Index = () => {
                   {[
                     { step: "01", icon: MapPin, title: "Submit Your Property", desc: "Enter the NYC address and tell us what you need — buying a unit, closing a deal, a specific concern." },
                     { step: "02", icon: Clock, title: "We Prepare Your Report", desc: "Our team runs 8-agency searches, AI flags every item, and our analysts review before delivery." },
-                    { step: "03", icon: Download, title: "Download & Close", desc: "Receive your attorney-ready PDF with line-item notes, risk ratings, and a signed-off summary." },
+                    { step: "03", icon: Download, title: "Download & Close", desc: "Receive a transaction-ready PDF with per-item analyst notes, agency sub-scores, and a signed-off conclusion." },
                   ].map((s) => (
                     <div key={s.step} className="text-center space-y-3">
                       <div className="w-12 h-12 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto">
@@ -373,7 +373,7 @@ const Index = () => {
                   <Badge variant="outline" className="mb-3">The deliverable</Badge>
                   <h2 className="font-display text-2xl md:text-3xl font-bold">What's actually in your report</h2>
                   <p className="text-muted-foreground text-sm mt-2 max-w-2xl mx-auto">
-                    Every BinCheckNYC report is an attorney-ready PDF with line-item analyst notes — not a CSV dump or a raw violation list.
+                    Every BinCheckNYC report is a transaction-ready PDF with per-item analyst notes scoped to your subject unit or whole building — not a CSV dump or a raw violation list.
                   </p>
                 </div>
 
@@ -607,7 +607,7 @@ const Index = () => {
                     <div>
                       <p className="text-sm font-medium text-muted-foreground">Enterprise</p>
                       <p className="font-display text-4xl font-extrabold mt-1">Custom</p>
-                      <p className="text-xs text-muted-foreground mt-1">For law firms & title companies</p>
+                      <p className="text-xs text-muted-foreground mt-1">For attorneys, title, brokers, and investors</p>
                     </div>
                     <ul className="space-y-2 text-sm">
                       {["Unlimited reports", "Dedicated account manager", "Custom invoice & billing", "API access (coming soon)", "SLA guarantees"].map(f => (
