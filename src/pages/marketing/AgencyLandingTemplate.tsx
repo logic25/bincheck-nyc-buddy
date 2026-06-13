@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import SEO from "@/components/SEO";
 import LeadCaptureDialog from "@/components/marketing/LeadCaptureDialog";
+import { trackEvent } from "@/lib/analytics";
 
 /**
  * Reusable template for agency-specific programmatic SEO landers.
@@ -104,7 +105,7 @@ const AgencyLanding = ({ config }: { config: AgencyLanderConfig }) => {
             <span className="font-display text-xl tracking-tight">BinCheck<span className="text-primary">NYC</span></span>
           </button>
           <div className="flex items-center gap-2">
-            <Button size="sm" onClick={() => navigate("/order")}>Order a Report <ArrowRight className="h-3.5 w-3.5 ml-1" /></Button>
+            <Button size="sm" onClick={() => { trackEvent("lander_cta_clicked", { slug: config.slug, cta: "nav" }); navigate("/order"); }}>Order a Report <ArrowRight className="h-3.5 w-3.5 ml-1" /></Button>
           </div>
         </div>
       </header>
@@ -119,11 +120,11 @@ const AgencyLanding = ({ config }: { config: AgencyLanderConfig }) => {
             </h1>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">{config.subtitle}</p>
             <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
-              <Button size="lg" onClick={() => navigate("/order")} className="font-semibold">
+              <Button size="lg" onClick={() => { trackEvent("lander_cta_clicked", { slug: config.slug, cta: "hero" }); navigate("/order"); }} className="font-semibold">
                 Order a Report — $499 <ArrowRight className="h-4 w-4 ml-1" />
               </Button>
               <LeadCaptureDialog intent="sample">
-                <Button size="lg" variant="outline">
+                <Button size="lg" variant="outline" onClick={() => trackEvent("lander_cta_clicked", { slug: config.slug, cta: "sample_hero" })}>
                   <FileText className="h-4 w-4 mr-2" /> Get a free sample
                 </Button>
               </LeadCaptureDialog>
@@ -203,11 +204,11 @@ const AgencyLanding = ({ config }: { config: AgencyLanderConfig }) => {
               Order a full BinCheckNYC report and have it on your desk in 24–48 hours. $499 flat. Invoiced after delivery.
             </p>
             <div className="flex flex-wrap items-center justify-center gap-3">
-              <Button size="lg" onClick={() => navigate("/order")} className="font-semibold">
+              <Button size="lg" onClick={() => { trackEvent("lander_cta_clicked", { slug: config.slug, cta: "footer" }); navigate("/order"); }} className="font-semibold">
                 Order a Report — $499 <ArrowRight className="h-4 w-4 ml-1" />
               </Button>
               <LeadCaptureDialog intent="sample">
-                <Button size="lg" variant="outline">
+                <Button size="lg" variant="outline" onClick={() => trackEvent("lander_cta_clicked", { slug: config.slug, cta: "sample_footer" })}>
                   <Download className="h-4 w-4 mr-2" /> Get a free sample first
                 </Button>
               </LeadCaptureDialog>

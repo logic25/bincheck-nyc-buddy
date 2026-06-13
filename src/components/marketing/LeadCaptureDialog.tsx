@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { CheckCircle, Mail, FileText, Loader2 } from "lucide-react";
+import { trackEvent } from "@/lib/analytics";
 
 /**
  * Lead capture dialog. Anyone (anon or authenticated) can submit; the
@@ -122,6 +123,7 @@ const LeadCaptureDialog = ({
         throw new Error("Submission failed");
       }
       setSubmitted(true);
+      trackEvent("lead_submitted", { intent });
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Something went wrong. Try again or email hello@binchecknyc.com directly.";
       // Rate-limit error from the RPC surfaces as 'Too many submissions ...'
@@ -142,7 +144,7 @@ const LeadCaptureDialog = ({
   };
 
   return (
-    <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) reset(); }}>
+    <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (v) trackEvent("lead_opened", { intent }); if (!v) reset(); }}>
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="sm:max-w-md">
         {submitted ? (

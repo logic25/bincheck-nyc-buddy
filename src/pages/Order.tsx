@@ -10,6 +10,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
+import { trackEvent } from "@/lib/analytics";
 
 interface GeoSuggestion { label: string; }
 
@@ -149,6 +150,7 @@ const Order = () => {
   const handleContinueToPayment = () => {
     saveLead(3);
     setStep(3);
+    trackEvent("order_started");
   };
 
   // Submit the order in invoice-on-delivery mode.
@@ -217,6 +219,7 @@ const Order = () => {
       }
 
       setSubmitted(true);
+      trackEvent("order_placed", { plan, amount: totalPrice });
     } catch (e: any) {
       toast.error("Order failed: " + (e.message || "Please try again"));
     } finally {
