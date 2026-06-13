@@ -571,7 +571,7 @@ const Order = () => {
                     Stripe invoice to <span className="font-medium text-foreground">{email || "your email"}</span>{company ? <> for <span className="font-medium text-foreground">{company}</span></> : null}.
                   </p>
                   <p className="text-muted-foreground">
-                    Pay by card, ACH, or wire — Net 7. You only owe if we deliver.
+                    Pay by card, ACH, or wire — Net 7. If we can't deliver a complete report, you don't pay.
                   </p>
                 </div>
 
