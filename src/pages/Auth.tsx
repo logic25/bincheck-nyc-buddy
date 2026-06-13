@@ -22,20 +22,29 @@ const Auth = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [checkingSession, setCheckingSession] = useState(true);
   const navigate = useNavigate();
+  const hasNavigatedRef = useRef(false);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const goToDashboard = () => {
+      if (hasNavigatedRef.current) return;
+      hasNavigatedRef.current = true;
+      navigate("/dashboard", { replace: true });
+    };
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session) {
-        navigate("/dashboard", { replace: true });
+        goToDashboard();
+      } else {
+        setCheckingSession(false);
       }
-      setCheckingSession(false);
     });
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
-        navigate("/dashboard", { replace: true });
+        goToDashboard();
+      } else {
+        setCheckingSession(false);
       }
-      setCheckingSession(false);
     });
 
     return () => subscription.unsubscribe();
