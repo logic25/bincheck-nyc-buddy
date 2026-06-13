@@ -462,6 +462,21 @@ const Order = () => {
               <Input placeholder="Smith & Associates, LLC" value={company} onChange={(e) => setCompany(e.target.value)} />
               <p className="text-xs text-muted-foreground">Law firm, title company, investment firm, or individual</p>
             </div>
+
+            {/* Honeypot — hidden from humans, off-screen + aria-hidden + tabIndex=-1. Bots fill it; we drop. */}
+            <div aria-hidden="true" style={{ position: "absolute", left: "-10000px", top: "auto", width: 1, height: 1, overflow: "hidden" }}>
+              <label>
+                Company website (leave blank)
+                <input
+                  type="text"
+                  tabIndex={-1}
+                  autoComplete="off"
+                  value={hp}
+                  onChange={(e) => setHp(e.target.value)}
+                />
+              </label>
+            </div>
+
             <div className="space-y-2">
               <Label>Phone <span className="text-muted-foreground">(Optional)</span></Label>
               <Input
