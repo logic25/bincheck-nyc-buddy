@@ -216,6 +216,28 @@ const Order = () => {
         supabase.functions.invoke("generate-dd-report", {
           body: { reportId: newReport.id, address: address.trim() },
         }).catch(() => {});
+
+        // Fire order-confirmation email (fire-and-forget). Failures should not
+        // block the order — they're logged in email_send_log for ops triage.
+        supabase.functions.invoke("send-transactional-email", {
+          body: {
+            templateName: "order-confirmation",
+            recipientEmail: email.trim(),
+            templateData: {
+              clientName: firstName || undefined,
+              address: address.trim(),
+              plan,
+              priceLabel,
+              rushRequested: rush,
+              requestedDeliveryDate: deliveryDate || null,
+              reportId: newReport.id,
+              preparedFor: `${firstName} ${lastName}`.trim() || undefined,
+              clientFirm: company.trim() || null,
+            },
+          },
+        }).catch((err) => {
+          console.error("order-confirmation email failed", err);
+        });
       }
 
       setSubmitted(true);
