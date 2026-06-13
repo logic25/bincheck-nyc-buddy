@@ -15,6 +15,7 @@ import Admin from "./pages/Admin";
 import AdminTeam from "./pages/AdminTeam";
 import AdminDocuments from "./pages/AdminDocuments";
 import AdminAudit from "./pages/AdminAudit";
+import AdminLeads from "./pages/AdminLeads";
 import Settings from "./pages/Settings";
 import Help from "./pages/Help";
 import NotFound from "./pages/NotFound";
@@ -47,6 +48,7 @@ const App = () => (
           <Route path="/admin/team" element={<AdminTeam />} />
           <Route path="/admin/documents" element={<AdminDocuments />} />
           <Route path="/admin/audit" element={<AdminAudit />} />
+          <Route path="/admin/leads" element={<AdminLeads />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/help" element={<Help />} />
           <Route path="/unsubscribe" element={<Unsubscribe />} />
