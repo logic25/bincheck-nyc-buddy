@@ -283,7 +283,7 @@ const Order = () => {
                 The completed report and your invoice will go to <span className="font-semibold text-foreground">{email}</span>.
               </p>
               <p className="text-xs text-muted-foreground pt-1">
-                You’ll receive a Stripe invoice for <span className="font-medium text-foreground">{priceLabel}</span> on delivery (Net 7). If we can't deliver a complete report, you don't pay.
+                You'll receive a Stripe invoice for <span className="font-medium text-foreground">{priceLabel}</span> on delivery (Net 7). Full refund if we can't complete your report.
               </p>
             </div>
             {(deliveryDate || rush) && (
