@@ -15,6 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Loader2, Building2, User, FileText, Mail } from 'lucide-react';
+import { SubjectAndRequesterBlock, emptySubjectValue, isSubjectBlockValid } from '@/components/dd-reports/SubjectAndRequesterBlock';
 
 interface CreateDDReportDialogProps {
   open: boolean;
@@ -31,6 +32,7 @@ const CreateDDReportDialog = ({ open, onOpenChange, onSuccess }: CreateDDReportD
   const [customerConcern, setCustomerConcern] = useState('');
   const [clientEmail, setClientEmail] = useState('');
   const [defaultPreparedBy, setDefaultPreparedBy] = useState('');
+  const [subject, setSubject] = useState(emptySubjectValue());
 
   // Auto-fill "Prepared By" with the current user's display name
   useEffect(() => {
@@ -68,6 +70,11 @@ const CreateDDReportDialog = ({ open, onOpenChange, onSuccess }: CreateDDReportD
           client_email: clientEmail.trim() || null,
           status: 'generating',
           report_date: reportDate,
+          // Subject + requester framing — used by per-item AI prompts (PR #24).
+          subject_type: subject.subject_type,
+          subject_unit: subject.subject_type === 'unit' ? (subject.subject_unit.trim() || null) : null,
+          scope_of_work: subject.scope_of_work.trim() || null,
+          requested_by_role: subject.requested_by_role || null,
         } as any)
         .select()
         .single();
@@ -111,6 +118,7 @@ const CreateDDReportDialog = ({ open, onOpenChange, onSuccess }: CreateDDReportD
       setPreparedBy('');
       setCustomerConcern('');
       setClientEmail('');
+      setSubject(emptySubjectValue());
       onSuccess(report);
     },
     onError: (error: any) => {
@@ -125,6 +133,10 @@ const CreateDDReportDialog = ({ open, onOpenChange, onSuccess }: CreateDDReportD
       toast.error('Please enter an address and recipient name.');
       return;
     }
+    if (!isSubjectBlockValid(subject)) {
+      toast.error('Enter a unit identifier or switch the scope to Whole Building.');
+      return;
+    }
     createReport.mutate();
   };
 
@@ -137,7 +149,7 @@ const CreateDDReportDialog = ({ open, onOpenChange, onSuccess }: CreateDDReportD
             Generate DD Report
           </DialogTitle>
           <DialogDescription>
-            Enter a NYC property address to generate a transaction-ready due diligence report with violations, orders, and AI risk analysis.
+            Generate a transaction-ready report for an attorney, title company, broker, or investor. Per-item analyst notes are AI-drafted and edited in admin before delivery.
           </DialogDescription>
         </DialogHeader>
 
@@ -202,20 +214,20 @@ const CreateDDReportDialog = ({ open, onOpenChange, onSuccess }: CreateDDReportD
             </p>
           </div>
 
+          {/* Subject + requester framing — drives per-item AI notes (PR #24) */}
+          <SubjectAndRequesterBlock value={subject} onChange={setSubject} disabled={createReport.isPending} variant="spacious" />
+
           <div className="space-y-2">
-            <Label htmlFor="customerConcern">What should we look for? (Optional)</Label>
+            <Label htmlFor="customerConcern">Additional Background (Optional)</Label>
             <Textarea
               id="customerConcern"
-              placeholder="Flag anything that could delay closing — open permits, illegal work, or pending violations that need resolution before transfer."
+              placeholder="Anything else the analyst should flag beyond the report scope above — e.g. lender requirements, prior owner history, related BBLs."
               value={customerConcern}
               onChange={(e) => setCustomerConcern(e.target.value)}
               disabled={createReport.isPending}
               rows={3}
               className="resize-none"
             />
-            <p className="text-xs text-muted-foreground">
-              Describe the customer's specific concern so the AI can tailor notes for each violation and application
-            </p>
           </div>
 
           <DialogFooter>
