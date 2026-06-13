@@ -1185,7 +1185,7 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
                 <div className="flex-1">
                   <p className="text-sm font-medium text-foreground mb-1">Open Permits Need Closeout</p>
                   <p className="text-xs text-muted-foreground leading-relaxed">
-                    {closeoutTaggedApplications.length} application{closeoutTaggedApplications.length !== 1 ? 's' : ''} on this property {closeoutTaggedApplications.length !== 1 ? 'are' : 'is'} still open and may need to be closed out with DOB. Green Light Expediting can handle the closeout process — inspections, sign-offs, and paperwork — on your behalf.
+                    {closeoutTaggedApplications.length} application{closeoutTaggedApplications.length !== 1 ? 's' : ''} on this property {closeoutTaggedApplications.length !== 1 ? 'are' : 'is'} still open and may need to be closed out with DOB.
                   </p>
                   <Button size="sm" className="mt-3 gap-1.5" variant="outline" onClick={() => setCloseoutDialogOpen(true)}>
                     <FileCheck className="w-3.5 h-3.5" />
