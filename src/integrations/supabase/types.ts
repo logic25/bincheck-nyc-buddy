@@ -461,6 +461,8 @@ export type Database = {
           agencies_queried: Json | null
           ai_analysis: string | null
           applications_data: Json | null
+          approved_at: string | null
+          approved_by: string | null
           bbl: string | null
           bin: string | null
           building_data: Json | null
@@ -468,15 +470,24 @@ export type Database = {
           client_email: string | null
           client_firm: string | null
           client_name: string | null
+          co_data: Json | null
           complaints_data: Json | null
           created_at: string
           customer_concern: string | null
+          dep_charges_data: Json | null
           dep_fetched_at: string | null
           dep_source: string | null
+          dof_charges_data: Json | null
           dof_fetched_at: string | null
           dof_source: string | null
+          external_links: Json | null
+          fdny_bfp_data: Json | null
+          fdny_direct_data: Json | null
+          fdny_vacate_data: Json | null
+          fuel_tank_data: Json | null
           general_notes: string | null
           generation_started_at: string | null
+          hpd_erp_data: Json | null
           id: string
           line_item_notes: Json | null
           order_lead_id: string | null
@@ -492,6 +503,9 @@ export type Database = {
           requested_delivery_date: string | null
           rush_requested: boolean | null
           scope_of_work: string | null
+          sent_at: string | null
+          sent_to_email: string | null
+          sidewalk_data: Json | null
           status: string
           subject_type: string | null
           subject_unit: string | null
@@ -510,6 +524,8 @@ export type Database = {
           agencies_queried?: Json | null
           ai_analysis?: string | null
           applications_data?: Json | null
+          approved_at?: string | null
+          approved_by?: string | null
           bbl?: string | null
           bin?: string | null
           building_data?: Json | null
@@ -517,15 +533,24 @@ export type Database = {
           client_email?: string | null
           client_firm?: string | null
           client_name?: string | null
+          co_data?: Json | null
           complaints_data?: Json | null
           created_at?: string
           customer_concern?: string | null
+          dep_charges_data?: Json | null
           dep_fetched_at?: string | null
           dep_source?: string | null
+          dof_charges_data?: Json | null
           dof_fetched_at?: string | null
           dof_source?: string | null
+          external_links?: Json | null
+          fdny_bfp_data?: Json | null
+          fdny_direct_data?: Json | null
+          fdny_vacate_data?: Json | null
+          fuel_tank_data?: Json | null
           general_notes?: string | null
           generation_started_at?: string | null
+          hpd_erp_data?: Json | null
           id?: string
           line_item_notes?: Json | null
           order_lead_id?: string | null
@@ -541,6 +566,9 @@ export type Database = {
           requested_delivery_date?: string | null
           rush_requested?: boolean | null
           scope_of_work?: string | null
+          sent_at?: string | null
+          sent_to_email?: string | null
+          sidewalk_data?: Json | null
           status?: string
           subject_type?: string | null
           subject_unit?: string | null
@@ -559,6 +587,8 @@ export type Database = {
           agencies_queried?: Json | null
           ai_analysis?: string | null
           applications_data?: Json | null
+          approved_at?: string | null
+          approved_by?: string | null
           bbl?: string | null
           bin?: string | null
           building_data?: Json | null
@@ -566,15 +596,24 @@ export type Database = {
           client_email?: string | null
           client_firm?: string | null
           client_name?: string | null
+          co_data?: Json | null
           complaints_data?: Json | null
           created_at?: string
           customer_concern?: string | null
+          dep_charges_data?: Json | null
           dep_fetched_at?: string | null
           dep_source?: string | null
+          dof_charges_data?: Json | null
           dof_fetched_at?: string | null
           dof_source?: string | null
+          external_links?: Json | null
+          fdny_bfp_data?: Json | null
+          fdny_direct_data?: Json | null
+          fdny_vacate_data?: Json | null
+          fuel_tank_data?: Json | null
           general_notes?: string | null
           generation_started_at?: string | null
+          hpd_erp_data?: Json | null
           id?: string
           line_item_notes?: Json | null
           order_lead_id?: string | null
@@ -590,6 +629,9 @@ export type Database = {
           requested_delivery_date?: string | null
           rush_requested?: boolean | null
           scope_of_work?: string | null
+          sent_at?: string | null
+          sent_to_email?: string | null
+          sidewalk_data?: Json | null
           status?: string
           subject_type?: string | null
           subject_unit?: string | null
@@ -603,6 +645,53 @@ export type Database = {
           workflow_status?: string | null
         }
         Relationships: []
+      }
+      email_log: {
+        Row: {
+          error: string | null
+          id: string
+          metadata: Json | null
+          recipient: string
+          report_id: string
+          resend_id: string | null
+          sent_at: string
+          sent_by: string | null
+          status: string
+          subject: string | null
+        }
+        Insert: {
+          error?: string | null
+          id?: string
+          metadata?: Json | null
+          recipient: string
+          report_id: string
+          resend_id?: string | null
+          sent_at?: string
+          sent_by?: string | null
+          status?: string
+          subject?: string | null
+        }
+        Update: {
+          error?: string | null
+          id?: string
+          metadata?: Json | null
+          recipient?: string
+          report_id?: string
+          resend_id?: string | null
+          sent_at?: string
+          sent_by?: string | null
+          status?: string
+          subject?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_log_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "dd_reports"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       email_send_log: {
         Row: {
@@ -958,6 +1047,8 @@ export type Database = {
       order_leads: {
         Row: {
           address: string | null
+          approved_at: string | null
+          approved_by: string | null
           company: string | null
           concern: string | null
           converted: boolean | null
@@ -967,13 +1058,22 @@ export type Database = {
           id: string
           last_name: string | null
           phone: string | null
+          rejection_reason: string | null
+          report_id: string | null
+          requested_by_role: string | null
           requested_delivery_date: string | null
           rush_requested: boolean | null
+          scope_of_work: string | null
+          status: string
           step_reached: number | null
+          subject_type: string | null
+          subject_unit: string | null
           updated_at: string
         }
         Insert: {
           address?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
           company?: string | null
           concern?: string | null
           converted?: boolean | null
@@ -983,13 +1083,22 @@ export type Database = {
           id?: string
           last_name?: string | null
           phone?: string | null
+          rejection_reason?: string | null
+          report_id?: string | null
+          requested_by_role?: string | null
           requested_delivery_date?: string | null
           rush_requested?: boolean | null
+          scope_of_work?: string | null
+          status?: string
           step_reached?: number | null
+          subject_type?: string | null
+          subject_unit?: string | null
           updated_at?: string
         }
         Update: {
           address?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
           company?: string | null
           concern?: string | null
           converted?: boolean | null
@@ -999,12 +1108,27 @@ export type Database = {
           id?: string
           last_name?: string | null
           phone?: string | null
+          rejection_reason?: string | null
+          report_id?: string | null
+          requested_by_role?: string | null
           requested_delivery_date?: string | null
           rush_requested?: boolean | null
+          scope_of_work?: string | null
+          status?: string
           step_reached?: number | null
+          subject_type?: string | null
+          subject_unit?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "order_leads_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "dd_reports"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -1060,6 +1184,80 @@ export type Database = {
         }
         Relationships: []
       }
+      report_documents: {
+        Row: {
+          agency: string
+          claimed_at: string | null
+          claimed_by: string | null
+          created_at: string
+          doc_ref: string | null
+          doc_type: string
+          fetched_at: string | null
+          fetched_by: string | null
+          file_path: string | null
+          file_size_bytes: number | null
+          id: string
+          mime_type: string | null
+          notes: string | null
+          priority: number
+          report_id: string
+          source_url: string | null
+          status: string
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          agency: string
+          claimed_at?: string | null
+          claimed_by?: string | null
+          created_at?: string
+          doc_ref?: string | null
+          doc_type: string
+          fetched_at?: string | null
+          fetched_by?: string | null
+          file_path?: string | null
+          file_size_bytes?: number | null
+          id?: string
+          mime_type?: string | null
+          notes?: string | null
+          priority?: number
+          report_id: string
+          source_url?: string | null
+          status?: string
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          agency?: string
+          claimed_at?: string | null
+          claimed_by?: string | null
+          created_at?: string
+          doc_ref?: string | null
+          doc_type?: string
+          fetched_at?: string | null
+          fetched_by?: string | null
+          file_path?: string | null
+          file_size_bytes?: number | null
+          id?: string
+          mime_type?: string | null
+          notes?: string | null
+          priority?: number
+          report_id?: string
+          source_url?: string | null
+          status?: string
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "report_documents_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "dd_reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       report_edits: {
         Row: {
           agency: string
@@ -1069,6 +1267,7 @@ export type Database = {
           editor_id: string
           error_category: Database["public"]["Enums"]["edit_error_category"]
           id: string
+          impact_note: string | null
           item_identifier: string
           item_type: string
           original_note: string | null
@@ -1076,6 +1275,7 @@ export type Database = {
           reviewed_at: string | null
           reviewed_by: string | null
           status: string
+          unit_relevance: string | null
         }
         Insert: {
           agency: string
@@ -1085,6 +1285,7 @@ export type Database = {
           editor_id: string
           error_category: Database["public"]["Enums"]["edit_error_category"]
           id?: string
+          impact_note?: string | null
           item_identifier: string
           item_type: string
           original_note?: string | null
@@ -1092,6 +1293,7 @@ export type Database = {
           reviewed_at?: string | null
           reviewed_by?: string | null
           status?: string
+          unit_relevance?: string | null
         }
         Update: {
           agency?: string
@@ -1101,6 +1303,7 @@ export type Database = {
           editor_id?: string
           error_category?: Database["public"]["Enums"]["edit_error_category"]
           id?: string
+          impact_note?: string | null
           item_identifier?: string
           item_type?: string
           original_note?: string | null
@@ -1108,6 +1311,7 @@ export type Database = {
           reviewed_at?: string | null
           reviewed_by?: string | null
           status?: string
+          unit_relevance?: string | null
         }
         Relationships: [
           {
@@ -1274,7 +1478,7 @@ export type Database = {
         Args: { _key: string; _max_in_window: number; _window_minutes?: number }
         Returns: Json
       }
-      cleanup_rate_limit_buckets: { Args: never; Returns: number }
+      cleanup_rate_limit_buckets: { Args: never; Returns: undefined }
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
@@ -1283,6 +1487,7 @@ export type Database = {
         Args: { payload: Json; queue_name: string }
         Returns: number
       }
+      get_acris_cache: { Args: { _bbl: string }; Returns: Json }
       get_users_with_email: {
         Args: never
         Returns: {
@@ -1298,6 +1503,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_staff: { Args: { _user_id: string }; Returns: boolean }
       log_audit: {
         Args: {
           _action: string
@@ -1316,6 +1522,7 @@ export type Database = {
         }
         Returns: number
       }
+      prune_acris_cache: { Args: { _grace?: string }; Returns: number }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }
         Returns: {
@@ -1323,6 +1530,10 @@ export type Database = {
           msg_id: number
           read_ct: number
         }[]
+      }
+      seed_report_documents: {
+        Args: { _docs: Json; _report_id: string }
+        Returns: number
       }
       submit_lead: {
         Args: {
@@ -1341,9 +1552,36 @@ export type Database = {
         }
         Returns: Json
       }
+      upsert_acris_cache: {
+        Args: { _bbl: string; _payload: Json; _source?: string; _ttl?: string }
+        Returns: {
+          bbl: string
+          cache_key: string
+          created_at: string
+          expires_at: string | null
+          fetched_at: string
+          id: string
+          payload: Json
+        }
+        SetofOptions: {
+          from: "*"
+          to: "acris_cache"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
     }
     Enums: {
-      app_role: "admin" | "user"
+      app_role: "admin" | "user" | "analyst" | "sales"
+      dd_report_status:
+        | "lead_pending"
+        | "lead_approved"
+        | "data_fetching"
+        | "data_ready"
+        | "analyst_review"
+        | "analyst_approved"
+        | "sent"
+        | "delivered"
       edit_error_category:
         | "too_vague"
         | "wrong_severity"
@@ -1487,7 +1725,17 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "user"],
+      app_role: ["admin", "user", "analyst", "sales"],
+      dd_report_status: [
+        "lead_pending",
+        "lead_approved",
+        "data_fetching",
+        "data_ready",
+        "analyst_review",
+        "analyst_approved",
+        "sent",
+        "delivered",
+      ],
       edit_error_category: [
         "too_vague",
         "wrong_severity",
