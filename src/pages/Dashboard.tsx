@@ -388,8 +388,19 @@ const Dashboard = () => {
     }
   }
 
+  // Wait for role + user id before first render so staff users don't briefly
+  // see the client view (skeletons, no Staff tab) before flipping to admin.
+  if (roleLoading || !userId) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background overflow-x-hidden">
+
       <header className="border-b border-border/40 sticky top-0 z-50 bg-background/90 backdrop-blur-md">
         <div className="container flex items-center justify-between h-16 px-4">
           <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate("/")}>
