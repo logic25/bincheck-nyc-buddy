@@ -5,8 +5,8 @@ import { calculateComplianceScore } from '@/lib/scoring';
 import type { PropertyData } from '@/types/property';
 
 // ─── BinCheck firm constants ──────────
-const BINCHECK_REVIEWER_NAME = 'BinCheckNYC Analyst Team';
-const BINCHECK_FIRM_NAME = 'BinCheckNYC';
+const BINCHECK_REVIEWER_NAME = 'BinCheck NYC Analyst Team';
+const BINCHECK_FIRM_NAME = 'BinCheck NYC';
 const BINCHECK_EMAIL = 'hello@binchecknyc.com';
 
 interface UserProfile {

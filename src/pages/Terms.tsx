@@ -76,7 +76,7 @@ const Terms = () => (
           Reports are provided for informational and preliminary due-diligence purposes only. They are
           NOT a title search, title report, title insurance, or an insured service, and they are NOT
           legal advice. They do not guarantee against, and assume no liability for, any condition of
-          title or compliance. BinCheckNYC, Inc. disclaims any and all liability to any person or entity
+          title or compliance. BinCheck NYC disclaims any and all liability to any person or entity
           arising from use of or reliance on a report. Each report is prepared exclusively for the named
           recipient and not for the benefit of any third party. You agree to verify all findings with the
           issuing agency and qualified counsel before acting.
