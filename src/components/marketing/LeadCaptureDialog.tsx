@@ -41,9 +41,9 @@ interface LeadCaptureDialogProps {
 
 const INTENT_TITLES: Record<NonNullable<LeadCaptureDialogProps["intent"]>, { title: string; description: string; submit: string }> = {
   sample: {
-    title: "Get a free 1-page sample report",
-    description: "Drop your email and the address you're diligencing. We'll send a sample showing what the full $499 report looks like — no card required.",
-    submit: "Send me the sample",
+    title: "See a sample report",
+    description: "Tell us who you are and we'll point you at a sample.",
+    submit: "Continue",
   },
   pricing: {
     title: "Talk to us about pricing",
