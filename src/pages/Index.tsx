@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import SEO from "@/components/SEO";
+import LeadCaptureDialog from "@/components/marketing/LeadCaptureDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
 
@@ -362,6 +363,17 @@ const Index = () => {
                   </div>
                 </div>
 
+                <div className="flex flex-wrap items-center justify-center gap-3 mt-6">
+                  <Button size="lg" onClick={() => navigate("/order")} className="font-semibold">
+                    Order a Report — $499 <ArrowRight className="h-4 w-4 ml-1" />
+                  </Button>
+                  <LeadCaptureDialog intent="sample">
+                    <Button size="lg" variant="outline">
+                      <FileText className="h-4 w-4 mr-2" /> Get a free sample
+                    </Button>
+                  </LeadCaptureDialog>
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-8">
                   {[
                     { icon: Building2, title: "8 city agencies", desc: "DOB, ECB, HPD, FDNY, DSNY, DOT, LPC, DOF — every record we can legally pull" },
@@ -544,7 +556,9 @@ const Index = () => {
                         </li>
                       ))}
                     </ul>
-                    <Button variant="outline" className="w-full" onClick={() => window.location.href = "mailto:hello@binchecknyc.com"}>Contact Us</Button>
+                    <LeadCaptureDialog intent="enterprise">
+                      <Button variant="outline" className="w-full">Contact Us</Button>
+                    </LeadCaptureDialog>
                   </div>
                 </div>
 
