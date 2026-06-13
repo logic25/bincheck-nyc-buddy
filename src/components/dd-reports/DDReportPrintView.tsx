@@ -655,9 +655,10 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
   const reportId = generateReportId(report.report_date);
   const lineItemNotes = report.line_item_notes || [];
 
-  // Subject type / unit / scope — GLE shape fields
-  const subjectType = (report as any).subject_type || 'building';
+  // Subject type / unit / scope — guard NULL subject_unit by falling through to building view
+  const rawSubjectType = (report as any).subject_type || 'building';
   const subjectUnit = (report as any).subject_unit || null;
+  const subjectType = rawSubjectType === 'unit' && subjectUnit ? 'unit' : 'building';
   const scopeOfWork = (report as any).scope_of_work || null;
   const reviewerName = (report as any).reviewer_name || null;
 
