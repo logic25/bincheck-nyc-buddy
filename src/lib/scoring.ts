@@ -13,6 +13,13 @@ export interface PropertyFlags {
   emergency_declaration?: boolean;
   compromised_structure?: boolean;
   vacant_structure?: boolean;
+  /**
+   * Total outstanding DOF charges (property tax, sidewalk assessment, emergency
+   * repair, etc.) in USD. Passed from dofCharges.totals.outstanding so the
+   * headline score cannot read "LOW RISK" while a six-figure DOF balance sits
+   * unpaid — the bug that made the 1221 Fteley report look broken.
+   */
+  dof_outstanding?: number;
 }
 
 export interface ScoreOverride {
@@ -86,6 +93,22 @@ export function calculateComplianceScore(
   if (maxECBPenalty > 1000 && overall > 70) {
     overall = 70;
     overrides.push(`Open ECB violation with $${Math.round(maxECBPenalty).toLocaleString()} unpaid`);
+  }
+
+  // ---- DOF outstanding-charges overrides ----
+  // Property tax / sidewalk assessment / emergency repair charges create lien
+  // risk at closing and must be reflected in the headline score regardless of
+  // how clean the violation record looks.
+  const dofOutstanding = flags.dof_outstanding || 0;
+  if (dofOutstanding > 100000 && overall > 40) {
+    overall = 40;
+    overrides.push(`$${Math.round(dofOutstanding).toLocaleString()} in unpaid DOF charges (lien risk)`);
+  } else if (dofOutstanding > 25000 && overall > 55) {
+    overall = 55;
+    overrides.push(`$${Math.round(dofOutstanding).toLocaleString()} in unpaid DOF charges`);
+  } else if (dofOutstanding > 5000 && overall > 70) {
+    overall = 70;
+    overrides.push(`$${Math.round(dofOutstanding).toLocaleString()} in unpaid DOF charges`);
   }
 
   const riskLevel: 'low' | 'medium' | 'high' =
