@@ -148,11 +148,19 @@ const LeadCaptureDialog = ({
               <CheckCircle className="h-6 w-6 text-primary" />
             </div>
             <DialogHeader className="space-y-2">
-              <DialogTitle className="text-center">You're on the list</DialogTitle>
+              <DialogTitle className="text-center">Thanks</DialogTitle>
               <DialogDescription className="text-center">
-                {intent === "sample"
-                  ? "We'll send the sample report to your inbox shortly. Keep an eye out from hello@binchecknyc.com."
-                  : "Thanks — someone from our team will be in touch within one business day."}
+                {intent === "sample" ? (
+                  <>
+                    Request a sample by emailing{" "}
+                    <a href="mailto:hello@binchecknyc.com?subject=Sample%20report%20request" className="font-semibold text-primary underline">
+                      hello@binchecknyc.com
+                    </a>{" "}
+                    with your address and we'll send one back within one business day.
+                  </>
+                ) : (
+                  "Someone from our team will be in touch within one business day."
+                )}
               </DialogDescription>
             </DialogHeader>
             <Button onClick={() => setOpen(false)} className="w-full">Close</Button>
@@ -162,12 +170,23 @@ const LeadCaptureDialog = ({
             <DialogHeader>
               <div className="mb-3 inline-flex items-center gap-2 text-xs font-medium text-primary bg-primary/10 px-2.5 py-1 rounded-full w-fit">
                 {intent === "sample" ? <FileText className="h-3 w-3" /> : <Mail className="h-3 w-3" />}
-                {intent === "sample" ? "Free sample" : intent === "pricing" ? "Pricing" : intent === "enterprise" ? "Enterprise" : "Contact"}
+                {intent === "sample" ? "Sample report" : intent === "pricing" ? "Pricing" : intent === "enterprise" ? "Enterprise" : "Contact"}
               </div>
               <DialogTitle>{title ?? copy.title}</DialogTitle>
               <DialogDescription>{description ?? copy.description}</DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-3 mt-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="lc-name">Name *</Label>
+                <Input
+                  id="lc-name"
+                  required
+                  placeholder="Your name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  autoComplete="name"
+                />
+              </div>
               <div className="space-y-1.5">
                 <Label htmlFor="lc-email">Work email *</Label>
                 <Input
@@ -180,31 +199,20 @@ const LeadCaptureDialog = ({
                   autoComplete="email"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label htmlFor="lc-name">Name</Label>
-                  <Input
-                    id="lc-name"
-                    placeholder="Your name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    autoComplete="name"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="lc-company">Firm</Label>
-                  <Input
-                    id="lc-company"
-                    placeholder="Law firm / company"
-                    value={company}
-                    onChange={(e) => setCompany(e.target.value)}
-                    autoComplete="organization"
-                  />
-                </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="lc-company">Company / Firm *</Label>
+                <Input
+                  id="lc-company"
+                  required
+                  placeholder="Law firm / company"
+                  value={company}
+                  onChange={(e) => setCompany(e.target.value)}
+                  autoComplete="organization"
+                />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="lc-role">Your role</Label>
-                <Select value={role} onValueChange={setRole}>
+                <Label htmlFor="lc-role">Your role *</Label>
+                <Select value={role} onValueChange={setRole} required>
                   <SelectTrigger id="lc-role">
                     <SelectValue placeholder="Select role" />
                   </SelectTrigger>
@@ -218,30 +226,6 @@ const LeadCaptureDialog = ({
                   </SelectContent>
                 </Select>
               </div>
-              {intent === "sample" && (
-                <div className="space-y-1.5">
-                  <Label htmlFor="lc-addr">Property address (optional)</Label>
-                  <Input
-                    id="lc-addr"
-                    placeholder="123 Main St, Manhattan, NY"
-                    value={propertyAddress}
-                    onChange={(e) => setPropertyAddress(e.target.value)}
-                  />
-                  <p className="text-xs text-muted-foreground">If you give us a real address, we'll send a sample with real findings on it.</p>
-                </div>
-              )}
-              {intent !== "sample" && (
-                <div className="space-y-1.5">
-                  <Label htmlFor="lc-msg">Anything we should know? (optional)</Label>
-                  <Textarea
-                    id="lc-msg"
-                    placeholder="Volume, timeline, specific use case…"
-                    value={message}
-                    onChange={(e) => setMessage(e.target.value)}
-                    rows={3}
-                  />
-                </div>
-              )}
               <Button type="submit" disabled={submitting} className="w-full">
                 {submitting ? (
                   <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Sending…</>
