@@ -1848,13 +1848,13 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
         <p style={{ fontSize: '10px', color: '#6b7280', textAlign: 'justify', lineHeight: '1.7' }}>
           This report is prepared in connection with real estate due diligence using information derived from
           publicly available municipal records which may contain errors, omissions, or delays.
-          BinCheck by Green Light Expediting{userProfile?.company_name ? ` and ${userProfile.company_name}` : ''} makes no warranties
+          BinCheckNYC{userProfile?.company_name ? ` and ${userProfile.company_name}` : ''} makes no warranties
           regarding the accuracy or completeness of underlying government data. All findings should be
           independently verified with the relevant city agencies prior to reliance in any transaction.
         </p>
         <div style={{ textAlign: 'center', marginTop: '16px', paddingTop: '12px', borderTop: '1px solid #e5e7eb' }}>
           <p style={{ fontSize: '11px', fontWeight: 600, color: '#9ca3af' }}>
-            © {new Date().getFullYear()} BinCheck by Green Light Expediting{userProfile?.company_name ? ` · ${userProfile.company_name}` : ''}
+            © {new Date().getFullYear()} BinCheckNYC{userProfile?.company_name ? ` · ${userProfile.company_name}` : ''}
           </p>
           <p style={{ fontSize: '10px', color: '#9ca3af', marginTop: '2px' }}>Proprietary analysis · All rights reserved</p>
         </div>
