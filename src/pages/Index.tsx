@@ -487,7 +487,7 @@ const Index = () => {
 
                 <div className="text-center mt-8">
                   <Button size="lg" onClick={() => { trackEvent("cta_clicked", { cta: "compare" }); navigate("/order"); }} className="font-semibold">
-                    Order a Report — $499 <ArrowRight className="h-4 w-4 ml-1" />
+                    Order a Report — $199 <ArrowRight className="h-4 w-4 ml-1" />
                   </Button>
                 </div>
               </div>
