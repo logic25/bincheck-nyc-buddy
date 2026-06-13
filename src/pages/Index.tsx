@@ -159,7 +159,8 @@ const Index = () => {
             <nav className="flex items-center gap-1 sm:gap-2">
               {session ? (
                 <>
-                  <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard")} className="text-white/80 hover:text-white hover:bg-white/10">Home</Button>
+                  <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard")} className="text-white/80 hover:text-white hover:bg-white/10">Dashboard</Button>
+                  <Button variant="ghost" size="sm" onClick={() => navigate("/dd-reports")} className="text-white/80 hover:text-white hover:bg-white/10">Reports</Button>
                   <Button variant="ghost" size="sm" onClick={() => navigate("/settings")} className="text-white/80 hover:text-white hover:bg-white/10">
                     <Settings className="h-4 w-4 mr-1" /> Settings
                   </Button>
@@ -197,12 +198,12 @@ const Index = () => {
                   <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-sm border border-emerald-400/40 bg-emerald-400/5 text-[11px] text-emerald-300 font-bold uppercase tracking-[0.14em]">
                     <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> 8-agency NYC compliance report
                   </div>
-                  <h1 className="font-serif text-5xl md:text-6xl lg:text-[64px] font-bold tracking-tight leading-[1.05]">
-                    Every NYC violation<br />tied to a BIN, in<br />
-                    <span className="text-[#e63946] italic">one report.</span>
+                  <h1 className="font-serif text-5xl md:text-6xl lg:text-[72px] font-bold tracking-tight leading-[1.05]">
+                    Due diligence,<br />
+                    <span className="text-[#e63946] italic">delivered.</span>
                   </h1>
                   <p className="text-base md:text-lg text-white/70 max-w-xl leading-relaxed">
-                    Open violations, ECB judgments, HPD orders, FDNY findings, OATH tickets, DOB permits, and ACRIS records — pulled from <span className="text-white font-semibold">eight city sources</span>, reviewed by a NYC analyst, delivered as a single PDF.
+                    Transaction-ready NYC property compliance reports for attorneys, investors, and deal teams. Every violation tied to a BIN — DOB, ECB, HPD, FDNY, DSNY, DOT, LPC, DOF — reviewed by a NYC analyst, delivered as a single PDF.
                   </p>
                 </div>
               )}
@@ -359,7 +360,7 @@ const Index = () => {
         {!session && (
           <>
             {/* What's Included */}
-            <section className="border-t border-border/40 py-16 px-4">
+            <section id="coverage" className="border-t border-border/40 py-16 px-4">
               <div className="container max-w-5xl">
                 <h2 className="font-display text-2xl font-bold text-center mb-10">
                   Everything your transaction team needs
@@ -470,10 +471,6 @@ const Index = () => {
                     {
                       q: "How do payments work?",
                       a: "Card upfront via Stripe at checkout. If we can't complete your report for any reason, we refund in full.",
-                    },
-                    {
-                      q: "Can I see a sample?",
-                      a: "Yes — email hello@binchecknyc.com with your address and we'll send a redacted sample report back.",
                     },
                   ].map((item, i) => (
                     <AccordionItem key={i} value={`faq-${i}`} className="border-b border-border last:border-b-0">
