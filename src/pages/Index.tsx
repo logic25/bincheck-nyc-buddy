@@ -607,7 +607,7 @@ const Index = () => {
                     <div>
                       <p className="text-sm font-medium text-muted-foreground">Enterprise</p>
                       <p className="font-display text-4xl font-extrabold mt-1">Custom</p>
-                      <p className="text-xs text-muted-foreground mt-1">For law firms & title companies</p>
+                      <p className="text-xs text-muted-foreground mt-1">For attorneys, title, brokers, and investors</p>
                     </div>
                     <ul className="space-y-2 text-sm">
                       {["Unlimited reports", "Dedicated account manager", "Custom invoice & billing", "API access (coming soon)", "SLA guarantees"].map(f => (
