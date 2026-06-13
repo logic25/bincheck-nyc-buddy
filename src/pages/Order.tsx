@@ -482,30 +482,34 @@ const Order = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* One-Time */}
               <Card
-                className={cn("cursor-pointer border-2 transition-colors", plan === "one-time" ? "border-primary" : "border-border hover:border-border/80")}
+                className={cn(
+                  "cursor-pointer border-2 rounded-sm transition-colors relative overflow-hidden",
+                  plan === "one-time" ? "border-black" : "border-border hover:border-border/80"
+                )}
                 onClick={() => setPlan("one-time")}
               >
+                {plan === "one-time" && <div className="absolute top-0 left-0 right-0 h-1 bg-[#e63946]" />}
                 <CardContent className="p-5 space-y-4">
                   <div className="flex items-start justify-between">
                     <div>
                       <p className="font-semibold">One-Time Report</p>
-                      <p className="font-display text-3xl font-extrabold mt-1">$499</p>
+                      <p className="font-serif text-3xl font-bold mt-1">$499</p>
                       <p className="text-xs text-muted-foreground">Flat price — no rush fee</p>
                     </div>
                     <div className={cn("w-5 h-5 rounded-full border-2 mt-1 flex items-center justify-center transition-colors",
-                      plan === "one-time" ? "border-primary bg-primary" : "border-muted-foreground")}>
-                      {plan === "one-time" && <div className="w-2.5 h-2.5 rounded-full bg-primary-foreground" />}
+                      plan === "one-time" ? "border-[#0c1730] bg-[#0c1730]" : "border-muted-foreground")}>
+                      {plan === "one-time" && <div className="w-2.5 h-2.5 rounded-full bg-white" />}
                     </div>
                   </div>
                   <ul className="space-y-1.5 text-sm text-muted-foreground">
                     {[
                       "8-agency violation search (DOB, ECB, HPD, FDNY, DSNY, DOT, LPC, DOF)",
-                      "AI analyst notes on every line item",
+                      "Analyst-reviewed notes on every line item",
                       "Transaction-ready PDF for attorneys, title cos, brokers, and investors",
                       "24–48 business-hour delivery",
                       "One-time purchase, no subscription"
                     ].map(f => (
-                      <li key={f} className="flex items-start gap-2"><CheckCircle className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" /> {f}</li>
+                      <li key={f} className="flex items-start gap-2"><CheckCircle className="h-3.5 w-3.5 text-[#0c1730] shrink-0 mt-0.5" /> {f}</li>
                     ))}
                   </ul>
                 </CardContent>
@@ -513,33 +517,37 @@ const Order = () => {
 
               {/* Professional */}
               <Card
-                className={cn("cursor-pointer border-2 transition-colors relative", plan === "professional" ? "border-primary" : "border-border hover:border-border/80")}
+                className={cn(
+                  "cursor-pointer border-2 rounded-sm transition-colors relative overflow-hidden",
+                  plan === "professional" ? "border-black" : "border-border hover:border-border/80"
+                )}
                 onClick={() => setPlan("professional")}
               >
-                <div className="absolute -top-3 left-4">
-                  <Badge className="bg-primary text-primary-foreground text-xs">Most Popular</Badge>
+                {plan === "professional" && <div className="absolute top-0 left-0 right-0 h-1 bg-[#e63946]" />}
+                <div className="absolute top-2 right-2">
+                  <Badge className="bg-[#e63946] hover:bg-[#e63946] text-white text-[10px]">Most Popular</Badge>
                 </div>
-                <CardContent className="p-5 space-y-4">
+                <CardContent className="p-5 space-y-4 pt-6">
                   <div className="flex items-start justify-between">
                     <div>
                       <p className="font-semibold">Professional</p>
-                      <p className="font-display text-3xl font-extrabold mt-1">$2,499<span className="text-base font-normal text-muted-foreground">/mo</span></p>
+                      <p className="font-serif text-3xl font-bold mt-1">$2,499<span className="text-base font-normal text-muted-foreground">/mo</span></p>
                       <p className="text-xs text-muted-foreground">10 reports · $249/report effective</p>
                     </div>
                     <div className={cn("w-5 h-5 rounded-full border-2 mt-1 flex items-center justify-center transition-colors",
-                      plan === "professional" ? "border-primary bg-primary" : "border-muted-foreground")}>
-                      {plan === "professional" && <div className="w-2.5 h-2.5 rounded-full bg-primary-foreground" />}
+                      plan === "professional" ? "border-[#0c1730] bg-[#0c1730]" : "border-muted-foreground")}>
+                      {plan === "professional" && <div className="w-2.5 h-2.5 rounded-full bg-white" />}
                     </div>
                   </div>
                   <ul className="space-y-1.5 text-sm text-muted-foreground">
                     {[
-                      "Everything in One-Time (all 8 agencies, AI notes, PDF)",
+                      "Everything in One-Time (all 8 agencies, analyst notes, PDF)",
                       "Priority processing queue — moves to front",
                       "Same-day delivery on most reports",
                       "White-label PDF option",
                       "Rollover unused reports"
                     ].map(f => (
-                      <li key={f} className="flex items-start gap-2"><CheckCircle className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" /> {f}</li>
+                      <li key={f} className="flex items-start gap-2"><CheckCircle className="h-3.5 w-3.5 text-[#0c1730] shrink-0 mt-0.5" /> {f}</li>
                     ))}
                   </ul>
                 </CardContent>
