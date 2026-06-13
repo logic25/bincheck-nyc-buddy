@@ -474,7 +474,7 @@ const Index = () => {
                       { row: "Primary use case", us: "Closing-day decisions", them: "Owner portfolio reporting" },
                       { row: "Turnaround", us: "24–48 hours", them: "3–10 business days" },
                       { row: "Per-report price", us: "$499 flat", them: "$800–$1,500+" },
-                      { row: "AI analyst notes", us: true, them: false },
+                      { row: "Analyst-reviewed notes per item", us: true, them: false },
                       { row: "Human QA before delivery", us: true, them: "Sometimes" },
                       { row: "Action-priority flags", us: "[ACTION REQUIRED] / [MONITOR] / [RESOLVED]", them: "Raw record dump" },
                       { row: "Attorney-ready PDF format", us: true, them: "CSV / portal export" },
