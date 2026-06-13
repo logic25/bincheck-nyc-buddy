@@ -6,7 +6,7 @@ const config: AgencyLanderConfig = {
   seoDescription: "Search NYC Department of Buildings violations, stop work orders, and permit history on any address. Attorney-ready PDF in 24–48 hours. $499 flat.",
   eyebrow: "DOB violations",
   h1: "NYC DOB Violation Search",
-  subtitle: "Open Department of Buildings violations, stop work orders, partial stop work, vacate orders, and permit history — pulled directly from DOB BIS and DOB NOW. Delivered as an attorney-ready PDF with AI line-item analysis.",
+  subtitle: "Open Department of Buildings violations, stop work orders, partial stop work, vacate orders, and permit history — pulled directly from DOB BIS and DOB NOW. Delivered as an attorney-ready PDF with analyst-reviewed line-item notes.",
   serviceName: "NYC DOB Violation Search Report",
   whatItIs: {
     title: "What's a DOB violation, and why does it matter at closing?",
@@ -22,7 +22,7 @@ const config: AgencyLanderConfig = {
     "Open and in-progress permit applications (BIS and DOB NOW), including pending work",
     "Certificate of Occupancy status, including TCOs and pending updates",
     "ECB / OATH hearings tied to DOB violations, with default judgment status",
-    "AI line-item notes prefixed [ACTION REQUIRED], [MONITOR], or [RESOLVED]",
+    "analyst-reviewed line-item notes prefixed [ACTION REQUIRED], [MONITOR], or [RESOLVED]",
     "Human analyst review and signoff on every report before delivery",
     "Attorney-ready PDF suitable for closing files, lender packets, and IC memos",
   ],
@@ -35,7 +35,7 @@ const config: AgencyLanderConfig = {
   faq: [
     {
       q: "How is BinCheckNYC different from the free DOB BIS search?",
-      a: "DOB BIS lets you look up records, but it doesn't tell you which items are actionable, doesn't combine with ECB/OATH hearings, and doesn't produce a closing-grade PDF. BinCheckNYC reports include AI analyst notes on every line item, cross-reference ECB hearings and default judgments, and arrive as a signed-off PDF ready for the closing file.",
+      a: "DOB BIS lets you look up records, but it doesn't tell you which items are actionable, doesn't combine with ECB/OATH hearings, and doesn't produce a closing-grade PDF. BinCheckNYC reports include Analyst-reviewed notes on every line item, cross-reference ECB hearings and default judgments, and arrive as a signed-off PDF ready for the closing file.",
     },
     {
       q: "Do you cover DOB NOW filings too?",

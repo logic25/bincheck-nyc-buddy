@@ -6,7 +6,7 @@ const config: AgencyLanderConfig = {
   seoDescription: "Look up NYC ECB and OATH hearing violations, open fines, and default judgments on any property. Attorney-ready PDF in 24–48 hours. $499 flat.",
   eyebrow: "ECB / OATH",
   h1: "NYC ECB Violation Lookup",
-  subtitle: "ECB (Environmental Control Board) and OATH hearing records — open fines, default judgments, hearing schedules, and lien-attachable penalties across every NYC agency. AI-analyzed and signed off by our analyst team.",
+  subtitle: "ECB (Environmental Control Board) and OATH hearing records — open fines, default judgments, hearing schedules, and lien-attachable penalties across every NYC agency. Analyst-reviewed and signed off by our analyst team.",
   serviceName: "NYC ECB / OATH Violation Lookup Report",
   whatItIs: {
     title: "What's an ECB / OATH violation, and why is it serious?",
@@ -22,7 +22,7 @@ const config: AgencyLanderConfig = {
     "Outstanding penalty balances with interest accrual",
     "Hearing schedule and disposition history (dismissed / sustained / settled / default)",
     "Cross-referenced to the underlying DOB / DSNY / FDNY violation so context is preserved",
-    "AI line-item notes assessing cure paths and likely lien exposure",
+    "analyst-reviewed line-item notes assessing cure paths and likely lien exposure",
     "Analyst signoff before delivery — every report is reviewed by a human",
     "Attorney-ready PDF for closing files and lender packets",
   ],

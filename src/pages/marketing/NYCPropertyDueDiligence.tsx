@@ -3,17 +3,17 @@ import AgencyLanding, { AgencyLanderConfig } from "./AgencyLandingTemplate";
 const config: AgencyLanderConfig = {
   slug: "nyc-property-due-diligence",
   seoTitle: "NYC Property Due Diligence Reports — 8-Agency Compliance Search",
-  seoDescription: "Transaction-ready NYC property due diligence reports for attorneys, investors, and deal teams. 8-agency search with AI line-item analysis and analyst QA. $499 flat, 24–48 hours.",
+  seoDescription: "Transaction-ready NYC property due diligence reports for attorneys, investors, and deal teams. 8-agency search with analyst-reviewed line-item notes and analyst QA. $499 flat, 24–48 hours.",
   eyebrow: "NYC property DD",
   h1: "NYC Property Due Diligence",
-  subtitle: "Eight-agency compliance search across DOB, ECB, HPD, FDNY, DSNY, DOT, LPC, and DOF. AI-analyzed, analyst-reviewed, attorney-ready. Built for the buy side.",
+  subtitle: "Eight-agency compliance search across DOB, ECB, HPD, FDNY, DSNY, DOT, LPC, and DOF. Analyst-reviewed, analyst-reviewed, attorney-ready. Built for the buy side.",
   serviceName: "NYC Property Due Diligence Report",
   whatItIs: {
     title: "Why NYC property due diligence is its own discipline",
     paragraphs: [
       "Diligence on a NYC property isn't like diligence anywhere else. There are eight separate enforcement agencies (DOB, ECB, HPD, FDNY, DSNY, DOT, LPC, DOF) with their own systems, their own enforcement schedules, and their own ways of escalating to liens. A clean title search misses most of it. A standard property condition report misses all of it.",
       "Most NYC compliance vendors are built for owners managing buildings they already own. BinCheckNYC is built for the buy side: the attorney, investor, or fund asking 'what am I actually buying?' before they wire money.",
-      "Our reports consolidate every active record across all eight agencies, cross-reference OATH hearing dispositions, surface default judgments and lien-attachable items, and produce an attorney-ready PDF with AI line-item analysis. Every report is reviewed by a human analyst before delivery — not auto-shipped.",
+      "Our reports consolidate every active record across all eight agencies, cross-reference OATH hearing dispositions, surface default judgments and lien-attachable items, and produce an attorney-ready PDF with analyst-reviewed line-item notes. Every report is reviewed by a human analyst before delivery — not auto-shipped.",
     ],
   },
   whatsIncluded: [
@@ -25,7 +25,7 @@ const config: AgencyLanderConfig = {
     "DOT (Transportation) violations — sidewalk, curb cut, vault, scaffold permits",
     "LPC (Landmarks Preservation Commission) status and open compliance items",
     "DOF (Finance) tax liens, water charges, and ECB judgments docketed to property",
-    "AI line-item analysis with [ACTION REQUIRED] / [MONITOR] / [RESOLVED] flags",
+    "analyst-reviewed line-item notes with [ACTION REQUIRED] / [MONITOR] / [RESOLVED] flags",
     "Human analyst review and signoff before delivery",
     "Attorney-ready PDF for closing files, lender packets, and IC memos",
   ],
