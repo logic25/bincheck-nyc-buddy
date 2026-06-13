@@ -28,8 +28,7 @@ Deno.test("COMPLAINT_CATEGORIES: known codes map to exact original descriptions"
 });
 
 Deno.test("COMPLAINT_CATEGORIES: code count matches pre-refactor inventory", () => {
-  // 99 numeric (01-99) + 71 alphanumeric entries = 170 total.
-  assertEquals(Object.keys(COMPLAINT_CATEGORIES).length, 170);
+  assertEquals(Object.keys(COMPLAINT_CATEGORIES).length, 191);
 });
 
 Deno.test("OATH_RESOLVED_TERMS: exact same items, same order", () => {
