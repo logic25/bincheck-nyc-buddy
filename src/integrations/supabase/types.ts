@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      acris_cache: {
+        Row: {
+          bbl: string
+          cache_key: string
+          created_at: string
+          expires_at: string | null
+          fetched_at: string
+          id: string
+          payload: Json
+        }
+        Insert: {
+          bbl: string
+          cache_key: string
+          created_at?: string
+          expires_at?: string | null
+          fetched_at?: string
+          id?: string
+          payload: Json
+        }
+        Update: {
+          bbl?: string
+          cache_key?: string
+          created_at?: string
+          expires_at?: string | null
+          fetched_at?: string
+          id?: string
+          payload?: Json
+        }
+        Relationships: []
+      }
       ai_accuracy_stats: {
         Row: {
           agency: string
@@ -335,6 +365,65 @@ export type Database = {
           },
         ]
       }
+      compliance_snapshots: {
+        Row: {
+          address: string
+          as_of: string
+          bbl: string
+          bin: string
+          borough: string | null
+          created_at: string
+          data: Json
+          data_hash: string
+          id: string
+          report_id: string | null
+          scope_of_work: string | null
+          sources: Json
+          subject_type: string | null
+          subject_unit: string | null
+        }
+        Insert: {
+          address: string
+          as_of?: string
+          bbl: string
+          bin: string
+          borough?: string | null
+          created_at?: string
+          data: Json
+          data_hash: string
+          id?: string
+          report_id?: string | null
+          scope_of_work?: string | null
+          sources?: Json
+          subject_type?: string | null
+          subject_unit?: string | null
+        }
+        Update: {
+          address?: string
+          as_of?: string
+          bbl?: string
+          bin?: string
+          borough?: string | null
+          created_at?: string
+          data?: Json
+          data_hash?: string
+          id?: string
+          report_id?: string | null
+          scope_of_work?: string | null
+          sources?: Json
+          subject_type?: string | null
+          subject_unit?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compliance_snapshots_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "dd_reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cross_sell_impressions: {
         Row: {
           clicked_at: string | null
@@ -382,6 +471,10 @@ export type Database = {
           complaints_data: Json | null
           created_at: string
           customer_concern: string | null
+          dep_fetched_at: string | null
+          dep_source: string | null
+          dof_fetched_at: string | null
+          dof_source: string | null
           general_notes: string | null
           generation_started_at: string | null
           id: string
@@ -395,15 +488,21 @@ export type Database = {
           prepared_for: string
           property_status_summary: string | null
           report_date: string
+          requested_by_role: string | null
           requested_delivery_date: string | null
           rush_requested: boolean | null
+          scope_of_work: string | null
           status: string
+          subject_type: string | null
+          subject_unit: string | null
           summary_edited_at: string | null
           summary_edited_by: string | null
+          summary_override: string | null
           tax_lien_data: Json | null
           updated_at: string
           user_id: string
           violations_data: Json | null
+          workflow_status: string | null
         }
         Insert: {
           acris_data?: Json | null
@@ -421,6 +520,10 @@ export type Database = {
           complaints_data?: Json | null
           created_at?: string
           customer_concern?: string | null
+          dep_fetched_at?: string | null
+          dep_source?: string | null
+          dof_fetched_at?: string | null
+          dof_source?: string | null
           general_notes?: string | null
           generation_started_at?: string | null
           id?: string
@@ -434,15 +537,21 @@ export type Database = {
           prepared_for?: string
           property_status_summary?: string | null
           report_date?: string
+          requested_by_role?: string | null
           requested_delivery_date?: string | null
           rush_requested?: boolean | null
+          scope_of_work?: string | null
           status?: string
+          subject_type?: string | null
+          subject_unit?: string | null
           summary_edited_at?: string | null
           summary_edited_by?: string | null
+          summary_override?: string | null
           tax_lien_data?: Json | null
           updated_at?: string
           user_id: string
           violations_data?: Json | null
+          workflow_status?: string | null
         }
         Update: {
           acris_data?: Json | null
@@ -460,6 +569,10 @@ export type Database = {
           complaints_data?: Json | null
           created_at?: string
           customer_concern?: string | null
+          dep_fetched_at?: string | null
+          dep_source?: string | null
+          dof_fetched_at?: string | null
+          dof_source?: string | null
           general_notes?: string | null
           generation_started_at?: string | null
           id?: string
@@ -473,15 +586,21 @@ export type Database = {
           prepared_for?: string
           property_status_summary?: string | null
           report_date?: string
+          requested_by_role?: string | null
           requested_delivery_date?: string | null
           rush_requested?: boolean | null
+          scope_of_work?: string | null
           status?: string
+          subject_type?: string | null
+          subject_unit?: string | null
           summary_edited_at?: string | null
           summary_edited_by?: string | null
+          summary_override?: string | null
           tax_lien_data?: Json | null
           updated_at?: string
           user_id?: string
           violations_data?: Json | null
+          workflow_status?: string | null
         }
         Relationships: []
       }
@@ -706,9 +825,60 @@ export type Database = {
           },
         ]
       }
+      line_item_notes: {
+        Row: {
+          agency: string | null
+          ai_confidence: number | null
+          created_at: string
+          id: string
+          impact_note: string | null
+          line_item_id: string
+          line_item_type: string
+          note_text: string | null
+          report_id: string
+          unit_relevance: string | null
+          updated_at: string
+        }
+        Insert: {
+          agency?: string | null
+          ai_confidence?: number | null
+          created_at?: string
+          id?: string
+          impact_note?: string | null
+          line_item_id: string
+          line_item_type: string
+          note_text?: string | null
+          report_id: string
+          unit_relevance?: string | null
+          updated_at?: string
+        }
+        Update: {
+          agency?: string | null
+          ai_confidence?: number | null
+          created_at?: string
+          id?: string
+          impact_note?: string | null
+          line_item_id?: string
+          line_item_type?: string
+          note_text?: string | null
+          report_id?: string
+          unit_relevance?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "line_item_notes_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "dd_reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       marketing_leads: {
         Row: {
           company: string | null
+          confirmation_status: string | null
           contacted_at: string | null
           converted_at: string | null
           converted_to_report_id: string | null
@@ -731,6 +901,7 @@ export type Database = {
         }
         Insert: {
           company?: string | null
+          confirmation_status?: string | null
           contacted_at?: string | null
           converted_at?: string | null
           converted_to_report_id?: string | null
@@ -753,6 +924,7 @@ export type Database = {
         }
         Update: {
           company?: string | null
+          confirmation_status?: string | null
           contacted_at?: string | null
           converted_at?: string | null
           converted_to_report_id?: string | null
@@ -1069,7 +1241,33 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      compliance_snapshot_latest: {
+        Row: {
+          address: string | null
+          as_of: string | null
+          bbl: string | null
+          bin: string | null
+          borough: string | null
+          created_at: string | null
+          data: Json | null
+          data_hash: string | null
+          id: string | null
+          report_id: string | null
+          scope_of_work: string | null
+          sources: Json | null
+          subject_type: string | null
+          subject_unit: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compliance_snapshots_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "dd_reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       check_rate_limit: {
