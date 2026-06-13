@@ -372,6 +372,8 @@ export type Database = {
           agencies_queried: Json | null
           ai_analysis: string | null
           applications_data: Json | null
+          approved_at: string | null
+          approved_by: string | null
           bbl: string | null
           bin: string | null
           building_data: Json | null
@@ -395,15 +397,22 @@ export type Database = {
           prepared_for: string
           property_status_summary: string | null
           report_date: string
+          requested_by_role: string | null
           requested_delivery_date: string | null
           rush_requested: boolean | null
+          scope_of_work: string | null
+          sent_at: string | null
+          sent_to_email: string | null
           status: string
+          subject_type: string
+          subject_unit: string | null
           summary_edited_at: string | null
           summary_edited_by: string | null
           tax_lien_data: Json | null
           updated_at: string
           user_id: string
           violations_data: Json | null
+          workflow_status: Database["public"]["Enums"]["dd_report_status"]
         }
         Insert: {
           acris_data?: Json | null
@@ -411,6 +420,8 @@ export type Database = {
           agencies_queried?: Json | null
           ai_analysis?: string | null
           applications_data?: Json | null
+          approved_at?: string | null
+          approved_by?: string | null
           bbl?: string | null
           bin?: string | null
           building_data?: Json | null
@@ -434,15 +445,22 @@ export type Database = {
           prepared_for?: string
           property_status_summary?: string | null
           report_date?: string
+          requested_by_role?: string | null
           requested_delivery_date?: string | null
           rush_requested?: boolean | null
+          scope_of_work?: string | null
+          sent_at?: string | null
+          sent_to_email?: string | null
           status?: string
+          subject_type?: string
+          subject_unit?: string | null
           summary_edited_at?: string | null
           summary_edited_by?: string | null
           tax_lien_data?: Json | null
           updated_at?: string
           user_id: string
           violations_data?: Json | null
+          workflow_status?: Database["public"]["Enums"]["dd_report_status"]
         }
         Update: {
           acris_data?: Json | null
@@ -450,6 +468,8 @@ export type Database = {
           agencies_queried?: Json | null
           ai_analysis?: string | null
           applications_data?: Json | null
+          approved_at?: string | null
+          approved_by?: string | null
           bbl?: string | null
           bin?: string | null
           building_data?: Json | null
@@ -473,15 +493,22 @@ export type Database = {
           prepared_for?: string
           property_status_summary?: string | null
           report_date?: string
+          requested_by_role?: string | null
           requested_delivery_date?: string | null
           rush_requested?: boolean | null
+          scope_of_work?: string | null
+          sent_at?: string | null
+          sent_to_email?: string | null
           status?: string
+          subject_type?: string
+          subject_unit?: string | null
           summary_edited_at?: string | null
           summary_edited_by?: string | null
           tax_lien_data?: Json | null
           updated_at?: string
           user_id?: string
           violations_data?: Json | null
+          workflow_status?: Database["public"]["Enums"]["dd_report_status"]
         }
         Relationships: []
       }
@@ -783,9 +810,58 @@ export type Database = {
           },
         ]
       }
+      email_log: {
+        Row: {
+          error: string | null
+          id: string
+          metadata: Json | null
+          recipient: string
+          report_id: string
+          resend_id: string | null
+          sent_at: string
+          sent_by: string | null
+          status: string
+          subject: string | null
+        }
+        Insert: {
+          error?: string | null
+          id?: string
+          metadata?: Json | null
+          recipient: string
+          report_id: string
+          resend_id?: string | null
+          sent_at?: string
+          sent_by?: string | null
+          status?: string
+          subject?: string | null
+        }
+        Update: {
+          error?: string | null
+          id?: string
+          metadata?: Json | null
+          recipient?: string
+          report_id?: string
+          resend_id?: string | null
+          sent_at?: string
+          sent_by?: string | null
+          status?: string
+          subject?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_log_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "dd_reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_leads: {
         Row: {
           address: string | null
+          approved_at: string | null
+          approved_by: string | null
           company: string | null
           concern: string | null
           converted: boolean | null
@@ -795,13 +871,22 @@ export type Database = {
           id: string
           last_name: string | null
           phone: string | null
+          rejection_reason: string | null
+          report_id: string | null
+          requested_by_role: string | null
           requested_delivery_date: string | null
           rush_requested: boolean | null
+          scope_of_work: string | null
+          status: string
           step_reached: number | null
+          subject_type: string | null
+          subject_unit: string | null
           updated_at: string
         }
         Insert: {
           address?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
           company?: string | null
           concern?: string | null
           converted?: boolean | null
@@ -811,13 +896,22 @@ export type Database = {
           id?: string
           last_name?: string | null
           phone?: string | null
+          rejection_reason?: string | null
+          report_id?: string | null
+          requested_by_role?: string | null
           requested_delivery_date?: string | null
           rush_requested?: boolean | null
+          scope_of_work?: string | null
+          status?: string
           step_reached?: number | null
+          subject_type?: string | null
+          subject_unit?: string | null
           updated_at?: string
         }
         Update: {
           address?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
           company?: string | null
           concern?: string | null
           converted?: boolean | null
@@ -827,12 +921,27 @@ export type Database = {
           id?: string
           last_name?: string | null
           phone?: string | null
+          rejection_reason?: string | null
+          report_id?: string | null
+          requested_by_role?: string | null
           requested_delivery_date?: string | null
           rush_requested?: boolean | null
+          scope_of_work?: string | null
+          status?: string
           step_reached?: number | null
+          subject_type?: string | null
+          subject_unit?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "order_leads_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "dd_reports"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -940,6 +1049,80 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "report_edits_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "dd_reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      report_documents: {
+        Row: {
+          agency: string
+          claimed_at: string | null
+          claimed_by: string | null
+          created_at: string
+          doc_ref: string | null
+          doc_type: string
+          fetched_at: string | null
+          fetched_by: string | null
+          file_path: string | null
+          file_size_bytes: number | null
+          id: string
+          mime_type: string | null
+          notes: string | null
+          priority: number
+          report_id: string
+          source_url: string | null
+          status: string
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          agency: string
+          claimed_at?: string | null
+          claimed_by?: string | null
+          created_at?: string
+          doc_ref?: string | null
+          doc_type: string
+          fetched_at?: string | null
+          fetched_by?: string | null
+          file_path?: string | null
+          file_size_bytes?: number | null
+          id?: string
+          mime_type?: string | null
+          notes?: string | null
+          priority?: number
+          report_id: string
+          source_url?: string | null
+          status?: string
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          agency?: string
+          claimed_at?: string | null
+          claimed_by?: string | null
+          created_at?: string
+          doc_ref?: string | null
+          doc_type?: string
+          fetched_at?: string | null
+          fetched_by?: string | null
+          file_path?: string | null
+          file_size_bytes?: number | null
+          id?: string
+          mime_type?: string | null
+          notes?: string | null
+          priority?: number
+          report_id?: string
+          source_url?: string | null
+          status?: string
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "report_documents_report_id_fkey"
             columns: ["report_id"]
             isOneToOne: false
             referencedRelation: "dd_reports"
@@ -1145,7 +1328,16 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "user"
+      app_role: "admin" | "analyst" | "sales" | "user"
+      dd_report_status:
+        | "lead_pending"
+        | "lead_approved"
+        | "data_fetching"
+        | "data_ready"
+        | "analyst_review"
+        | "analyst_approved"
+        | "sent"
+        | "delivered"
       edit_error_category:
         | "too_vague"
         | "wrong_severity"
@@ -1289,7 +1481,17 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "user"],
+      app_role: ["admin", "analyst", "sales", "user"],
+      dd_report_status: [
+        "lead_pending",
+        "lead_approved",
+        "data_fetching",
+        "data_ready",
+        "analyst_review",
+        "analyst_approved",
+        "sent",
+        "delivered",
+      ],
       edit_error_category: [
         "too_vague",
         "wrong_severity",

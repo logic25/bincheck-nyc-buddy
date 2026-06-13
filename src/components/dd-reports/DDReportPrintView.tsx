@@ -4,6 +4,14 @@ import { decodeComplaintCategory } from '@/lib/complaint-category-decoder';
 import { calculateComplianceScore } from '@/lib/scoring';
 import type { PropertyData } from '@/types/property';
 
+// ─── GLE firm constants (fallback when reviewer_name not on report) ──────────
+const GLE_REVIEWER_NAME = 'Emmanuel Russell';
+const GLE_FIRM_NAME = 'Green Light Expediting';
+const GLE_ADDRESS = '26 Broadway, 3rd Floor, New York, NY 10004';
+const GLE_PHONE = '718-392-1969';
+const GLE_FAX = '718-228-9112';
+const GLE_EMAIL = 'info@greenlightexpediting.com';
+
 interface UserProfile {
   email: string | null;
   display_name: string | null;
@@ -45,6 +53,11 @@ interface DDReportPrintViewProps {
     fdny_bfp_data?: any;
     external_links?: any;
     generated_at?: string | null;
+    // GLE / Step 4 fields
+    subject_type?: 'unit' | 'building';
+    subject_unit?: string | null;
+    scope_of_work?: string | null;
+    reviewer_name?: string | null;
   };
   userProfile?: UserProfile;
 }
@@ -108,6 +121,528 @@ const stripTag = (note: string): string => {
   return note.replace(/\[ACTION REQUIRED\]\s*/g, '').replace(/\[MONITOR\]\s*/g, '').trim();
 };
 
+// ─── GLE Section header style ───────────────────────────────────────────────
+const gleSectionHeaderStyle: React.CSSProperties = {
+  fontSize: '12px',
+  fontWeight: 700,
+  textTransform: 'uppercase' as const,
+  letterSpacing: '0.06em',
+  color: '#000000',
+  borderBottom: '1.5px solid #000000',
+  paddingBottom: '4px',
+  marginBottom: '12px',
+  marginTop: '24px',
+};
+
+const tableHeaderStyle = `border border-gray-300 px-2 py-2 text-[10px] font-semibold uppercase tracking-wider text-gray-700 bg-gray-50`;
+const tableCellStyle = `border border-gray-300 px-2 py-2 text-[11px] align-top text-gray-900`;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SECTION COMPONENTS
+// ═══════════════════════════════════════════════════════════════════════════
+
+// ── 1. GLE Letterhead ──────────────────────────────────────────────────────
+interface LetterheadProps {
+  reportId: string;
+  generatedAt?: string | null;
+  reportDate: string;
+}
+const GLELetterhead = ({ reportId, generatedAt, reportDate }: LetterheadProps) => (
+  <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+    {/* Firm name + brand */}
+    <div>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+        <span style={{ fontFamily: SERIF, fontSize: '20px', fontWeight: 700, color: '#2a7a2a', letterSpacing: '-0.01em' }}>GREEN LIGHT</span>
+        <span style={{ fontFamily: SERIF, fontSize: '20px', fontWeight: 400, color: '#5a5a5a', letterSpacing: '-0.01em' }}>EXPEDITING</span>
+      </div>
+      <p style={{ fontSize: '9px', fontWeight: 600, letterSpacing: '0.2em', color: '#5a5a5a', margin: '2px 0 8px', textTransform: 'uppercase' }}>Permit Expediting &amp; Consulting</p>
+      <p style={{ fontSize: '10px', color: MUTED, margin: 0 }}>{GLE_ADDRESS}</p>
+      <p style={{ fontSize: '10px', color: MUTED, margin: '1px 0' }}>
+        Tel: {GLE_PHONE} &nbsp;·&nbsp; Fax: {GLE_FAX}
+      </p>
+      <p style={{ fontSize: '10px', color: '#1e40af', margin: '1px 0' }}>{GLE_EMAIL}</p>
+    </div>
+    {/* Right-side brand + report meta */}
+    <div style={{ textAlign: 'right', fontSize: '10px', color: MUTED }}>
+      <p style={{ margin: 0, fontSize: '9px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', color: '#9ca3af' }}>Powered by</p>
+      <p style={{ margin: '2px 0 0', fontWeight: 700, fontSize: '12px', color: NAVY }}>BinCheck NYC</p>
+      <p style={{ margin: '6px 0 0', fontSize: '9px', color: '#9ca3af' }}>Report ID: <span style={{ fontFamily: 'monospace', color: '#374151', fontWeight: 600 }}>{reportId}</span></p>
+      <p style={{ margin: '2px 0 0', fontSize: '9px', color: '#9ca3af' }}>
+        Data as of {generatedAt ? format(new Date(generatedAt), "MMM d, yyyy 'at' h:mm a") : format(new Date(reportDate), 'MMM d, yyyy')}
+      </p>
+    </div>
+  </div>
+);
+
+// ── 2. Report Title ────────────────────────────────────────────────────────
+const GLEReportTitle = () => (
+  <h1 style={{ fontFamily: SERIF, fontSize: '22px', fontWeight: 700, color: '#111827', margin: '0 0 16px', letterSpacing: '-0.01em' }}>
+    Due Diligence Summary
+  </h1>
+);
+
+// ── 3. Property Header Block ───────────────────────────────────────────────
+interface PropertyHeaderProps {
+  address: string;
+  subjectUnit?: string | null;
+  bin: string | null;
+  reportDate: string;
+  preparedFor: string;
+  subjectType?: string;
+}
+const GLEPropertyHeader = ({ address, subjectUnit, bin, reportDate, preparedFor, subjectType }: PropertyHeaderProps) => {
+  const displayAddress = subjectType === 'unit' && subjectUnit
+    ? `${address}, Unit ${subjectUnit}`
+    : address;
+  return (
+    <div style={{ marginBottom: '20px', fontSize: '12px', lineHeight: '1.6', color: '#111827' }}>
+      <p style={{ margin: 0 }}>
+        <strong>Property:</strong> {displayAddress}
+      </p>
+      <p style={{ margin: 0 }}>
+        <strong>BIN:</strong> {bin || '—'}&nbsp;&nbsp;|&nbsp;&nbsp;
+        <strong>Date:</strong> {format(new Date(reportDate), 'MMMM d, yyyy')}
+      </p>
+      <p style={{ margin: 0 }}>
+        <strong>Prepared For:</strong> {preparedFor}
+      </p>
+    </div>
+  );
+};
+
+// ── 4. Overview Paragraph ─────────────────────────────────────────────────
+interface OverviewProps {
+  aiAnalysis?: string | null;
+  address: string;
+  subjectUnit?: string | null;
+  subjectType?: string;
+  scopeOfWork?: string | null;
+  dobViolationCount: number;
+  ecbViolationCount: number;
+  bisAppCount: number;
+  dobNowAppCount: number;
+  hasSWO: boolean;
+}
+const GLEOverview = ({
+  aiAnalysis,
+  address,
+  subjectUnit,
+  subjectType,
+  scopeOfWork,
+  dobViolationCount,
+  ecbViolationCount,
+  bisAppCount,
+  dobNowAppCount,
+  hasSWO,
+}: OverviewProps) => {
+  const unitRef = subjectType === 'unit' && subjectUnit ? `Unit ${subjectUnit} at ` : '';
+  const combinationRef = scopeOfWork && /combin/i.test(scopeOfWork) ? ` The review also identifies items that may impede future combination work.` : '';
+
+  const defaultOverview =
+    `This report analyzes Department of Buildings (DOB) records from the BIS and DOB NOW Build ` +
+    `systems for ${unitRef}${address}. The review identifies all violations, Stop Work Orders, ` +
+    `and open permits that may impact the ${subjectType === 'unit' && subjectUnit ? `unit` : 'building'} or impede future work.${combinationRef}`;
+
+  const overviewText = aiAnalysis
+    ? aiAnalysis.split('\n\n').find(p => p.length > 40 && p.length < 600) || defaultOverview
+    : defaultOverview;
+
+  return (
+    <section style={{ marginBottom: '20px', pageBreakInside: 'avoid' }}>
+      <h3 style={{ ...gleSectionHeaderStyle, marginTop: 0 }}>Overview</h3>
+      <p style={{ fontSize: '12px', lineHeight: '1.7', color: '#111827', margin: 0 }}>
+        {overviewText}
+      </p>
+    </section>
+  );
+};
+
+// ── 5. Building Status and Active Restrictions ────────────────────────────
+interface BuildingStatusProps {
+  orders: { stop_work?: any[]; partial_stop_work?: any[]; vacate?: any[] };
+  subjectUnit?: string | null;
+  subjectType?: string;
+  scopeOfWork?: string | null;
+  lineItemNotesMap: Record<string, any>;
+}
+const GLEBuildingStatus = ({ orders, subjectUnit, subjectType, scopeOfWork, lineItemNotesMap }: BuildingStatusProps) => {
+  const stopWork = orders.stop_work || [];
+  const partialSWO = orders.partial_stop_work || [];
+  const vacate = orders.vacate || [];
+  const allOrders = [...stopWork, ...partialSWO, ...vacate];
+
+  const unitLabel = subjectType === 'unit' && subjectUnit ? `Unit ${subjectUnit}` : 'the unit';
+  const hasCombination = scopeOfWork && /combin/i.test(scopeOfWork);
+
+  if (allOrders.length === 0) {
+    return (
+      <section style={{ marginBottom: '20px', pageBreakInside: 'avoid' }}>
+        <h3 style={gleSectionHeaderStyle}>Building Status and Active Restrictions</h3>
+        <p style={{ fontSize: '12px', color: '#374151', margin: 0 }}>
+          No active Stop Work Orders, Vacate Orders, or building-wide restrictions on file.
+        </p>
+      </section>
+    );
+  }
+
+  return (
+    <section style={{ marginBottom: '20px', pageBreakInside: 'avoid' }}>
+      <h3 style={gleSectionHeaderStyle}>Building Status and Active Restrictions</h3>
+      {partialSWO.map((order: any, idx: number) => (
+        <div key={`pswo-${idx}`} style={{ marginBottom: '12px' }}>
+          <p style={{ fontWeight: 700, fontSize: '12px', color: '#111827', margin: '0 0 4px' }}>Partial Stop Work Order</p>
+          <p style={{ fontSize: '12px', color: '#374151', margin: '0 0 4px' }}>
+            <strong>Issued:</strong> {formatShortDate(order.issued_date)}
+            {order.job_number ? ` &nbsp;Job: ${order.job_number}` : ''}
+            {order.granted_date ? ` &nbsp;Partial SWO Granted: ${formatShortDate(order.granted_date)}` : ''}
+          </p>
+          {order.description && (
+            <p style={{ fontSize: '12px', color: '#374151', margin: '0 0 4px' }}>
+              <strong>Scope:</strong> {order.description}
+            </p>
+          )}
+          <p style={{ fontSize: '12px', color: '#374151', margin: 0 }}>
+            <strong>Impact on {unitLabel}:</strong> {order.unit_impact || 'None'}
+            {hasCombination && (
+              <> &nbsp;&nbsp;<strong>Impact on Future Combination Work:</strong> {order.combination_impact || 'None - work permitted'}</>
+            )}
+          </p>
+        </div>
+      ))}
+      {stopWork.map((order: any, idx: number) => (
+        <div key={`swo-${idx}`} style={{ marginBottom: '12px', padding: '10px 14px', border: '1.5px solid #dc2626', backgroundColor: '#fef2f2', borderRadius: '4px' }}>
+          <p style={{ fontWeight: 700, fontSize: '12px', color: '#dc2626', margin: '0 0 4px' }}>
+            ⚠ Stop Work Order — {formatShortDate(order.issued_date)}
+          </p>
+          {order.description && (
+            <p style={{ fontSize: '12px', color: '#374151', margin: '0 0 4px' }}>{order.description}</p>
+          )}
+          <p style={{ fontSize: '12px', color: '#374151', margin: 0 }}>
+            <strong>Impact on {unitLabel}:</strong> Actively restricts construction; rescission required before any further work.
+            {hasCombination && (
+              <> &nbsp;&nbsp;<strong>Impact on Future Combination Work:</strong> Must be resolved before combination permit can proceed.</>
+            )}
+          </p>
+        </div>
+      ))}
+      {vacate.map((order: any, idx: number) => (
+        <div key={`vacate-${idx}`} style={{ marginBottom: '12px', padding: '10px 14px', border: '1.5px solid #dc2626', backgroundColor: '#fef2f2', borderRadius: '4px' }}>
+          <p style={{ fontWeight: 700, fontSize: '12px', color: '#dc2626', margin: '0 0 4px' }}>
+            ⚠ Vacate Order — {formatShortDate(order.issued_date)}
+          </p>
+          {order.description && (
+            <p style={{ fontSize: '12px', color: '#374151', margin: '0 0 4px' }}>{order.description}</p>
+          )}
+          <p style={{ fontSize: '12px', color: '#374151', margin: 0 }}>
+            <strong>Impact on {unitLabel}:</strong> Occupancy prohibited until DOB rescinds the order.
+          </p>
+        </div>
+      ))}
+    </section>
+  );
+};
+
+// ── 6 & 7. DOB / ECB Violations Sections ─────────────────────────────────
+interface ViolationsSectionProps {
+  violations: any[];
+  agency: 'DOB' | 'ECB';
+  subjectUnit?: string | null;
+  subjectType?: string;
+  lineItemNotesMap: Record<string, any>;
+}
+const GLEViolationsSection = ({ violations, agency, subjectUnit, subjectType, lineItemNotesMap }: ViolationsSectionProps) => {
+  const unitLabel = subjectType === 'unit' && subjectUnit ? `Unit ${subjectUnit}` : null;
+  const count = violations.length;
+
+  // Group by unit_relevance when unit-scoped
+  const affectsUnit = subjectType === 'unit'
+    ? violations.filter(v => {
+        const lin = lineItemNotesMap[v.id || v.violation_number];
+        return lin && lin.unit_relevance === 'affects_unit';
+      })
+    : [];
+  const otherUnit = subjectType === 'unit'
+    ? violations.filter(v => {
+        const lin = lineItemNotesMap[v.id || v.violation_number];
+        return lin && lin.unit_relevance === 'other_unit';
+      })
+    : [];
+
+  const getImpactNote = (v: any): string => {
+    const lin = lineItemNotesMap[v.id || v.violation_number];
+    if (lin?.impact_note) return lin.impact_note;
+    const legacyNote = lin?.note ? stripTag(lin.note) : '';
+    if (legacyNote) return legacyNote;
+    if (unitLabel) return `No impact on ${unitLabel}.`;
+    return '';
+  };
+
+  const renderViolationLine = (v: any, idx: number) => {
+    const impactNote = getImpactNote(v);
+    const violNum = v.violation_number || v.id || '—';
+    return (
+      <p key={idx} style={{ fontSize: '12px', color: '#111827', margin: '0 0 6px', lineHeight: '1.6', pageBreakInside: 'avoid' }}>
+        <span style={{ fontFamily: 'monospace', fontSize: '11px' }}>{violNum}</span>
+        {v.issued_date ? ` – Issued on ${formatShortDate(v.issued_date)}` : ''}
+        {(v.violation_type || v.description_raw) ? ` for ${(v.violation_type || v.description_raw || '').slice(0, 80)}` : ''}
+        {impactNote ? <>; <em>{impactNote}</em></> : null}
+      </p>
+    );
+  };
+
+  if (count === 0) {
+    return (
+      <section style={{ marginBottom: '20px', pageBreakInside: 'avoid' }}>
+        <h3 style={gleSectionHeaderStyle}>{agency} Violations – 0</h3>
+        <p style={{ fontSize: '12px', color: '#374151', margin: 0 }}>
+          {unitLabel ? `No ${agency} violations affect ${unitLabel}.` : `No ${agency} violations on file.`}
+        </p>
+      </section>
+    );
+  }
+
+  return (
+    <section style={{ marginBottom: '20px', pageBreakInside: 'avoid' }}>
+      <h3 style={gleSectionHeaderStyle}>{agency} Violations – {count}</h3>
+
+      {/* Unit-scoped grouping */}
+      {subjectType === 'unit' && affectsUnit.length > 0 && (
+        <div style={{ marginBottom: '12px' }}>
+          <p style={{ fontSize: '11px', fontWeight: 700, color: '#991b1b', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 6px' }}>
+            Affects {unitLabel} ({affectsUnit.length})
+          </p>
+          {affectsUnit.map(renderViolationLine)}
+        </div>
+      )}
+
+      {/* All violations (or remainder for unit-scoped) */}
+      {(subjectType !== 'unit' || (affectsUnit.length === 0 && otherUnit.length === 0)) && (
+        violations.map(renderViolationLine)
+      )}
+
+      {/* Unit-scoped: other units */}
+      {subjectType === 'unit' && (affectsUnit.length > 0 || otherUnit.length > 0) && (
+        <>
+          {/* Show remaining (non-affects_unit, non-other_unit) */}
+          {violations
+            .filter(v => {
+              const lin = lineItemNotesMap[v.id || v.violation_number];
+              return !lin || (lin.unit_relevance !== 'affects_unit' && lin.unit_relevance !== 'other_unit');
+            })
+            .map(renderViolationLine)}
+          {otherUnit.length > 0 && (
+            <div style={{ marginTop: '10px' }}>
+              <p style={{ fontSize: '11px', fontWeight: 600, color: MUTED, textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 6px' }}>
+                Other Units / Floors ({otherUnit.length})
+              </p>
+              {otherUnit.map(renderViolationLine)}
+            </div>
+          )}
+        </>
+      )}
+    </section>
+  );
+};
+
+// ── 8 & 9. Application Tables (BIS + DOB NOW) ─────────────────────────────
+interface AppTableProps {
+  apps: any[];
+  source: 'BIS' | 'DOB_NOW';
+  subjectUnit?: string | null;
+  subjectType?: string;
+  lineItemNotesMap: Record<string, any>;
+}
+const GLEApplicationsTable = ({ apps, source, subjectUnit, subjectType, lineItemNotesMap }: AppTableProps) => {
+  const title = source === 'BIS' ? 'Open BIS Applications' : 'DOB NOW Build Open Applications';
+  const unitLabel = subjectType === 'unit' && subjectUnit ? `Unit ${subjectUnit}` : null;
+  const count = apps.length;
+
+  const getImpactNote = (app: any): string => {
+    const appKey = `${source}-${app.id || app.application_number || ''}`;
+    const lin = lineItemNotesMap[app.application_number || app.id || ''] || lineItemNotesMap[appKey];
+    if (lin?.impact_note) return lin.impact_note;
+    const legacyNote = lin?.note ? stripTag(lin.note) : '';
+    if (legacyNote) return legacyNote;
+    if (unitLabel) return `No impact on ${unitLabel}.`;
+    return '—';
+  };
+
+  if (count === 0) {
+    return (
+      <section style={{ marginBottom: '20px', pageBreakInside: 'avoid' }}>
+        <h3 style={gleSectionHeaderStyle}>{title} – 0</h3>
+        <p style={{ fontSize: '12px', color: '#374151', margin: 0 }}>
+          {unitLabel ? `No open ${source === 'BIS' ? 'BIS' : 'DOB NOW Build'} applications affect ${unitLabel}.` : `No open applications on file.`}
+        </p>
+      </section>
+    );
+  }
+
+  const isCombinationScope = subjectUnit !== null && subjectUnit !== undefined;
+
+  return (
+    <section style={{ marginBottom: '20px', pageBreakInside: 'avoid' }}>
+      <h3 style={gleSectionHeaderStyle}>
+        {count} {title}
+        {unitLabel ? ` – None of these applications have anything to do or affect ${unitLabel}.` : ''}
+      </h3>
+      <table className="w-full border-collapse" style={{ fontSize: '11px' }}>
+        <thead>
+          <tr>
+            <th className={tableHeaderStyle} style={{ width: '14%' }}>Application #</th>
+            <th className={tableHeaderStyle} style={{ width: '10%' }}>Date Filed</th>
+            <th className={tableHeaderStyle} style={{ width: source === 'DOB_NOW' ? '12%' : '10%' }}>
+              {source === 'DOB_NOW' ? 'Floor/APT' : 'Floor'}
+            </th>
+            <th className={tableHeaderStyle} style={{ width: '34%' }}>Description</th>
+            <th className={tableHeaderStyle} style={{ width: '30%' }}>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          {apps.map((app: any, idx: number) => {
+            const impactNote = getImpactNote(app);
+            const floorVal = source === 'DOB_NOW'
+              ? [app.floor, app.apartment].filter(Boolean).join('/') || app.floor_apt || '—'
+              : app.floor || '—';
+            return (
+              <tr key={idx} style={{ backgroundColor: idx % 2 === 0 ? '#ffffff' : CARD_BG, pageBreakInside: 'avoid' }}>
+                <td className={`${tableCellStyle} font-mono`} style={{ fontSize: '10px' }}>
+                  {app.application_number || app.job_number || '—'}
+                </td>
+                <td className={tableCellStyle} style={{ whiteSpace: 'nowrap' }}>
+                  {formatShortDate(app.filing_date || app.issued_date)}
+                </td>
+                <td className={tableCellStyle}>{floorVal}</td>
+                <td className={tableCellStyle}>
+                  <div style={{ wordBreak: 'break-word' }}>
+                    {(app.job_description || app.description || '—').slice(0, 120)}
+                  </div>
+                </td>
+                <td className={tableCellStyle} style={{ color: '#1f2937' }}>
+                  <div style={{ wordBreak: 'break-word', lineHeight: '1.4' }}>{impactNote}</div>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </section>
+  );
+};
+
+// ── 10. Conclusion ────────────────────────────────────────────────────────
+interface ConclusionProps {
+  propertySummary?: string | null;
+  aiAnalysis?: string | null;
+  subjectUnit?: string | null;
+  subjectType?: string;
+  address: string;
+  dobViolationCount: number;
+  ecbViolationCount: number;
+  hasSWO: boolean;
+  hasVacate: boolean;
+  overrideReasons?: string[];
+}
+const GLEConclusion = ({
+  propertySummary,
+  aiAnalysis,
+  subjectUnit,
+  subjectType,
+  address,
+  dobViolationCount,
+  ecbViolationCount,
+  hasSWO,
+  hasVacate,
+  overrideReasons,
+}: ConclusionProps) => {
+  const unitLabel = subjectType === 'unit' && subjectUnit ? `Unit ${subjectUnit}` : null;
+  const subject = unitLabel || 'This building';
+
+  // Build default conclusion when no AI text
+  let defaultConclusion = '';
+  if (dobViolationCount === 0 && ecbViolationCount === 0 && !hasSWO && !hasVacate) {
+    defaultConclusion = `${subject} is clean from a DOB perspective. No violations, permits, or stop work orders affect this ${unitLabel ? 'unit' : 'building'}.`;
+  } else {
+    const parts: string[] = [];
+    if (hasSWO) parts.push('an active Stop Work Order');
+    if (hasVacate) parts.push('an active Vacate Order');
+    if (dobViolationCount > 0) parts.push(`${dobViolationCount} DOB violation${dobViolationCount !== 1 ? 's' : ''}`);
+    if (ecbViolationCount > 0) parts.push(`${ecbViolationCount} ECB violation${ecbViolationCount !== 1 ? 's' : ''}`);
+    defaultConclusion = `${subject} has ${parts.join(', ')} on record. Please review the above items and recommended actions carefully before proceeding.`;
+  }
+
+  // Prefer property_status_summary; fall back to a relevant paragraph from aiAnalysis; fall back to default
+  let conclusionText = propertySummary;
+  if (!conclusionText && aiAnalysis) {
+    const paragraphs = aiAnalysis.split('\n\n').filter(p => p.length > 40);
+    conclusionText = paragraphs[paragraphs.length - 1] || defaultConclusion;
+  }
+  if (!conclusionText) conclusionText = defaultConclusion;
+
+  return (
+    <section style={{ marginBottom: '24px', pageBreakInside: 'avoid' }}>
+      <h3 style={{ ...gleSectionHeaderStyle, textDecoration: 'underline' }}>CONCLUSION</h3>
+      <div style={{ fontSize: '12px', lineHeight: '1.7', color: '#111827' }}>
+        {conclusionText.split('\n\n').map((paragraph, i) => (
+          <p key={i} style={{ margin: '0 0 10px' }}>{paragraph}</p>
+        ))}
+        {overrideReasons && overrideReasons.length > 0 && (
+          <p style={{ margin: '0 0 10px', fontStyle: 'italic', color: '#7f1d1d' }}>
+            The headline risk score has been adjusted due to: {overrideReasons.join('; ')}.
+          </p>
+        )}
+      </div>
+    </section>
+  );
+};
+
+// ── 11. Signed By ─────────────────────────────────────────────────────────
+interface SignedByProps {
+  reviewerName?: string | null;
+}
+const GLESignedBy = ({ reviewerName }: SignedByProps) => {
+  const name = reviewerName || GLE_REVIEWER_NAME;
+  return (
+    <div style={{ marginTop: '28px', fontSize: '12px', color: '#111827', pageBreakInside: 'avoid' }}>
+      <p style={{ margin: '0 0 28px' }}>Sincerely,</p>
+      <p style={{ margin: 0, fontWeight: 600 }}>{name}</p>
+      <p style={{ margin: '2px 0 0', color: MUTED }}>{GLE_FIRM_NAME} / BinCheck NYC</p>
+    </div>
+  );
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SUPPORTING SECTIONS (preserved from original — compliance score, notes,
+// recommended actions, ACRIS, DOF, CO, FDNY, etc.)
+// ═══════════════════════════════════════════════════════════════════════════
+
+const getScoreBg = (score: number) => {
+  if (score >= 80) return { bg: '#ffffff', border: '#166534', text: '#166534', label: 'LOW RISK' };
+  if (score >= 50) return { bg: '#ffffff', border: '#b45309', text: '#b45309', label: 'MODERATE RISK' };
+  return { bg: '#ffffff', border: '#991b1b', text: '#991b1b', label: 'HIGH RISK' };
+};
+
+const rectLabel = (text: string, color: string): React.CSSProperties => ({
+  display: 'inline-block',
+  fontSize: '9px',
+  fontWeight: 700,
+  letterSpacing: '0.08em',
+  color,
+  border: `1.5px solid ${color}`,
+  padding: '3px 8px',
+  borderRadius: '3px',
+  textTransform: 'uppercase',
+  whiteSpace: 'nowrap',
+  backgroundColor: '#ffffff',
+});
+
+const renderSeverityBadge = (note: string) => {
+  const tag = getItemTag(note);
+  if (tag === 'action') return <span style={rectLabel('HIGH', '#991b1b')}>HIGH</span>;
+  if (tag === 'monitor') return <span style={rectLabel('MONITOR', '#b45309')}>MONITOR</span>;
+  return <span style={rectLabel('CLEAR', '#166534')}>CLEAR</span>;
+};
+
 // ─── Component ─────────────────────────────────────────────────────────────
 const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
   const violations = (report.violations_data || []).filter((v: any) => !v.hidden);
@@ -130,6 +665,23 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
   const reportId = generateReportId(report.report_date);
   const lineItemNotes = report.line_item_notes || [];
 
+  // Subject type / unit / scope — GLE shape fields
+  const subjectType = (report as any).subject_type || 'building';
+  const subjectUnit = (report as any).subject_unit || null;
+  const scopeOfWork = (report as any).scope_of_work || null;
+  const reviewerName = (report as any).reviewer_name || null;
+
+  // Build a map keyed by item_id for quick lookup (violations use violation_number, apps use app number)
+  const lineItemNotesMap: Record<string, any> = {};
+  lineItemNotes.forEach((n: any) => {
+    if (n.item_id) lineItemNotesMap[n.item_id] = n;
+    // Also key by composite for applications
+    if (n.item_type === 'application' && n.item_id) {
+      lineItemNotesMap[`${n.item_type}-${n.item_id}`] = n;
+    }
+  });
+
+  // Legacy per-item note lookup (note string only)
   const notesMap: Record<string, string> = {};
   lineItemNotes.forEach((n: any) => {
     notesMap[`${n.item_type}-${n.item_id}`] = n.note;
@@ -146,19 +698,14 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
   const bisApplications = applications.filter((a: any) => a.source === 'BIS');
   const dobNowApplications = applications.filter((a: any) => a.source === 'DOB_NOW');
 
+  const hasSWO = (orders.stop_work?.length || 0) > 0 || (orders.partial_stop_work?.length || 0) > 0;
+  const hasVacate = (orders.vacate?.length || 0) > 0;
+
   const closeoutTaggedCount = applications.filter((a: any) => {
     const status = (a.status || a.status_description || a.permit_status || '').toUpperCase();
     const closedStatuses = ['SIGNED OFF', 'SIGN-OFF', 'SIGNOFF', 'CLOSED', 'COMPLETED', 'COMPLETE', 'X', 'WITHDRAWN', 'DISAPPROVED'];
     return !closedStatuses.some(cs => status.includes(cs));
   }).length;
-
-  const buildPreparedByLine = () => {
-    const parts: string[] = [];
-    if (report.prepared_by) parts.push(report.prepared_by);
-    else if (userProfile?.display_name) parts.push(userProfile.display_name);
-    if (userProfile?.company_name) parts.push(userProfile.company_name);
-    return parts.join(' · ');
-  };
 
   const buildCredentialsLine = () => {
     const parts: string[] = [];
@@ -168,7 +715,6 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
     return parts.join(' | ');
   };
 
-  const preparedByLine = buildPreparedByLine();
   const credentialsLine = buildCredentialsLine();
 
   const cleanFloorApt = (floor: string | null | undefined, apt: string | null | undefined): string => {
@@ -268,8 +814,6 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
     })),
   };
 
-  // Derive property flags from orders + report-level fields so the headline
-  // risk score can be capped when severe conditions are present.
   const propertyFlags = {
     stop_work_order: (orders.stop_work?.length || 0) > 0 || (orders.partial_stop_work?.length || 0) > 0,
     vacate_order: (orders.vacate?.length || 0) > 0,
@@ -278,9 +822,6 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
     emergency_declaration: Boolean((report as any).flags?.emergency_declaration),
     compromised_structure: Boolean((report as any).flags?.compromised_structure),
     vacant_structure: Boolean((report as any).flags?.vacant_structure),
-    // Outstanding DOF charges (property tax / sidewalk / emergency repair) feed
-    // the headline score so it cannot read LOW RISK while a six-figure DOF
-    // balance sits unpaid.
     dof_outstanding: dofCharges?.totals?.outstanding || 0,
   };
 
@@ -300,10 +841,7 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
     }
   });
 
-  // Synthetic Recommended Actions fallbacks. If the per-line-item tagger missed
-  // the major liabilities (the bug behind the 1221 Fteley report shipping
-  // without a single recommended action), surface them here so the section
-  // never disappears when there is real money or critical orders on file.
+  // Synthetic Recommended Actions fallbacks
   const dofOutstandingForActions = dofCharges?.totals?.outstanding || 0;
   const totalEcbBalanceForActions = (propertyData.ecbViolations || [])
     .filter((v: any) => v.status?.toLowerCase() !== 'resolved' && v.status?.toLowerCase() !== 'closed')
@@ -338,7 +876,13 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
     });
   }
 
-  // ─── Styles ──────────────────────────────────────────────────────────────
+  // Score colors
+  const scoreStyle = getScoreBg(complianceScore.overall);
+
+  // Agency Sources
+  const aq: any[] = (report as any).agencies_queried || [];
+  const queriedAgencies = aq.filter((a: any) => a.queried);
+
   const sectionHeaderStyle: React.CSSProperties = {
     fontSize: '11px',
     fontWeight: 700,
@@ -350,45 +894,8 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
     marginBottom: '16px',
   };
 
-  const tableHeaderStyle = `border border-gray-200 px-2 py-2 text-[10px] font-semibold uppercase tracking-wider text-gray-700 bg-gray-50`;
-  const tableCellStyle = `border border-gray-200 px-2 py-2 text-[11px] align-top text-gray-900`;
-
-  // ─── Score colors ────────────────────────────────────────────────────────
-  const getScoreBg = (score: number) => {
-    if (score >= 80) return { bg: '#ffffff', border: '#166534', text: '#166534', label: 'LOW RISK' };
-    if (score >= 50) return { bg: '#ffffff', border: '#b45309', text: '#b45309', label: 'MODERATE RISK' };
-    return { bg: '#ffffff', border: '#991b1b', text: '#991b1b', label: 'HIGH RISK' };
-  };
-  const scoreStyle = getScoreBg(complianceScore.overall);
-
-  // ─── Bordered rectangle label (severity / risk) ──────────────────────────
-  const rectLabel = (text: string, color: string): React.CSSProperties => ({
-    display: 'inline-block',
-    fontSize: '9px',
-    fontWeight: 700,
-    letterSpacing: '0.08em',
-    color,
-    border: `1.5px solid ${color}`,
-    padding: '3px 8px',
-    borderRadius: '3px',
-    textTransform: 'uppercase',
-    whiteSpace: 'nowrap',
-    backgroundColor: '#ffffff',
-  });
-
-  const renderSeverityBadge = (note: string) => {
-    const tag = getItemTag(note);
-    if (tag === 'action') return <span style={rectLabel('HIGH', '#991b1b')}>HIGH</span>;
-    if (tag === 'monitor') return <span style={rectLabel('MONITOR', '#b45309')}>MONITOR</span>;
-    return <span style={rectLabel('CLEAR', '#166534')}>CLEAR</span>;
-  };
-
-  // ─── Agency Sources ──────────────────────────────────────────────────────
-  const aq: any[] = (report as any).agencies_queried || [];
-  const queriedAgencies = aq.filter((a: any) => a.queried);
-
-  // ─── Render helpers ──────────────────────────────────────────────────────
-  const renderViolationGroup = (agencyViolations: any[], agencyName: string) => {
+  // ─── Old-style render helpers (used by supplementary sections) ───────────
+  const renderViolationGroupLegacy = (agencyViolations: any[], agencyName: string) => {
     if (agencyViolations.length === 0) return null;
     return (
       <div className="mb-6" style={{ pageBreakInside: 'avoid' }}>
@@ -428,66 +935,6 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
                   <td className={tableCellStyle}>{v.severity || v.violation_class || '—'}</td>
                   <td className={tableCellStyle} style={{ whiteSpace: 'nowrap' }}>{formatShortDate(v.issued_date)}</td>
                   <td className={tableCellStyle}>{v.status}</td>
-                  <td className={tableCellStyle} style={{ color: '#1f2937' }}>
-                    <div style={{ wordBreak: 'break-word', lineHeight: '1.4' }}>{stripTag(note)}</div>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-    );
-  };
-
-  const renderApplicationsTable = (apps: any[], title: string) => {
-    if (apps.length === 0) return null;
-    const isBIS = title.includes('BIS');
-    return (
-      <div className="mb-6" style={{ pageBreakInside: 'avoid' }}>
-        <div className="flex items-center justify-between mb-2">
-          <h4 style={{ fontSize: '12px', fontWeight: 700, color: NAVY }}>{title}</h4>
-          <span style={{ fontSize: '10px', fontWeight: 500, color: '#6b7280', backgroundColor: CARD_BG, padding: '2px 8px', borderRadius: '3px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{apps.length} items</span>
-        </div>
-        <table className="w-full border-collapse">
-          <thead>
-            <tr>
-              <th className={tableHeaderStyle} style={{ width: '12%' }}>Application #</th>
-              <th className={tableHeaderStyle} style={{ width: '8%' }}>Type</th>
-              <th className={tableHeaderStyle} style={{ width: '8%' }}>Date Filed</th>
-              <th className={tableHeaderStyle} style={{ width: '7%' }}>Status</th>
-              <th className={tableHeaderStyle} style={{ width: isBIS ? '10%' : '12%' }}>{isBIS ? 'Filing Professional' : 'Applicant'}</th>
-              <th className={tableHeaderStyle} style={{ width: '25%' }}>Description</th>
-              <th className={tableHeaderStyle} style={{ width: '30%' }}>Notes</th>
-            </tr>
-          </thead>
-          <tbody>
-            {apps.map((app: any, idx: number) => {
-              const appKey = `${app.source || 'BIS'}-${app.id || app.application_number || idx}`;
-              const applicantName = isBIS
-                ? (app.filing_professional_name || '—')
-                : (app.applicant_name || [app.applicant_first_name, app.applicant_last_name].filter(Boolean).join(' ') || '—');
-              const note = getNote('application', appKey);
-              return (
-                <tr key={idx} style={{ backgroundColor: idx % 2 === 0 ? '#ffffff' : CARD_BG, pageBreakInside: 'avoid' }}>
-                  <td className={`${tableCellStyle} font-mono`} style={{ fontSize: '10px' }}>
-                    {app.application_number || app.job_number}
-                    {(() => {
-                      const status = (app.status || app.status_description || app.permit_status || '').toUpperCase();
-                      const closedStatuses = ['SIGNED OFF', 'SIGN-OFF', 'SIGNOFF', 'CLOSED', 'COMPLETED', 'COMPLETE', 'X', 'WITHDRAWN', 'DISAPPROVED'];
-                      const isOpen = !closedStatuses.some(cs => status.includes(cs));
-                      return isOpen ? <span style={{ marginLeft: '4px', fontSize: '8px', fontWeight: 700, color: '#065f46', backgroundColor: '#d1fae5', padding: '1px 3px', borderRadius: '3px' }}>CO</span> : null;
-                    })()}
-                  </td>
-                  <td className={tableCellStyle}>{app.application_type || app.work_type || '—'}</td>
-                  <td className={tableCellStyle} style={{ whiteSpace: 'nowrap' }}>{formatShortDate(app.filing_date || app.issued_date)}</td>
-                  <td className={tableCellStyle}>
-                    <span style={{ fontSize: '10px' }}>{app.status_description || app.permit_status || app.status || '—'}</span>
-                  </td>
-                  <td className={tableCellStyle} style={{ fontSize: '10px' }}>{applicantName}</td>
-                  <td className={tableCellStyle}>
-                    <div style={{ wordBreak: 'break-word' }}>{(app.job_description || '—').slice(0, 120)}</div>
-                  </td>
                   <td className={tableCellStyle} style={{ color: '#1f2937' }}>
                     <div style={{ wordBreak: 'break-word', lineHeight: '1.4' }}>{stripTag(note)}</div>
                   </td>
@@ -542,7 +989,7 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
         @page { margin: 0.6in 0.5in 0.8in; }
         @media print {
           @page {
-            @bottom-left { content: "BinCheckNYC · Report ${reportId}"; font-family: Inter, sans-serif; font-size: 9px; color: #6b7280; }
+            @bottom-left { content: "BinCheck by Green Light Expediting · Report ${reportId}"; font-family: Inter, sans-serif; font-size: 9px; color: #6b7280; }
             @bottom-right { content: "Page " counter(page) " of " counter(pages); font-family: Inter, sans-serif; font-size: 9px; color: #6b7280; }
           }
           .print-footer { display: none !important; }
@@ -551,53 +998,32 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
       `}</style>
 
       {/* ═══════════════════════════════════════════════════════════════════════
-          PAGE 1: EXECUTIVE DASHBOARD
+          GLE SHAPE — PAGE 1: LETTERHEAD + TITLE + PROPERTY + OVERVIEW + STATUS + VIOLATIONS + APPS + CONCLUSION
           ═══════════════════════════════════════════════════════════════════ */}
 
-      {/* Header */}
-      <div style={{ borderBottom: `2px solid ${NAVY}`, paddingBottom: '14px', marginBottom: '20px' }}>
-        <div className="flex items-end justify-between">
-          <div>
-            <h1 style={{ fontFamily: SERIF, fontSize: '28px', fontWeight: 400, color: '#111827', letterSpacing: '-0.005em', margin: 0, lineHeight: 1.1 }}>BinCheckNYC Report</h1>
-            <p style={{ fontSize: '11px', color: MUTED, marginTop: '6px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em' }}>Property Compliance Assessment</p>
-          </div>
-          <div style={{ textAlign: 'right', fontSize: '11px', color: MUTED }}>
-            <p style={{ margin: 0 }}>Report ID: <span className="font-mono" style={{ fontWeight: 600, color: '#111827' }}>{reportId}</span></p>
-            <p style={{ margin: '2px 0 0' }}>Issued: {format(new Date(report.report_date), 'MMM d, yyyy')}</p>
-          </div>
-        </div>
+      {/* 1. Letterhead */}
+      <GLELetterhead
+        reportId={reportId}
+        generatedAt={report.generated_at}
+        reportDate={report.report_date}
+      />
 
-        {/* Confidentiality + data currency line */}
-        <div style={{ marginTop: '10px', display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: MUTED }}>
-          <span style={{ fontStyle: 'italic' }}>Confidential — prepared for named recipient only.</span>
-          <span>Data current as of {report.generated_at ? format(new Date(report.generated_at), "MMM d, yyyy 'at' h:mm a") : format(new Date(report.report_date), 'MMM d, yyyy')}</span>
-        </div>
+      <hr style={{ border: 'none', borderTop: '1px solid #d1d5db', margin: '0 0 20px' }} />
 
-        {/* Subject Property + Prepared By */}
-        <div style={{ marginTop: '18px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '24px' }}>
-          <div style={{ flex: 1 }}>
-            <p style={{ fontFamily: SERIF, fontSize: '24px', fontWeight: 700, color: '#111827', margin: 0, lineHeight: 1.2 }}>{report.address}</p>
-            <p style={{ fontSize: '11px', color: MUTED, margin: '6px 0 0' }}>
-              BIN: <span className="font-mono" style={{ fontWeight: 600, color: '#111827' }}>{report.bin || '—'}</span>
-              <span style={{ margin: '0 10px', color: '#d1d5db' }}>|</span>
-              BBL: <span className="font-mono" style={{ fontWeight: 600, color: '#111827' }}>{formatBBL(report.bbl)}</span>
-            </p>
-          </div>
-          <div style={{ textAlign: 'right', minWidth: '260px' }}>
-            <p style={{ fontSize: '9px', color: MUTED, textTransform: 'uppercase', letterSpacing: '0.16em', margin: 0, fontWeight: 600 }}>Prepared for</p>
-            <p style={{ fontSize: '12px', fontWeight: 600, margin: '2px 0 0' }}>{report.prepared_for}</p>
-            {preparedByLine && (
-              <>
-                <p style={{ fontSize: '9px', color: MUTED, textTransform: 'uppercase', letterSpacing: '0.16em', margin: '10px 0 0', fontWeight: 600 }}>Prepared by</p>
-                <p style={{ fontSize: '12px', fontWeight: 600, margin: '2px 0 0' }}>{preparedByLine}</p>
-              </>
-            )}
-          </div>
-        </div>
-      </div>
+      {/* 2. Title */}
+      <GLEReportTitle />
 
+      {/* 3. Property Header */}
+      <GLEPropertyHeader
+        address={report.address}
+        subjectUnit={subjectUnit}
+        bin={report.bin}
+        reportDate={report.report_date}
+        preparedFor={report.prepared_for}
+        subjectType={subjectType}
+      />
 
-      {/* Property Status Banners — Vacate / SWO / Unsafe / Closure / Emergency / Compromised / Vacant */}
+      {/* Property Status Banners — critical alerts */}
       {(propertyFlags.vacate_order || propertyFlags.stop_work_order || propertyFlags.unsafe_building || propertyFlags.closure_order || propertyFlags.emergency_declaration || propertyFlags.compromised_structure || propertyFlags.vacant_structure) && (
         <div style={{ marginBottom: '20px', pageBreakInside: 'avoid' }}>
           {[
@@ -623,41 +1049,64 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
         </div>
       )}
 
-      {/* Compliance Risk Score — Hero Card */}
+      {/* 4. Overview */}
+      <GLEOverview
+        aiAnalysis={report.ai_analysis}
+        address={report.address}
+        subjectUnit={subjectUnit}
+        subjectType={subjectType}
+        scopeOfWork={scopeOfWork}
+        dobViolationCount={dobViolations.length}
+        ecbViolationCount={ecbViolations.length}
+        bisAppCount={bisApplications.length}
+        dobNowAppCount={dobNowApplications.length}
+        hasSWO={hasSWO}
+      />
+
+      {/* 5. Building Status and Active Restrictions */}
+      <GLEBuildingStatus
+        orders={orders}
+        subjectUnit={subjectUnit}
+        subjectType={subjectType}
+        scopeOfWork={scopeOfWork}
+        lineItemNotesMap={lineItemNotesMap}
+      />
+
+      {/* Compliance Risk Score — retained for quantitative analysis */}
       <div style={{
         backgroundColor: CARD_BG,
         border: `1px solid ${BORDER}`,
-        borderRadius: '12px',
-        padding: '24px 28px',
-        marginBottom: '12px',
+        borderRadius: '8px',
+        padding: '16px 20px',
+        marginBottom: '20px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        gap: '24px',
+        gap: '20px',
+        pageBreakInside: 'avoid',
       }}>
-        <div style={{ minWidth: '180px' }}>
+        <div style={{ minWidth: '160px' }}>
           <p style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.18em', color: MUTED, margin: 0 }}>Compliance Score</p>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', marginTop: '6px' }}>
-            <span style={{ fontFamily: SERIF, fontSize: '72px', fontWeight: 400, color: scoreStyle.text, lineHeight: 1 }}>{complianceScore.overall}</span>
-            <span style={{ fontFamily: SERIF, fontSize: '22px', fontWeight: 400, color: MUTED }}>/100</span>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginTop: '4px' }}>
+            <span style={{ fontFamily: SERIF, fontSize: '52px', fontWeight: 400, color: scoreStyle.text, lineHeight: 1 }}>{complianceScore.overall}</span>
+            <span style={{ fontFamily: SERIF, fontSize: '16px', fontWeight: 400, color: MUTED }}>/100</span>
           </div>
-          <div style={{ marginTop: '12px' }}>
+          <div style={{ marginTop: '8px' }}>
             <span style={rectLabel(scoreStyle.label, scoreStyle.text)}>{scoreStyle.label}</span>
           </div>
         </div>
-        {/* Category breakdown */}
         <div style={{ display: 'flex', flex: 1, justifyContent: 'flex-end', alignItems: 'stretch' }}>
           {complianceScore.categories.map((cat, i) => {
             const catColor = getScoreBg(cat.score);
             return (
               <div key={cat.category} style={{
                 textAlign: 'center',
-                padding: '0 22px',
+                padding: '0 16px',
                 borderLeft: i === 0 ? 'none' : `1px solid ${BORDER}`,
-                minWidth: '90px',
+                minWidth: '80px',
               }}>
                 <p style={{ fontSize: '9px', fontWeight: 700, color: MUTED, textTransform: 'uppercase', letterSpacing: '0.14em', margin: 0 }}>{cat.category}</p>
-                <p style={{ fontFamily: SERIF, fontSize: '28px', fontWeight: 400, color: catColor.text, margin: '6px 0 0', lineHeight: 1 }}>{cat.score}</p>
+                <p style={{ fontFamily: SERIF, fontSize: '22px', fontWeight: 400, color: catColor.text, margin: '4px 0 0', lineHeight: 1 }}>{cat.score}</p>
                 <p style={{ fontSize: '9px', color: MUTED, margin: '2px 0 0' }}>/100</p>
               </div>
             );
@@ -665,8 +1114,8 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
         </div>
       </div>
 
-      {/* One-line summary (replaces 4 stat tiles) */}
-      <p style={{ fontSize: '11px', color: MUTED, margin: '0 0 24px', paddingLeft: '4px' }}>
+      {/* Summary stats line */}
+      <p style={{ fontSize: '11px', color: MUTED, margin: '0 0 20px', paddingLeft: '4px' }}>
         {violations.length} open violation{violations.length !== 1 ? 's' : ''}
         {` · `}{applications.length} active application{applications.length !== 1 ? 's' : ''}
         {` · `}{orders.stop_work?.length || 0} stop-work order{(orders.stop_work?.length || 0) !== 1 ? 's' : ''}
@@ -676,14 +1125,14 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
 
       {/* Key Findings + Items to Monitor */}
       {(actionItems.length > 0 || monitorItems.length > 0) && (
-        <div style={{ marginBottom: '24px', display: 'flex', gap: '16px' }}>
+        <div style={{ marginBottom: '20px', display: 'flex', gap: '16px' }}>
           {actionItems.length > 0 && (
             <div style={{
               flex: 1,
               backgroundColor: CARD_BG,
               border: `1px solid ${BORDER}`,
               borderRadius: '8px',
-              padding: '16px 20px',
+              padding: '14px 18px',
             }}>
               <p style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.16em', color: NAVY, margin: '0 0 10px' }}>Key Findings</p>
               {actionItems.map((item, i) => {
@@ -702,7 +1151,7 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
               backgroundColor: CARD_BG,
               border: `1px solid ${BORDER}`,
               borderRadius: '8px',
-              padding: '16px 20px',
+              padding: '14px 18px',
             }}>
               <p style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.16em', color: NAVY, margin: '0 0 10px' }}>Items to Monitor</p>
               {monitorItems.map((item, i) => {
@@ -718,11 +1167,9 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
         </div>
       )}
 
-
-
       {/* ECB Penalties callout */}
       {totalEcbPenalties > 0 && (
-        <div style={{ textAlign: 'center', padding: '8px', backgroundColor: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', marginBottom: '24px' }}>
+        <div style={{ textAlign: 'center', padding: '8px', backgroundColor: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', marginBottom: '20px' }}>
           <span style={{ fontSize: '12px', fontWeight: 600, color: '#dc2626' }}>
             ECB Penalties Outstanding: {formatCurrency(totalEcbPenalties)}
           </span>
@@ -736,221 +1183,70 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
         const waterOnly = liens.filter((l: any) => l.water_debt_only).length;
         const taxMixed = liens.length - waterOnly;
         return (
-        <div style={{ padding: '12px 16px', backgroundColor: '#fef2f2', border: '2px solid #dc2626', borderRadius: '8px', marginBottom: '24px', pageBreakInside: 'avoid' }}>
-          <p style={{ fontSize: '12px', fontWeight: 700, color: '#dc2626', margin: '0 0 4px' }}>⚠ Tax Lien Sale — Property Flagged</p>
-          <p style={{ fontSize: '11px', color: '#7f1d1d', margin: 0, lineHeight: '1.5' }}>
-            This property appears on the NYC DOF Tax Lien Sale List with {liens.length} record{liens.length !== 1 ? 's' : ''}
-            {waterOnly > 0 && taxMixed > 0 ? ` (${waterOnly} water/sewer·only, ${taxMixed} tax+water/other)` : waterOnly > 0 ? ` (${waterOnly} water/sewer debt only)` : ''}.
-            Verify current status directly with DOF before proceeding.
-          </p>
-        </div>
+          <div style={{ padding: '12px 16px', backgroundColor: '#fef2f2', border: '2px solid #dc2626', borderRadius: '8px', marginBottom: '20px', pageBreakInside: 'avoid' }}>
+            <p style={{ fontSize: '12px', fontWeight: 700, color: '#dc2626', margin: '0 0 4px' }}>⚠ Tax Lien Sale — Property Flagged</p>
+            <p style={{ fontSize: '11px', color: '#7f1d1d', margin: 0, lineHeight: '1.5' }}>
+              This property appears on the NYC DOF Tax Lien Sale List with {liens.length} record{liens.length !== 1 ? 's' : ''}
+              {waterOnly > 0 && taxMixed > 0 ? ` (${waterOnly} water/sewer·only, ${taxMixed} tax+water/other)` : waterOnly > 0 ? ` (${waterOnly} water/sewer debt only)` : ''}.
+              Verify current status directly with DOF before proceeding.
+            </p>
+          </div>
         );
       })()}
 
-      {/* Sources Checked */}
-      {queriedAgencies.length > 0 && (
-        <div style={{ marginBottom: '24px' }}>
-          <p style={{ fontSize: '10px', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '8px' }}>Sources Checked</p>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-            {queriedAgencies.map((a: any) => {
-              const isError = a.error && a.results === 0;
-              const hasData = a.results > 0;
-              return (
-                <span
-                  key={a.agency}
-                  style={{
-                    display: 'inline-block',
-                    fontSize: '10px',
-                    fontWeight: 700,
-                    letterSpacing: '0.06em',
-                    padding: '3px 10px',
-                    borderRadius: '3px',
-                    ...(hasData
-                      ? { backgroundColor: NAVY, color: '#ffffff' }
-                      : isError
-                        ? { backgroundColor: '#fefce8', color: '#92400e', border: '1px solid #fde68a' }
-                        : { backgroundColor: '#ffffff', color: '#6b7280', border: `1px solid ${BORDER}` }
-                    ),
-                  }}
-                >
-                  {a.agency}{hasData ? ` (${a.results})` : isError ? ' ⚠' : ' ✓'}
-                </span>
-              );
-            })}
-          </div>
-          {queriedAgencies.filter((a: any) => a.error && a.results === 0).length > 0 && (
-            <p style={{ fontSize: '10px', color: '#92400e', marginTop: '6px' }}>
-              ⚠ {queriedAgencies.filter((a: any) => a.error && a.results === 0).length} source(s) returned errors — data may be incomplete.
-            </p>
-          )}
-        </div>
-      )}
-
       {/* Scope of Review */}
-      {(report as any).customer_concern && (
-        <div style={{ padding: '12px 16px', backgroundColor: CARD_BG, border: `1px solid ${BORDER}`, borderRadius: '8px', marginBottom: '24px' }}>
+      {report.customer_concern && (
+        <div style={{ padding: '12px 16px', backgroundColor: CARD_BG, border: `1px solid ${BORDER}`, borderRadius: '8px', marginBottom: '20px' }}>
           <p style={{ fontSize: '10px', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.1em', margin: '0 0 4px', fontWeight: 600 }}>Scope of Review</p>
-          <p style={{ fontSize: '12px', color: '#374151', fontStyle: 'italic', margin: 0 }}>"{(report as any).customer_concern}"</p>
+          <p style={{ fontSize: '12px', color: '#374151', fontStyle: 'italic', margin: 0 }}>"{report.customer_concern}"</p>
         </div>
       )}
 
       {/* ═══════════════════════════════════════════════════════════════════════
-          PAGE 2+: DATA SECTIONS
+          PAGE 2+: GLE VIOLATION + APPLICATION SECTIONS
           ═══════════════════════════════════════════════════════════════════ */}
-
-      {/* Force page break after executive dashboard */}
       <div style={{ pageBreakBefore: 'always' }} />
 
-      {/* Property Overview Card */}
-      <section style={{ marginBottom: '32px' }}>
-        <h3 style={sectionHeaderStyle}>Property Overview</h3>
-        <div style={{
-          backgroundColor: CARD_BG,
-          border: `1px solid ${BORDER}`,
-          borderRadius: '8px',
-          padding: '20px',
-        }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '12px 24px', fontSize: '12px' }}>
-            {[
-              ['Year Built', building.year_built || '—'],
-              ['Stories', building.stories || '—'],
-              ['Units', building.dwelling_units ?? '—'],
-              ['Class', building.building_class || '—'],
-              ['Zoning', building.zoning_district || '—'],
-              ['Bldg Area', building.building_area_sqft ? `${building.building_area_sqft.toLocaleString()} sf` : '—'],
-              ['Lot Area', building.lot_area_sqft ? `${building.lot_area_sqft.toLocaleString()} sf` : '—'],
-              ['Land Use', building.land_use || '—'],
-              ['Assessed Value', building.assessed_total_value ? formatCurrency(building.assessed_total_value) : '—'],
-              ['Landmark', building.is_landmark ? 'Yes' : building.historic_district ? `Historic — ${building.historic_district}` : 'No'],
-            ].map(([label, value], i) => (
-              <div key={i} style={{ marginBottom: '4px' }}>
-                <span style={{ fontSize: '10px', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</span>
-                <p style={{ fontSize: '12px', fontWeight: 600, color: '#111827', margin: '2px 0 0' }}>{value}</p>
-              </div>
-            ))}
-          </div>
-          {building.owner_name && (
-            <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: `1px solid ${BORDER}` }}>
-              <span style={{ fontSize: '10px', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Owner</span>
-              <p style={{ fontSize: '12px', fontWeight: 600, color: '#111827', margin: '2px 0 0' }}>{building.owner_name}</p>
-            </div>
-          )}
-          {(externalLinks.co_lookup || externalLinks.tax_map || externalLinks.dof_account || externalLinks.acris_bbl || externalLinks.bis_property || externalLinks.acris_search || externalLinks.dep_portal || externalLinks.fdny_business_portal) && (
-            <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: `1px solid ${BORDER}` }}>
-              <span style={{ fontSize: '10px', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Agency Lookups</span>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '6px' }}>
-                {externalLinks.co_lookup && (
-                  <a href={externalLinks.co_lookup} target="_blank" rel="noreferrer" style={{ fontSize: '10px', color: NAVY, border: `1px solid ${NAVY}`, padding: '4px 8px', borderRadius: '4px', textDecoration: 'none', fontWeight: 600 }}>DOB BIS · Certificates of Occupancy</a>
-                )}
-                {externalLinks.bis_property && (
-                  <a href={externalLinks.bis_property} target="_blank" rel="noreferrer" style={{ fontSize: '10px', color: NAVY, border: `1px solid ${NAVY}`, padding: '4px 8px', borderRadius: '4px', textDecoration: 'none', fontWeight: 600 }}>DOB BIS · Property Profile</a>
-                )}
-                {externalLinks.tax_map && (
-                  <a href={externalLinks.tax_map} target="_blank" rel="noreferrer" style={{ fontSize: '10px', color: NAVY, border: `1px solid ${NAVY}`, padding: '4px 8px', borderRadius: '4px', textDecoration: 'none', fontWeight: 600 }}>DOF · Digital Tax Map</a>
-                )}
-                {externalLinks.dof_account && (
-                  <a href={externalLinks.dof_account} target="_blank" rel="noreferrer" style={{ fontSize: '10px', color: NAVY, border: `1px solid ${NAVY}`, padding: '4px 8px', borderRadius: '4px', textDecoration: 'none', fontWeight: 600 }}>DOF · Property Tax Account</a>
-                )}
-                {externalLinks.acris_bbl && (
-                  <a href={externalLinks.acris_bbl} target="_blank" rel="noreferrer" style={{ fontSize: '10px', color: NAVY, border: `1px solid ${NAVY}`, padding: '4px 8px', borderRadius: '4px', textDecoration: 'none', fontWeight: 600 }}>ACRIS · Recorded Documents</a>
-                )}
-                {externalLinks.acris_search && (
-                  <a href={externalLinks.acris_search} target="_blank" rel="noreferrer" style={{ fontSize: '10px', color: NAVY, border: `1px solid ${NAVY}`, padding: '4px 8px', borderRadius: '4px', textDecoration: 'none', fontWeight: 600 }}>ACRIS · Document Search</a>
-                )}
-                {externalLinks.dep_portal && (
-                  <a href={externalLinks.dep_portal} target="_blank" rel="noreferrer" style={{ fontSize: '10px', color: NAVY, border: `1px solid ${NAVY}`, padding: '4px 8px', borderRadius: '4px', textDecoration: 'none', fontWeight: 600 }}>DEP · Water/Sewer Portal</a>
-                )}
-                {externalLinks.fdny_business_portal && (
-                  <a href={externalLinks.fdny_business_portal} target="_blank" rel="noreferrer" style={{ fontSize: '10px', color: NAVY, border: `1px solid ${NAVY}`, padding: '4px 8px', borderRadius: '4px', textDecoration: 'none', fontWeight: 600 }}>FDNY Business · Permits/COFs</a>
-                )}
-              </div>
-            </div>
-          )}
+      {/* 6. DOB Violations */}
+      <GLEViolationsSection
+        violations={dobViolations}
+        agency="DOB"
+        subjectUnit={subjectUnit}
+        subjectType={subjectType}
+        lineItemNotesMap={lineItemNotesMap}
+      />
+
+      {/* 7. ECB Violations */}
+      <GLEViolationsSection
+        violations={ecbViolations}
+        agency="ECB"
+        subjectUnit={subjectUnit}
+        subjectType={subjectType}
+        lineItemNotesMap={lineItemNotesMap}
+      />
+
+      {/* HPD + FDNY violations — detailed table view (legacy format, supplementary) */}
+      {(hpdViolations.length > 0 || fdnyViolations.length > 0 || otherOathViolations.length > 0) && (
+        <section style={{ marginBottom: '28px' }}>
+          <h3 style={sectionHeaderStyle}>Additional Violations ({hpdViolations.length + fdnyViolations.length + otherOathViolations.length})</h3>
+          {renderViolationGroupLegacy(hpdViolations, 'HPD')}
+          {renderViolationGroupLegacy(fdnyViolations, 'FDNY')}
+          {renderViolationGroupLegacy(otherOathViolations, 'Other Agency (OATH)')}
+        </section>
+      )}
+
+      {architectTaggedCount > 0 && (
+        <div style={{ marginTop: '8px', padding: '12px 16px', border: '1px solid #bfdbfe', backgroundColor: '#eff6ff', borderRadius: '8px', pageBreakInside: 'avoid', marginBottom: '20px' }}>
+          <p style={{ fontSize: '12px', fontWeight: 600, color: '#1e40af', margin: '0 0 4px' }}>Architect Certification Typically Involved</p>
+          <p style={{ fontSize: '11px', color: '#374151', lineHeight: '1.6', margin: 0 }}>
+            {architectTaggedCount} open violation{architectTaggedCount !== 1 ? 's' : ''} (marked <span style={{ fontWeight: 700, color: '#1e40af', backgroundColor: '#dbeafe', padding: '1px 4px', borderRadius: '3px', fontSize: '9px' }}>RA</span>) {architectTaggedCount !== 1 ? 'are' : 'is'} of a type where DOB has historically accepted or required a licensed architect's certification letter as part of the dismissal process.
+          </p>
         </div>
-      </section>
-
-      {/* Conclusion */}
-      {report.property_status_summary && (
-        <section style={{ marginBottom: '32px', pageBreakInside: 'avoid' }}>
-          <h3 style={sectionHeaderStyle}>Conclusion</h3>
-          <div style={{ fontSize: '12px', lineHeight: '1.7', color: '#111827' }}>
-            {report.property_status_summary.split('\n\n').map((paragraph, i) => (
-              <p key={i} style={{ margin: '0 0 12px' }}>{paragraph}</p>
-            ))}
-            {complianceScore.overrideReasons && complianceScore.overrideReasons.length > 0 && (
-              <p style={{ margin: '0 0 12px', fontStyle: 'italic', color: '#7f1d1d' }}>
-                The headline risk score has been capped due to: {complianceScore.overrideReasons.join('; ')}.
-              </p>
-            )}
-          </div>
-          <div style={{ marginTop: '20px', paddingTop: '12px', borderTop: `1px solid ${BORDER}` }}>
-            <p style={{ fontSize: '9px', fontWeight: 700, color: MUTED, textTransform: 'uppercase', letterSpacing: '0.16em', margin: 0 }}>
-              Data Sources: NYC DOB · ECB / OATH · HPD · FDNY · DOF · ACRIS
-            </p>
-            <p style={{ fontSize: '10px', color: MUTED, margin: '4px 0 0' }}>
-              Prepared from NYC public records on {report.generated_at ? formatShortDate(report.generated_at) : formatShortDate(report.report_date)}.
-            </p>
-            {report.generated_at && (
-              <p style={{ fontSize: '10px', color: MUTED, margin: '4px 0 0' }}>
-                Data current as of {formatShortDate(report.generated_at)}.
-              </p>
-            )}
-          </div>
-        </section>
       )}
-
-      {/* Critical Orders */}
-      {(orders.stop_work?.length > 0 || orders.vacate?.length > 0 || orders.partial_stop_work?.length > 0) && (
-        <section style={{ marginBottom: '32px', pageBreakInside: 'avoid' }}>
-          <h3 style={{ ...sectionHeaderStyle, color: '#dc2626', borderBottomColor: '#dc2626' }}>⚠ Active Orders</h3>
-          {orders.stop_work?.map((order: any, idx: number) => (
-            <div key={`swo-${idx}`} style={{ padding: '12px 16px', marginBottom: '8px', border: '1px solid #fecaca', backgroundColor: '#fef2f2', borderRadius: '8px' }}>
-              <p style={{ fontWeight: 600, fontSize: '12px', color: '#dc2626', margin: '0 0 4px' }}>Stop Work Order — {formatShortDate(order.issued_date)}</p>
-              <p style={{ fontSize: '11px', color: '#374151', margin: 0 }}>{order.description || 'No description available'}</p>
-            </div>
-          ))}
-          {orders.partial_stop_work?.map((order: any, idx: number) => (
-            <div key={`pswo-${idx}`} style={{ padding: '12px 16px', marginBottom: '8px', border: '1px solid #fed7aa', backgroundColor: '#fff7ed', borderRadius: '8px' }}>
-              <p style={{ fontWeight: 600, fontSize: '12px', color: '#c2410c', margin: '0 0 4px' }}>Partial Stop Work Order — {formatShortDate(order.issued_date)}</p>
-              <p style={{ fontSize: '11px', color: '#374151', margin: 0 }}>{order.description || 'No description available'}</p>
-            </div>
-          ))}
-          {orders.vacate?.map((order: any, idx: number) => (
-            <div key={`vacate-${idx}`} style={{ padding: '12px 16px', marginBottom: '8px', border: '1px solid #fecaca', backgroundColor: '#fef2f2', borderRadius: '8px' }}>
-              <p style={{ fontWeight: 600, fontSize: '12px', color: '#dc2626', margin: '0 0 4px' }}>Vacate Order — {formatShortDate(order.issued_date)}</p>
-              <p style={{ fontSize: '11px', color: '#374151', margin: 0 }}>{order.description || 'No description available'}</p>
-            </div>
-          ))}
-        </section>
-      )}
-
-      {/* Violations by Agency */}
-      <section style={{ marginBottom: '32px' }}>
-        <h3 style={sectionHeaderStyle}>Open Violations ({violations.length})</h3>
-        {violations.length === 0 ? (
-          <p style={{ fontSize: '12px', color: '#374151', fontStyle: 'italic' }}>No open violations found across all agencies queried.</p>
-        ) : (
-          <>
-            {renderViolationGroup(dobViolations, 'DOB')}
-            {renderViolationGroup(ecbViolations, 'ECB')}
-            {renderViolationGroup(hpdViolations, 'HPD')}
-            {renderViolationGroup(fdnyViolations, 'FDNY')}
-            {renderViolationGroup(otherOathViolations, 'Other Agency (OATH)')}
-          </>
-        )}
-        {architectTaggedCount > 0 && (
-          <div style={{ marginTop: '16px', padding: '12px 16px', border: '1px solid #bfdbfe', backgroundColor: '#eff6ff', borderRadius: '8px', pageBreakInside: 'avoid' }}>
-            <p style={{ fontSize: '12px', fontWeight: 600, color: '#1e40af', margin: '0 0 4px' }}>Architect Certification Typically Involved</p>
-            <p style={{ fontSize: '11px', color: '#374151', lineHeight: '1.6', margin: 0 }}>
-              {architectTaggedCount} open violation{architectTaggedCount !== 1 ? 's' : ''} (marked <span style={{ fontWeight: 700, color: '#1e40af', backgroundColor: '#dbeafe', padding: '1px 4px', borderRadius: '3px', fontSize: '9px' }}>RA</span>) {architectTaggedCount !== 1 ? 'are' : 'is'} of a type where DOB has historically accepted or required a licensed architect's certification letter as part of the dismissal process. BinCheckNYC can coordinate architect opinion letters through our professional network.
-            </p>
-          </div>
-        )}
-      </section>
 
       {/* Recommended Actions */}
       {actionItems.length > 0 && (
-        <section style={{ marginBottom: '32px', pageBreakInside: 'avoid' }}>
+        <section style={{ marginBottom: '28px', pageBreakInside: 'avoid' }}>
           <h3 style={sectionHeaderStyle}>Recommended Actions</h3>
           <div style={{ backgroundColor: CARD_BG, border: `1px solid ${BORDER}`, borderRadius: '8px', padding: '20px' }}>
             <ol style={{ margin: 0, paddingLeft: '20px' }}>
@@ -970,26 +1266,32 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
       {/* DOB Complaints */}
       {renderComplaintsTable()}
 
-      {/* Applications */}
-      <section style={{ marginBottom: '32px' }}>
-        <h3 style={sectionHeaderStyle}>Permit Applications ({applications.length})</h3>
-        {applications.length === 0 ? (
-          <p style={{ fontSize: '12px', color: '#374151', fontStyle: 'italic' }}>No applications found.</p>
-        ) : (
-          <>
-            {renderApplicationsTable(bisApplications, 'BIS Applications')}
-            {renderApplicationsTable(dobNowApplications, 'DOB NOW Build Applications')}
-          </>
-        )}
-        {closeoutTaggedCount > 0 && (
-          <div style={{ marginTop: '16px', padding: '12px 16px', border: '1px solid #a7f3d0', backgroundColor: '#ecfdf5', borderRadius: '8px', pageBreakInside: 'avoid' }}>
-            <p style={{ fontSize: '12px', fontWeight: 600, color: '#065f46', margin: '0 0 4px' }}>Permit Closeout May Be Required</p>
-            <p style={{ fontSize: '11px', color: '#374151', lineHeight: '1.6', margin: 0 }}>
-              {closeoutTaggedCount} application{closeoutTaggedCount !== 1 ? 's' : ''} (marked <span style={{ fontWeight: 700, color: '#065f46', backgroundColor: '#d1fae5', padding: '1px 4px', borderRadius: '3px', fontSize: '9px' }}>CO</span>) {closeoutTaggedCount !== 1 ? 'are' : 'is'} still open and may need to be formally closed out with DOB. Open permits can affect property transfers and new filings. Green Light Expediting can manage the closeout process on your behalf.
-            </p>
-          </div>
-        )}
-      </section>
+      {/* 8. Open BIS Applications table */}
+      <GLEApplicationsTable
+        apps={bisApplications}
+        source="BIS"
+        subjectUnit={subjectUnit}
+        subjectType={subjectType}
+        lineItemNotesMap={lineItemNotesMap}
+      />
+
+      {/* 9. DOB NOW Build Open Applications table */}
+      <GLEApplicationsTable
+        apps={dobNowApplications}
+        source="DOB_NOW"
+        subjectUnit={subjectUnit}
+        subjectType={subjectType}
+        lineItemNotesMap={lineItemNotesMap}
+      />
+
+      {closeoutTaggedCount > 0 && (
+        <div style={{ marginTop: '8px', padding: '12px 16px', border: '1px solid #a7f3d0', backgroundColor: '#ecfdf5', borderRadius: '8px', pageBreakInside: 'avoid', marginBottom: '20px' }}>
+          <p style={{ fontSize: '12px', fontWeight: 600, color: '#065f46', margin: '0 0 4px' }}>Permit Closeout May Be Required</p>
+          <p style={{ fontSize: '11px', color: '#374151', lineHeight: '1.6', margin: 0 }}>
+            {closeoutTaggedCount} application{closeoutTaggedCount !== 1 ? 's' : ''} {closeoutTaggedCount !== 1 ? 'are' : 'is'} still open and may need to be formally closed out with DOB. Open permits can affect property transfers and new filings. Green Light Expediting can manage the closeout process on your behalf.
+          </p>
+        </div>
+      )}
 
       {/* ACRIS - Property Transfer & Lien History */}
       <section style={{ marginBottom: '32px', pageBreakInside: 'avoid' }}>
@@ -1120,7 +1422,7 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
             </>
           )}
           <p style={{ fontSize: '10px', color: '#6b7280', marginTop: '6px', fontStyle: 'italic' }}>
-            Source: NYC Department of Finance · Outstanding Charges (scjx-j6np). Includes property tax, sidewalk assessment (SAC/SAF), and emergency repair (EMR) charges. Verify current balance at the DOF Property Tax Account portal.
+            Source: NYC Department of Finance · Outstanding Charges (scjx-j6np). Includes property tax, sidewalk assessment (SAC/SAF), and emergency repair (EMR) charges.
           </p>
         </section>
       )}
@@ -1183,7 +1485,7 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
             </table>
           )}
           <p style={{ fontSize: '10px', color: '#6b7280', marginTop: '6px', fontStyle: 'italic' }}>
-            Source: NYC Department of Buildings · Certificates of Occupancy (bs8b-p36w). PDFs served by DOB BIS.
+            Source: NYC Department of Buildings · Certificates of Occupancy (bs8b-p36w).
           </p>
         </section>
       )}
@@ -1229,7 +1531,7 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
             </p>
           )}
           <p style={{ fontSize: '10px', color: '#6b7280', marginTop: '6px', fontStyle: 'italic' }}>
-            Source: NYC Department of Buildings · Fuel-Burning Equipment registrations (f4rp-2kvy). Boilers, oil burners, and other combustion devices.
+            Source: NYC Department of Buildings · Fuel-Burning Equipment registrations (f4rp-2kvy).
           </p>
         </section>
       )}
@@ -1276,7 +1578,7 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
             </p>
           )}
           <p style={{ fontSize: '10px', color: '#6b7280', marginTop: '6px', fontStyle: 'italic' }}>
-            Source: NYC Department of Transportation · Sidewalk Violations (6kbp-uz6m). Defective sidewalk flags trigger DOF assessment (SAC/SAF) liens if not cured.
+            Source: NYC Department of Transportation · Sidewalk Violations (6kbp-uz6m).
           </p>
         </section>
       )}
@@ -1354,7 +1656,7 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
             </>
           )}
           <p style={{ fontSize: '10px', color: '#6b7280', marginTop: '6px', fontStyle: 'italic' }}>
-            Source: NYC Housing Preservation & Development · Open Market Orders (mdbu-nrqn) + Handyman Work Orders (sbnd-xujn). HPD emergency repair work billed back to the property as a tax lien.
+            Source: NYC Housing Preservation &amp; Development · Open Market Orders (mdbu-nrqn) + Handyman Work Orders (sbnd-xujn).
           </p>
         </section>
       )}
@@ -1395,12 +1697,12 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
             </table>
           )}
           <p style={{ fontSize: '10px', color: '#6b7280', marginTop: '6px', fontStyle: 'italic' }}>
-            Source: NYC Fire Department · Bureau of Fire Prevention Violations (avgm-ztsb). Additional fuel-oil and certificate-of-fitness records require FDNY Business Portal lookup.
+            Source: NYC Fire Department · Bureau of Fire Prevention Violations (avgm-ztsb).
           </p>
         </section>
       )}
 
-      {/* FDNY Building Vacate Orders (Coverage Exceed v2) */}
+      {/* FDNY Building Vacate Orders */}
       {fdnyVacate && fdnyVacate.total > 0 && (
         <section style={{ marginBottom: '32px', pageBreakInside: 'avoid' }}>
           <h3 style={sectionHeaderStyle}>FDNY Building Vacate Orders</h3>
@@ -1440,17 +1742,17 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
             </tbody>
           </table>
           <p style={{ fontSize: '10px', color: '#6b7280', marginTop: '6px', fontStyle: 'italic' }}>
-            Source: NYC Fire Department · Building Vacate List (n5xc-7jfa). Status is inferred from the order description — verify lift status directly with FDNY Bureau of Fire Prevention.
+            Source: NYC Fire Department · Building Vacate List (n5xc-7jfa).
           </p>
         </section>
       )}
 
-      {/* FDNY Bureau of Fire Prevention — Archive (Coverage Exceed v2) */}
+      {/* FDNY Bureau of Fire Prevention — Archive */}
       {fdnyBfp && fdnyBfp.total > 0 && (
         <section style={{ marginBottom: '32px', pageBreakInside: 'avoid' }}>
           <h3 style={sectionHeaderStyle}>FDNY Bureau of Fire Prevention — Archive Orders</h3>
           <p style={{ fontSize: '11px', color: '#374151', marginBottom: '8px' }}>
-            {fdnyBfp.total} archive record{fdnyBfp.total !== 1 ? 's' : ''} from the historical BFP Active Violation Orders dataset (decommissioned 2024-03-14). Cross-reference with current FDNY violations above.
+            {fdnyBfp.total} archive record{fdnyBfp.total !== 1 ? 's' : ''} from the historical BFP Active Violation Orders dataset (decommissioned 2024-03-14).
           </p>
           <table className="w-full border-collapse">
             <thead>
@@ -1493,19 +1795,75 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
         </section>
       )}
 
+      {/* Sources Checked */}
+      {queriedAgencies.length > 0 && (
+        <div style={{ marginBottom: '24px' }}>
+          <p style={{ fontSize: '10px', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '8px' }}>Sources Checked</p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+            {queriedAgencies.map((a: any) => {
+              const isError = a.error && a.results === 0;
+              const hasData = a.results > 0;
+              return (
+                <span
+                  key={a.agency}
+                  style={{
+                    display: 'inline-block',
+                    fontSize: '10px',
+                    fontWeight: 700,
+                    letterSpacing: '0.06em',
+                    padding: '3px 10px',
+                    borderRadius: '3px',
+                    ...(hasData
+                      ? { backgroundColor: NAVY, color: '#ffffff' }
+                      : isError
+                        ? { backgroundColor: '#fefce8', color: '#92400e', border: '1px solid #fde68a' }
+                        : { backgroundColor: '#ffffff', color: '#6b7280', border: `1px solid ${BORDER}` }
+                    ),
+                  }}
+                >
+                  {a.agency}{hasData ? ` (${a.results})` : isError ? ' ⚠' : ' ✓'}
+                </span>
+              );
+            })}
+          </div>
+          {queriedAgencies.filter((a: any) => a.error && a.results === 0).length > 0 && (
+            <p style={{ fontSize: '10px', color: '#92400e', marginTop: '6px' }}>
+              ⚠ {queriedAgencies.filter((a: any) => a.error && a.results === 0).length} source(s) returned errors — data may be incomplete.
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* 10. Conclusion */}
+      <GLEConclusion
+        propertySummary={report.property_status_summary}
+        aiAnalysis={report.ai_analysis}
+        subjectUnit={subjectUnit}
+        subjectType={subjectType}
+        address={report.address}
+        dobViolationCount={dobViolations.length}
+        ecbViolationCount={ecbViolations.length}
+        hasSWO={hasSWO}
+        hasVacate={hasVacate}
+        overrideReasons={complianceScore.overrideReasons}
+      />
+
+      {/* 11. Signed By */}
+      <GLESignedBy reviewerName={reviewerName} />
+
       {/* Footer — Disclaimer + Copyright */}
       <footer style={{ marginTop: '40px', paddingTop: '20px', borderTop: `2px solid ${NAVY}`, pageBreakInside: 'avoid' }}>
         <p style={{ fontSize: '10px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.15em', color: '#9ca3af', marginBottom: '8px', textAlign: 'center' }}>Disclaimer</p>
         <p style={{ fontSize: '10px', color: '#6b7280', textAlign: 'justify', lineHeight: '1.7' }}>
           This report is prepared in connection with real estate due diligence using information derived from
           publicly available municipal records which may contain errors, omissions, or delays.
-          BinCheckNYC{userProfile?.company_name ? ` and ${userProfile.company_name}` : ''} make no warranties
+          BinCheck by Green Light Expediting{userProfile?.company_name ? ` and ${userProfile.company_name}` : ''} makes no warranties
           regarding the accuracy or completeness of underlying government data. All findings should be
           independently verified with the relevant city agencies prior to reliance in any transaction.
         </p>
         <div style={{ textAlign: 'center', marginTop: '16px', paddingTop: '12px', borderTop: '1px solid #e5e7eb' }}>
           <p style={{ fontSize: '11px', fontWeight: 600, color: '#9ca3af' }}>
-            © {new Date().getFullYear()} BinCheckNYC{userProfile?.company_name ? ` · ${userProfile.company_name}` : ''}
+            © {new Date().getFullYear()} BinCheck by Green Light Expediting{userProfile?.company_name ? ` · ${userProfile.company_name}` : ''}
           </p>
           <p style={{ fontSize: '10px', color: '#9ca3af', marginTop: '2px' }}>Proprietary analysis · All rights reserved</p>
         </div>
@@ -1513,12 +1871,12 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
         {/* Additional Services */}
         <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid #e5e7eb' }}>
           <p style={{ fontSize: '10px', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.15em', color: '#9ca3af', marginBottom: '12px', textAlign: 'center' }}>Additional Services</p>
-          
+
           {report.citisignal_recommended && (
             <div style={{ marginBottom: '10px', padding: '12px 16px', borderRadius: '8px', border: `1px solid ${BORDER}`, pageBreakInside: 'avoid' }}>
               <p style={{ fontSize: '11px', fontWeight: 600, color: '#6b7280', margin: '0 0 4px' }}>Ongoing Compliance Monitoring</p>
               <p style={{ fontSize: '10px', color: '#9ca3af', lineHeight: '1.6', margin: 0 }}>
-                This property has {violations.length} active violation{violations.length !== 1 ? 's' : ''} and {applications.length} open application{applications.length !== 1 ? 's' : ''} across multiple agencies. CitiSignal by BinCheckNYC provides real-time monitoring, AI-powered compliance scoring, and alerts for new filings.
+                This property has {violations.length} active violation{violations.length !== 1 ? 's' : ''} and {applications.length} open application{applications.length !== 1 ? 's' : ''} across multiple agencies. CitiSignal by BinCheck NYC provides real-time monitoring, AI-powered compliance scoring, and alerts for new filings.
                 Learn more at <span style={{ fontWeight: 600 }}>citisignal.com</span>
               </p>
             </div>
