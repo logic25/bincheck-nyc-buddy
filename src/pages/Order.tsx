@@ -395,26 +395,27 @@ const Order = () => {
               <p className="text-xs text-muted-foreground">Enter a complete NYC address including borough</p>
             </div>
 
-            {/* Subject + requester framing — drives per-item AI notes (PR #24) */}
-            <SubjectAndRequesterBlock value={subject} onChange={setSubject} />
-
-            <div className="space-y-2">
-              <Label>Anything else we should flag? <span className="text-muted-foreground">(Optional)</span></Label>
-              <Textarea
-                placeholder="e.g. Closing in 6 weeks, lender requires clean DOB record, prior owner has open ECB at adjacent BBL…"
-                value={concern}
-                onChange={(e) => setConcern(e.target.value)}
-                rows={3}
-                className="resize-none"
-              />
-              <p className="text-xs text-muted-foreground">Background context for the analyst review on top of the report scope above.</p>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Preferred Delivery Date <span className="text-muted-foreground">(Optional)</span></Label>
-              <Input type="date" min={MIN_DATE} value={deliveryDate} onChange={(e) => setDeliveryDate(e.target.value)} />
-              <p className="text-xs text-muted-foreground">Typical turnaround is 24–48 business hours without rush</p>
-            </div>
+            {/* Subject + requester framing — drives per-item AI notes (PR #24).
+                Optional fields (scope, role, freeform notes) collapse under
+                one disclosure to keep the order form short. */}
+            <SubjectAndRequesterBlock
+              value={subject}
+              onChange={setSubject}
+              collapseOptional
+              extraOptional={
+                <div className="space-y-2">
+                  <Label>Anything else we should flag? <span className="text-muted-foreground">(Optional)</span></Label>
+                  <Textarea
+                    placeholder="e.g. Closing in 6 weeks, lender requires clean DOB record, prior owner has open ECB at adjacent BBL…"
+                    value={concern}
+                    onChange={(e) => setConcern(e.target.value)}
+                    rows={3}
+                    className="resize-none"
+                  />
+                  <p className="text-xs text-muted-foreground">Background context for the analyst review on top of the report scope above.</p>
+                </div>
+              }
+            />
 
             <Button className="w-full" onClick={() => setStep(2)} disabled={!step1Valid}>
               Continue to Contact Info <ArrowRight className="h-4 w-4 ml-1" />
