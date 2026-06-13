@@ -170,7 +170,7 @@ const Index = () => {
               ) : (
                 <>
                   <a href="#coverage" className="hidden sm:inline-block px-3 py-2 text-sm text-white/70 hover:text-white">Coverage</a>
-                  <a href="#sample" className="hidden sm:inline-block px-3 py-2 text-sm text-white/70 hover:text-white">Sample report</a>
+                  <a href="#sample" className="hidden sm:inline-block px-3 py-2 text-sm text-white/70 hover:text-white">Sample</a>
                   <a href="#pricing" className="hidden sm:inline-block px-3 py-2 text-sm text-white/70 hover:text-white">Pricing</a>
                   <Button variant="ghost" size="sm" onClick={() => navigate("/auth")} className="text-white/70 hover:text-white hover:bg-white/10">Log in</Button>
                   <Button size="sm" onClick={() => navigate("/order")} className="bg-[#e63946] hover:bg-[#d62b39] text-white font-semibold">
