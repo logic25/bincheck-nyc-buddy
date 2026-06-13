@@ -118,7 +118,31 @@ const stripTag = (note: string): string => {
   return note.replace(/\[ACTION REQUIRED\]\s*/g, '').replace(/\[MONITOR\]\s*/g, '').trim();
 };
 
-// ─── GLE Section header style ───────────────────────────────────────────────
+// ── 1. BinCheck Letterhead ─────────────────────────────────────────────────
+interface LetterheadProps {
+  reportId: string;
+  generatedAt?: string | null;
+  reportDate: string;
+}
+const GLELetterhead = ({ reportId, generatedAt, reportDate }: LetterheadProps) => (
+  <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+    <div>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
+        <span style={{ fontFamily: SERIF, fontSize: '22px', fontWeight: 700, color: NAVY, letterSpacing: '-0.01em' }}>BinCheck</span>
+        <span style={{ fontFamily: SERIF, fontSize: '22px', fontWeight: 700, color: '#dc2626', letterSpacing: '-0.01em' }}>NYC</span>
+      </div>
+      <p style={{ fontSize: '9px', fontWeight: 600, letterSpacing: '0.2em', color: '#5a5a5a', margin: '2px 0 8px', textTransform: 'uppercase' }}>NYC Property Due Diligence</p>
+      <p style={{ fontSize: '10px', color: '#1e40af', margin: '1px 0' }}>{BINCHECK_EMAIL}</p>
+    </div>
+    <div style={{ textAlign: 'right', fontSize: '10px', color: MUTED }}>
+      <p style={{ margin: 0, fontSize: '9px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', color: '#9ca3af' }}>Report ID</p>
+      <p style={{ margin: '2px 0 0', fontFamily: 'monospace', color: '#374151', fontWeight: 700, fontSize: '12px' }}>{reportId}</p>
+      <p style={{ margin: '6px 0 0', fontSize: '9px', color: '#9ca3af' }}>
+        Data as of {generatedAt ? format(new Date(generatedAt), "MMM d, yyyy 'at' h:mm a") : format(new Date(reportDate), 'MMM d, yyyy')}
+      </p>
+    </div>
+  </div>
+);
 const gleSectionHeaderStyle: React.CSSProperties = {
   fontSize: '12px',
   fontWeight: 700,
