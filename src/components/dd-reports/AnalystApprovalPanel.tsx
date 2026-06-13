@@ -29,9 +29,18 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { CheckCircle2, RefreshCw, Send, ShieldCheck } from 'lucide-react';
-import type { Database } from '@/integrations/supabase/types';
 
-type WorkflowStatus = Database['public']['Enums']['dd_report_status'];
+// Inline mirror of the public.dd_report_status enum (20260614030000_workflow_status.sql).
+// Kept local because the generated Supabase types file hasn't picked up the new enum yet.
+type WorkflowStatus =
+  | 'lead_pending'
+  | 'lead_approved'
+  | 'data_fetching'
+  | 'data_ready'
+  | 'analyst_review'
+  | 'analyst_approved'
+  | 'sent'
+  | 'delivered';
 
 interface AnalystApprovalPanelProps {
   reportId: string;
