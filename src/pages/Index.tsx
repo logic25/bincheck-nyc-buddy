@@ -552,20 +552,20 @@ const Index = () => {
             </section>
 
             {/* Pricing */}
-            <section className="border-t border-border/40 py-16 px-4">
+            <section id="pricing" className="border-t border-border/40 py-16 px-4">
               <div className="container max-w-4xl">
                 <h2 className="font-display text-2xl font-bold text-center mb-3">Simple, transparent pricing</h2>
-                <p className="text-muted-foreground text-center mb-10 text-sm">Cheaper than 30 minutes of paralegal time. Faster than any manual search.</p>
+                <p className="text-muted-foreground text-center mb-10 text-sm">One price. No subscription required. Volume plans for firms running 5+ reports a month.</p>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   {/* One-Time */}
                   <div className="p-6 rounded-lg border border-border bg-card space-y-5">
                     <div>
                       <p className="text-sm font-medium text-muted-foreground">One-Time Report</p>
-                      <p className="font-display text-4xl font-extrabold mt-1">$499</p>
-                      <p className="text-xs text-muted-foreground mt-1">Flat price · no rush fee</p>
+                      <p className="font-display text-4xl font-extrabold mt-1">$199</p>
+                      <p className="text-xs text-muted-foreground mt-1">Flat price · Rush +$75</p>
                     </div>
                     <ul className="space-y-2 text-sm">
-                      {["8-agency violation search", "Analyst-reviewed line-item notes", "Attorney-ready PDF", "24–48 hr delivery", "One-time purchase, no subscription"].map(f => (
+                      {["8-agency violation search", "Analyst-reviewed line-item notes", "Closing-file PDF", "24–48 hr delivery", "One-time purchase, no subscription"].map(f => (
                         <li key={f} className="flex items-center gap-2">
                           <CheckCircle className="h-3.5 w-3.5 text-primary shrink-0" />
                           <span className="text-muted-foreground">{f}</span>
@@ -582,11 +582,11 @@ const Index = () => {
                     </div>
                     <div>
                       <p className="text-sm font-medium text-muted-foreground">Professional</p>
-                      <p className="font-display text-4xl font-extrabold mt-1">$2,499<span className="text-lg font-normal text-muted-foreground">/mo</span></p>
-                      <p className="text-xs text-muted-foreground mt-1">10 reports · $249/report effective</p>
+                      <p className="font-display text-4xl font-extrabold mt-1">$599<span className="text-lg font-normal text-muted-foreground">/mo</span></p>
+                      <p className="text-xs text-muted-foreground mt-1">5 reports · $120/report effective</p>
                     </div>
                     <ul className="space-y-2 text-sm">
-                      {["8-agency violation search", "Analyst-reviewed line-item notes", "Attorney-ready PDF", "Priority processing queue", "Same-day delivery on most reports", "White-label PDF option", "Rollover unused reports", "Dedicated support"].map(f => (
+                      {["8-agency violation search", "Analyst-reviewed line-item notes", "Closing-file PDF", "Priority processing queue", "Same-day delivery on most reports", "White-label PDF option", "Rollover unused reports", "Dedicated support"].map(f => (
                         <li key={f} className="flex items-center gap-2">
                           <CheckCircle className="h-3.5 w-3.5 text-primary shrink-0" />
                           <span className="text-muted-foreground">{f}</span>
@@ -601,7 +601,7 @@ const Index = () => {
                     <div>
                       <p className="text-sm font-medium text-muted-foreground">Enterprise</p>
                       <p className="font-display text-4xl font-extrabold mt-1">Custom</p>
-                      <p className="text-xs text-muted-foreground mt-1">For attorneys, title, brokers, and investors</p>
+                      <p className="text-xs text-muted-foreground mt-1">For firms running 10+ reports a month</p>
                     </div>
                     <ul className="space-y-2 text-sm">
                       {["Unlimited reports", "Dedicated account manager", "Custom invoice & billing", "API access (coming soon)", "SLA guarantees"].map(f => (
@@ -617,11 +617,9 @@ const Index = () => {
                   </div>
                 </div>
 
-                <div className="flex items-center justify-center gap-6 mt-8 text-xs text-muted-foreground flex-wrap">
-                  <span className="flex items-center gap-1.5"><Mail className="h-3.5 w-3.5" /> Invoice on delivery — Net 7</span>
-                  <span className="flex items-center gap-1.5"><Shield className="h-3.5 w-3.5" /> SSL encrypted</span>
-                  <span className="flex items-center gap-1.5"><CheckCircle className="h-3.5 w-3.5" /> If we can't deliver a complete report, you don't pay</span>
-                </div>
+                <p className="text-center text-xs text-muted-foreground mt-8">
+                  Volume discounts for firms · Custom invoicing on Professional+ · Full refund if we can't complete your report
+                </p>
               </div>
             </section>
           </>
