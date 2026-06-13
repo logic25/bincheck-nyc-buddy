@@ -90,10 +90,13 @@ const LeadCaptureDialog = ({
   const [name, setName] = useState("");
   const [company, setCompany] = useState("");
   const [role, setRole] = useState<string>("");
+  // Honeypot — invisible to humans; bots fill it. We silently drop on submit.
+  const [hp, setHp] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (submitting) return;
+    if (hp.trim().length > 0) { setSubmitted(true); return; }
     if (!email || email.length < 5 || !email.includes("@")) {
       toast.error("Please enter a valid email address");
       return;
