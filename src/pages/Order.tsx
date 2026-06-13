@@ -55,6 +55,8 @@ const Order = () => {
   const [email, setEmail] = useState("");
   const [company, setCompany] = useState("");
   const [phone, setPhone] = useState("");
+  // Honeypot — real users never fill this; bots tend to. If non-empty we silently drop.
+  const [hp, setHp] = useState("");
 
   // Pre-fill email from auth session if logged in
   useEffect(() => {
