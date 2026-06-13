@@ -16,6 +16,7 @@ export default {
       fontFamily: {
         sans: ["Inter", "sans-serif"],
         display: ["Inter", "sans-serif"],
+        serif: ["Libre Baskerville", "Georgia", "serif"],
         mono: ["JetBrains Mono", "monospace"],
       },
       colors: {
