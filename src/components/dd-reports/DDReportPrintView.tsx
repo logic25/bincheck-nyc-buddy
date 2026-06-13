@@ -51,8 +51,10 @@ interface DDReportPrintViewProps {
 
 // ─── Constants ─────────────────────────────────────────────────────────────
 const NAVY = '#1e3a5f';
-const CARD_BG = '#f9fafb';
+const CARD_BG = '#fafaf7';
 const BORDER = '#e5e7eb';
+const MUTED = '#6b7280';
+const SERIF = "'Libre Baskerville', Georgia, 'Times New Roman', serif";
 
 const generateReportId = (date: string): string => {
   const d = new Date(date);
@@ -296,37 +298,47 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
 
   // ─── Styles ──────────────────────────────────────────────────────────────
   const sectionHeaderStyle: React.CSSProperties = {
-    fontSize: '14px',
+    fontSize: '11px',
     fontWeight: 700,
     textTransform: 'uppercase' as const,
-    letterSpacing: '0.08em',
+    letterSpacing: '0.16em',
     color: NAVY,
     borderBottom: `2px solid ${NAVY}`,
     paddingBottom: '6px',
     marginBottom: '16px',
   };
 
-  const tableHeaderStyle = `border border-gray-200 px-2 py-2 text-[10px] font-semibold uppercase tracking-wide text-gray-800 bg-gray-100`;
+  const tableHeaderStyle = `border border-gray-200 px-2 py-2 text-[10px] font-semibold uppercase tracking-wider text-gray-700 bg-gray-50`;
   const tableCellStyle = `border border-gray-200 px-2 py-2 text-[11px] align-top text-gray-900`;
 
   // ─── Score colors ────────────────────────────────────────────────────────
   const getScoreBg = (score: number) => {
-    if (score >= 80) return { bg: '#dcfce7', border: '#16a34a', text: '#15803d', label: 'LOW RISK' };
-    if (score >= 50) return { bg: '#fef9c3', border: '#ca8a04', text: '#a16207', label: 'MODERATE RISK' };
-    return { bg: '#fecaca', border: '#dc2626', text: '#b91c1c', label: 'HIGH RISK' };
+    if (score >= 80) return { bg: '#ffffff', border: '#166534', text: '#166534', label: 'LOW RISK' };
+    if (score >= 50) return { bg: '#ffffff', border: '#b45309', text: '#b45309', label: 'MODERATE RISK' };
+    return { bg: '#ffffff', border: '#991b1b', text: '#991b1b', label: 'HIGH RISK' };
   };
   const scoreStyle = getScoreBg(complianceScore.overall);
 
-  // ─── Severity badge ──────────────────────────────────────────────────────
+  // ─── Bordered rectangle label (severity / risk) ──────────────────────────
+  const rectLabel = (text: string, color: string): React.CSSProperties => ({
+    display: 'inline-block',
+    fontSize: '9px',
+    fontWeight: 700,
+    letterSpacing: '0.08em',
+    color,
+    border: `1.5px solid ${color}`,
+    padding: '3px 8px',
+    borderRadius: '3px',
+    textTransform: 'uppercase',
+    whiteSpace: 'nowrap',
+    backgroundColor: '#ffffff',
+  });
+
   const renderSeverityBadge = (note: string) => {
     const tag = getItemTag(note);
-    if (tag === 'action') {
-      return <span style={{ fontSize: '9px', fontWeight: 600, backgroundColor: '#fee2e2', color: '#991b1b', padding: '2px 8px', borderRadius: '9999px', whiteSpace: 'nowrap' }}>HIGH</span>;
-    }
-    if (tag === 'monitor') {
-      return <span style={{ fontSize: '9px', fontWeight: 600, backgroundColor: '#fef9c3', color: '#92400e', padding: '2px 8px', borderRadius: '9999px', whiteSpace: 'nowrap' }}>MONITOR</span>;
-    }
-    return <span style={{ fontSize: '9px', fontWeight: 600, backgroundColor: '#dcfce7', color: '#166534', padding: '2px 8px', borderRadius: '9999px', whiteSpace: 'nowrap' }}>CLEAR</span>;
+    if (tag === 'action') return <span style={rectLabel('HIGH', '#991b1b')}>HIGH</span>;
+    if (tag === 'monitor') return <span style={rectLabel('MONITOR', '#b45309')}>MONITOR</span>;
+    return <span style={rectLabel('CLEAR', '#166534')}>CLEAR</span>;
   };
 
   // ─── Agency Sources ──────────────────────────────────────────────────────
@@ -484,46 +496,64 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
   // ═══════════════════════════════════════════════════════════════════════════
   return (
     <div className="print-container bg-white text-black max-w-4xl mx-auto" style={{ fontFamily: "'Inter', 'Helvetica Neue', Arial, sans-serif", fontSize: '12px', lineHeight: '1.5', color: '#111827', padding: '32px' }}>
+      <style>{`
+        @page { margin: 0.6in 0.5in 0.8in; }
+        @media print {
+          @page {
+            @bottom-left { content: "BinCheckNYC · Report ${reportId}"; font-family: Inter, sans-serif; font-size: 9px; color: #6b7280; }
+            @bottom-right { content: "Page " counter(page) " of " counter(pages); font-family: Inter, sans-serif; font-size: 9px; color: #6b7280; }
+          }
+          .print-footer { display: none !important; }
+        }
+        .print-footer { position: fixed; bottom: 8px; left: 0; right: 0; padding: 6px 32px 0; border-top: 1px solid ${BORDER}; font-size: 9px; color: ${MUTED}; display: flex; justify-content: space-between; background: #ffffff; }
+      `}</style>
 
       {/* ═══════════════════════════════════════════════════════════════════════
           PAGE 1: EXECUTIVE DASHBOARD
           ═══════════════════════════════════════════════════════════════════ */}
 
       {/* Header */}
-      <div style={{ borderBottom: `2px solid ${NAVY}`, paddingBottom: '12px', marginBottom: '24px' }}>
+      <div style={{ borderBottom: `2px solid ${NAVY}`, paddingBottom: '14px', marginBottom: '20px' }}>
         <div className="flex items-end justify-between">
           <div>
-            <h1 style={{ fontSize: '24px', fontWeight: 700, color: NAVY, letterSpacing: '-0.01em', margin: 0 }}>BinCheckNYC Report</h1>
-            <p style={{ fontSize: '11px', color: '#6b7280', marginTop: '2px', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.12em' }}>Property Compliance Assessment</p>
+            <h1 style={{ fontFamily: SERIF, fontSize: '28px', fontWeight: 400, color: '#111827', letterSpacing: '-0.005em', margin: 0, lineHeight: 1.1 }}>BinCheckNYC Report</h1>
+            <p style={{ fontSize: '11px', color: MUTED, marginTop: '6px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em' }}>Property Compliance Assessment</p>
           </div>
-          <div style={{ textAlign: 'right', fontSize: '11px', color: '#6b7280' }}>
-            <p style={{ margin: 0 }}>Report ID: <span className="font-mono" style={{ fontWeight: 600 }}>{reportId}</span></p>
-            <p style={{ margin: 0 }}>{format(new Date(report.report_date), 'MMMM d, yyyy')}</p>
+          <div style={{ textAlign: 'right', fontSize: '11px', color: MUTED }}>
+            <p style={{ margin: 0 }}>Report ID: <span className="font-mono" style={{ fontWeight: 600, color: '#111827' }}>{reportId}</span></p>
+            <p style={{ margin: '2px 0 0' }}>Issued: {format(new Date(report.report_date), 'MMM d, yyyy')}</p>
           </div>
         </div>
 
+        {/* Confidentiality + data currency line */}
+        <div style={{ marginTop: '10px', display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: MUTED }}>
+          <span style={{ fontStyle: 'italic' }}>Confidential — prepared for named recipient only.</span>
+          <span>Data current as of {report.generated_at ? format(new Date(report.generated_at), "MMM d, yyyy 'at' h:mm a") : format(new Date(report.report_date), 'MMM d, yyyy')}</span>
+        </div>
+
         {/* Subject Property + Prepared By */}
-        <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          <div>
-            <p style={{ fontSize: '18px', fontWeight: 700, color: '#111827', margin: 0 }}>{report.address}</p>
-            <p style={{ fontSize: '11px', color: '#6b7280', margin: '2px 0 0' }}>
-              BIN: <span className="font-mono" style={{ fontWeight: 600 }}>{report.bin || '—'}</span>
-              <span style={{ margin: '0 8px', color: '#d1d5db' }}>|</span>
-              BBL: <span className="font-mono" style={{ fontWeight: 600 }}>{formatBBL(report.bbl)}</span>
+        <div style={{ marginTop: '18px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '24px' }}>
+          <div style={{ flex: 1 }}>
+            <p style={{ fontFamily: SERIF, fontSize: '24px', fontWeight: 700, color: '#111827', margin: 0, lineHeight: 1.2 }}>{report.address}</p>
+            <p style={{ fontSize: '11px', color: MUTED, margin: '6px 0 0' }}>
+              BIN: <span className="font-mono" style={{ fontWeight: 600, color: '#111827' }}>{report.bin || '—'}</span>
+              <span style={{ margin: '0 10px', color: '#d1d5db' }}>|</span>
+              BBL: <span className="font-mono" style={{ fontWeight: 600, color: '#111827' }}>{formatBBL(report.bbl)}</span>
             </p>
           </div>
-          <div style={{ textAlign: 'right' }}>
-            <p style={{ fontSize: '10px', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.1em', margin: 0 }}>Prepared for</p>
-            <p style={{ fontSize: '12px', fontWeight: 600, margin: '1px 0 0' }}>{report.prepared_for}</p>
+          <div style={{ textAlign: 'right', minWidth: '260px' }}>
+            <p style={{ fontSize: '9px', color: MUTED, textTransform: 'uppercase', letterSpacing: '0.16em', margin: 0, fontWeight: 600 }}>Prepared for</p>
+            <p style={{ fontSize: '12px', fontWeight: 600, margin: '2px 0 0' }}>{report.prepared_for}</p>
             {preparedByLine && (
               <>
-                <p style={{ fontSize: '10px', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.1em', margin: '6px 0 0' }}>Prepared by</p>
-                <p style={{ fontSize: '12px', fontWeight: 600, margin: '1px 0 0' }}>{preparedByLine}</p>
+                <p style={{ fontSize: '9px', color: MUTED, textTransform: 'uppercase', letterSpacing: '0.16em', margin: '10px 0 0', fontWeight: 600 }}>Prepared by</p>
+                <p style={{ fontSize: '12px', fontWeight: 600, margin: '2px 0 0' }}>{preparedByLine}</p>
               </>
             )}
           </div>
         </div>
       </div>
+
 
       {/* Property Status Banners — Vacate / SWO / Unsafe / Closure / Emergency / Compromised / Vacant */}
       {(propertyFlags.vacate_order || propertyFlags.stop_work_order || propertyFlags.unsafe_building || propertyFlags.closure_order || propertyFlags.emergency_declaration || propertyFlags.compromised_structure || propertyFlags.vacant_structure) && (
@@ -553,55 +583,71 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
 
       {/* Compliance Risk Score — Hero Card */}
       <div style={{
-        backgroundColor: scoreStyle.bg,
-        border: `2px solid ${scoreStyle.border}`,
+        backgroundColor: CARD_BG,
+        border: `1px solid ${BORDER}`,
         borderRadius: '12px',
-        padding: '20px 24px',
-        marginBottom: '24px',
+        padding: '24px 28px',
+        marginBottom: '12px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
+        gap: '24px',
       }}>
-        <div>
-          <p style={{ fontSize: '10px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.12em', color: scoreStyle.text, margin: 0 }}>Compliance Risk Score</p>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginTop: '4px' }}>
-            <span style={{ fontSize: '48px', fontWeight: 800, color: scoreStyle.text, lineHeight: 1 }}>{complianceScore.overall}</span>
-            <span style={{ fontSize: '20px', fontWeight: 600, color: scoreStyle.text, opacity: 0.7 }}>/ 100</span>
+        <div style={{ minWidth: '180px' }}>
+          <p style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.18em', color: MUTED, margin: 0 }}>Compliance Score</p>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', marginTop: '6px' }}>
+            <span style={{ fontFamily: SERIF, fontSize: '72px', fontWeight: 400, color: scoreStyle.text, lineHeight: 1 }}>{complianceScore.overall}</span>
+            <span style={{ fontFamily: SERIF, fontSize: '22px', fontWeight: 400, color: MUTED }}>/100</span>
           </div>
-          <p style={{ fontSize: '14px', fontWeight: 700, color: scoreStyle.text, marginTop: '4px' }}>{scoreStyle.label}</p>
+          <div style={{ marginTop: '12px' }}>
+            <span style={rectLabel(scoreStyle.label, scoreStyle.text)}>{scoreStyle.label}</span>
+          </div>
         </div>
         {/* Category breakdown */}
-        <div style={{ display: 'flex', gap: '16px' }}>
-          {complianceScore.categories.map((cat) => {
+        <div style={{ display: 'flex', flex: 1, justifyContent: 'flex-end', alignItems: 'stretch' }}>
+          {complianceScore.categories.map((cat, i) => {
             const catColor = getScoreBg(cat.score);
             return (
-              <div key={cat.category} style={{ textAlign: 'center' }}>
-                <p style={{ fontSize: '10px', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0 }}>{cat.category}</p>
-                <p style={{ fontSize: '20px', fontWeight: 700, color: catColor.text, margin: '2px 0 0' }}>{cat.score}</p>
-                <p style={{ fontSize: '9px', color: '#9ca3af', margin: 0 }}>/100</p>
+              <div key={cat.category} style={{
+                textAlign: 'center',
+                padding: '0 22px',
+                borderLeft: i === 0 ? 'none' : `1px solid ${BORDER}`,
+                minWidth: '90px',
+              }}>
+                <p style={{ fontSize: '9px', fontWeight: 700, color: MUTED, textTransform: 'uppercase', letterSpacing: '0.14em', margin: 0 }}>{cat.category}</p>
+                <p style={{ fontFamily: SERIF, fontSize: '28px', fontWeight: 400, color: catColor.text, margin: '6px 0 0', lineHeight: 1 }}>{cat.score}</p>
+                <p style={{ fontSize: '9px', color: MUTED, margin: '2px 0 0' }}>/100</p>
               </div>
             );
           })}
         </div>
       </div>
 
+      {/* One-line summary (replaces 4 stat tiles) */}
+      <p style={{ fontSize: '11px', color: MUTED, margin: '0 0 24px', paddingLeft: '4px' }}>
+        {violations.length} open violation{violations.length !== 1 ? 's' : ''}
+        {` · `}{applications.length} active application{applications.length !== 1 ? 's' : ''}
+        {` · `}{orders.stop_work?.length || 0} stop-work order{(orders.stop_work?.length || 0) !== 1 ? 's' : ''}
+        {` · `}{orders.vacate?.length || 0} vacate order{(orders.vacate?.length || 0) !== 1 ? 's' : ''}
+        {totalEcbPenalties > 0 && ` · ${formatCurrency(totalEcbPenalties)} ECB penalties outstanding`}
+      </p>
+
       {/* Key Findings + Items to Monitor */}
       {(actionItems.length > 0 || monitorItems.length > 0) && (
         <div style={{ marginBottom: '24px', display: 'flex', gap: '16px' }}>
           {actionItems.length > 0 && (
             <div style={{
-              flex: monitorItems.length > 0 ? '1' : '1',
-              backgroundColor: '#fef2f2',
-              border: '1px solid #fecaca',
+              flex: 1,
+              backgroundColor: CARD_BG,
+              border: `1px solid ${BORDER}`,
               borderRadius: '8px',
               padding: '16px 20px',
             }}>
-              <p style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#991b1b', margin: '0 0 8px' }}>Key Findings</p>
+              <p style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.16em', color: NAVY, margin: '0 0 10px' }}>Key Findings</p>
               {actionItems.map((item, i) => {
-                // Extract first sentence or first ~80 chars as summary
                 const summary = item.note.split('.')[0] || item.note.slice(0, 80);
                 return (
-                  <p key={i} style={{ fontSize: '11px', color: '#7f1d1d', margin: '0 0 4px', lineHeight: '1.4' }}>
+                  <p key={i} style={{ fontSize: '12px', color: '#111827', margin: '0 0 6px', lineHeight: 1.6 }}>
                     • {summary}{item.agency ? ` (${item.agency})` : ''}
                   </p>
                 );
@@ -610,17 +656,17 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
           )}
           {monitorItems.length > 0 && (
             <div style={{
-              flex: '1',
-              backgroundColor: '#fefce8',
-              border: '1px solid #fde68a',
+              flex: 1,
+              backgroundColor: CARD_BG,
+              border: `1px solid ${BORDER}`,
               borderRadius: '8px',
               padding: '16px 20px',
             }}>
-              <p style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#92400e', margin: '0 0 8px' }}>Items to Monitor</p>
+              <p style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.16em', color: NAVY, margin: '0 0 10px' }}>Items to Monitor</p>
               {monitorItems.map((item, i) => {
                 const summary = item.note.split('.')[0] || item.note.slice(0, 80);
                 return (
-                  <p key={i} style={{ fontSize: '11px', color: '#78350f', margin: '0 0 4px', lineHeight: '1.4' }}>
+                  <p key={i} style={{ fontSize: '12px', color: '#111827', margin: '0 0 6px', lineHeight: 1.6 }}>
                     • {summary}{item.agency ? ` (${item.agency})` : ''}
                   </p>
                 );
@@ -630,28 +676,7 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
         </div>
       )}
 
-      {/* Compliance Summary Cards — compact row */}
-      <div style={{ display: 'flex', gap: '12px', marginBottom: '24px' }}>
-        {[
-          { label: 'Violations', value: violations.length, sub: `DOB ${dobViolations.length} · ECB ${ecbViolations.length} · HPD ${hpdViolations.length}${fdnyViolations.length > 0 ? ` · FDNY ${fdnyViolations.length}` : ''}` },
-          { label: 'Applications', value: applications.length, sub: `BIS ${bisApplications.length} · NOW ${dobNowApplications.length}` },
-          { label: 'Stop Work', value: orders.stop_work?.length || 0, danger: (orders.stop_work?.length || 0) > 0 },
-          { label: 'Vacate', value: orders.vacate?.length || 0, danger: (orders.vacate?.length || 0) > 0 },
-        ].map((item, i) => (
-          <div key={i} style={{
-            flex: 1,
-            padding: '10px 16px',
-            borderRadius: '8px',
-            textAlign: 'center',
-            backgroundColor: (item as any).danger ? '#fef2f2' : CARD_BG,
-            border: `1px solid ${(item as any).danger ? '#fecaca' : BORDER}`,
-          }}>
-            <div style={{ fontSize: '22px', fontWeight: 700, color: (item as any).danger ? '#dc2626' : '#111827' }}>{item.value}</div>
-            <div style={{ fontSize: '10px', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{item.label}</div>
-            {item.sub && <div style={{ fontSize: '9px', color: '#9ca3af', marginTop: '2px' }}>{item.sub}</div>}
-          </div>
-        ))}
-      </div>
+
 
       {/* ECB Penalties callout */}
       {totalEcbPenalties > 0 && (
@@ -816,8 +841,10 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
             )}
           </div>
           <div style={{ marginTop: '20px', paddingTop: '12px', borderTop: `1px solid ${BORDER}` }}>
-            <p style={{ fontSize: '11px', fontWeight: 700, color: NAVY, margin: 0 }}>BinCheckNYC Analyst Team</p>
-            <p style={{ fontSize: '10px', color: '#6b7280', margin: '2px 0 0' }}>Prepared from NYC public records on {report.generated_at ? formatShortDate(report.generated_at) : ''}</p>
+            <p style={{ fontSize: '9px', fontWeight: 700, color: MUTED, textTransform: 'uppercase', letterSpacing: '0.16em', margin: 0 }}>
+              Data Sources: NYC DOB · ECB / OATH · HPD · FDNY · DOF · ACRIS
+            </p>
+            <p style={{ fontSize: '10px', color: MUTED, margin: '4px 0 0' }}>Prepared from NYC public records on {report.generated_at ? formatShortDate(report.generated_at) : formatShortDate(report.report_date)}.</p>
           </div>
         </section>
       )}
