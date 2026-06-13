@@ -841,8 +841,10 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
             )}
           </div>
           <div style={{ marginTop: '20px', paddingTop: '12px', borderTop: `1px solid ${BORDER}` }}>
-            <p style={{ fontSize: '11px', fontWeight: 700, color: NAVY, margin: 0 }}>BinCheckNYC Analyst Team</p>
-            <p style={{ fontSize: '10px', color: '#6b7280', margin: '2px 0 0' }}>Prepared from NYC public records on {report.generated_at ? formatShortDate(report.generated_at) : ''}</p>
+            <p style={{ fontSize: '9px', fontWeight: 700, color: MUTED, textTransform: 'uppercase', letterSpacing: '0.16em', margin: 0 }}>
+              Data Sources: NYC DOB · ECB / OATH · HPD · FDNY · DOF · ACRIS
+            </p>
+            <p style={{ fontSize: '10px', color: MUTED, margin: '4px 0 0' }}>Prepared from NYC public records on {report.generated_at ? formatShortDate(report.generated_at) : formatShortDate(report.report_date)}.</p>
           </div>
         </section>
       )}
