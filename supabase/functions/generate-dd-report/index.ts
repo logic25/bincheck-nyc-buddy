@@ -1400,11 +1400,13 @@ function classifyApplication(app: any): { tag: string; reason: string } {
 
 interface LearningContext {
   few_shot_examples: string[];
+  relevance_examples: string[];
   knowledge_context: string[];
   confidence_flags: Array<{ agency: string; violation_type: string; edit_rate: number; top_error: string; needs_review: boolean }>;
 }
 
 async function fetchLearningExamples(supabaseUrl: string, supabaseServiceKey: string, agencies: string[]): Promise<LearningContext> {
+  const empty: LearningContext = { few_shot_examples: [], relevance_examples: [], knowledge_context: [], confidence_flags: [] };
   try {
     const resp = await fetch(`${supabaseUrl}/functions/v1/get-learning-examples`, {
       method: "POST",
@@ -1413,12 +1415,13 @@ async function fetchLearningExamples(supabaseUrl: string, supabaseServiceKey: st
     });
     if (!resp.ok) {
       console.warn("Failed to fetch learning examples:", resp.status);
-      return { few_shot_examples: [], knowledge_context: [], confidence_flags: [] };
+      return empty;
     }
-    return await resp.json();
+    const j = await resp.json();
+    return { ...empty, ...j };
   } catch (e) {
     console.warn("Learning examples fetch error:", e);
-    return { few_shot_examples: [], knowledge_context: [], confidence_flags: [] };
+    return empty;
   }
 }
 
