@@ -371,7 +371,7 @@ const Index = () => {
                     { icon: Shield, title: "HPD Violations", desc: "Housing Preservation & Development violations by class — A, B, and C (immediately hazardous)" },
                     { icon: FileText, title: "Permit Activity", desc: "BIS and DOB NOW permit applications — partial, pending, and in-progress filings flagged for pre-closing review" },
                     { icon: Zap, title: "FDNY, DSNY, DOT, LPC, DOF", desc: "OATH hearing records for all city agencies — open fines, default judgments, and enforcement actions" },
-                    { icon: CheckCircle, title: "AI Line-Item Analysis", desc: "AI-generated analyst notes on every item, scored by impact on the subject unit or whole building, then reviewed by a human analyst." },
+                    { icon: CheckCircle, title: "Analyst-Reviewed Notes", desc: "Per-item factual notes on every line, scoped to your subject unit or whole building. AI-drafted, signed off by a human analyst before delivery." },
                   ].map((f) => (
                     <div key={f.title} className="p-6 rounded-lg bg-card/50 text-left space-y-3 hover:bg-card transition-colors border border-border/40">
                       <f.icon className="h-5 w-5 text-primary" />
