@@ -1,136 +1,45 @@
+# Fix: login flicker + confusing "invalid credentials" for Google accounts
 
+## What's actually wrong
 
-# BinCheckNYC: Report-Ready Email, Cross-Sell Tracking, Lead Notifications & Admin Leads Tab
+**Issue A — Flicker after Google login (the "two things" you saw)**
+`src/pages/Auth.tsx` registers `onAuthStateChange` AND separately calls `getSession().then(...)`. When you return from Google OAuth, both fire with a valid session and both call `navigate("/dashboard")`. Dashboard mounts, then immediately re-mounts. The session replay shows the dashboard nav + report list rendering twice within ~1 second — that's the glitch.
 
-## Overview
+**Issue B — Password sign-in fails for your email**
+Your user record (`erussell25@gmail.com`) was created through Google OAuth. Google-created accounts have **no password set**, so `signInWithPassword` correctly returns `invalid_credentials`. There is no bug to fix on the backend — but the UI gives no hint about what's happening, so it feels broken.
 
-This plan covers the full approved scope plus the enrichments for architect/closeout lead handling. There are 7 workstreams:
+## Changes
 
-1. Email domain setup (prerequisite)
-2. Email infrastructure + transactional email scaffolding
-3. `cross_sell_impressions` table + `report-ready` email template
-4. Client email capture in CreateDDReportDialog
-5. Report approval triggers email send + cross-sell logging
-6. CTA click tracking edge function
-7. Lead notification emails (architect + closeout) + client confirmations
-8. Admin "Service Requests" tab (unified view of architect + closeout requests with enhanced statuses)
+### 1. `src/pages/Auth.tsx` — stop the double-navigate
+- Remove the standalone `getSession().then(navigate)` block.
+- Keep only `onAuthStateChange`, and inside it gate on `event === "SIGNED_IN"` or an initial session check that runs **once** and only navigates if the listener hasn't already.
+- Use a `hasNavigated` ref so even if both fire, `navigate` runs at most once.
 
----
+### 2. `src/pages/Auth.tsx` — better error for OAuth-only accounts
+After `signInWithPassword` returns `invalid_credentials`, do a lightweight follow-up: call the existing edge auth context (or just inspect the error) and show a more useful toast:
 
-## Step 1: Email Domain Setup
+> "This email is registered with Google. Sign in with Google, or use **Forgot password** to set a password."
 
-No email domain is configured. First step is showing the setup dialog so you can configure a sender domain (e.g., `notify.bincheckyc.com`). Nothing else can proceed until this is done.
+We can't reliably detect "user exists but has no password" from the client without a server call (Supabase intentionally returns the same error to prevent enumeration). Two acceptable options:
 
-## Step 2: Email Infrastructure
+- **Option A (recommended, no new backend):** On `invalid_credentials`, show a toast with both hints: "Wrong password — or this email may be registered with Google. Try Google sign-in or reset your password." Honest, no enumeration risk, solves the confusion.
+- **Option B (small edge function):** New `check-auth-method` function that takes an email, looks up `auth.users.identities`, and returns `{ hasPassword, providers: ["google"] }`. Frontend then shows a precise message. Slight info leak (confirms account existence) but minor.
 
-After domain is configured:
-- Call `setup_email_infra` to create pgmq queues, email tables, cron job
-- Call `scaffold_transactional_email` to create the `send-transactional-email` edge function, unsubscribe handling, and sample template
-- Create unsubscribe page at the path specified by the scaffold output
+Recommend Option A for now; we can add the edge function later if support tickets keep coming in.
 
-## Step 3: Database Migration
+### 3. `src/pages/Dashboard.tsx` — same double-fire pattern (preventive)
+Quick audit of Dashboard's auth-check `useEffect` (lines ~78+) — apply the same `hasNavigated` ref pattern if it also calls both `getSession` and `onAuthStateChange`. Prevents a similar flicker when the session expires.
 
-Create `cross_sell_impressions` table:
+## Out of scope
+- No changes to OAuth provider config, redirect URIs, or `src/integrations/lovable/index.ts` (auto-generated).
+- No changes to the sign-up / invite-code flow.
+- Not touching the landing page copy from the earlier discussion — separate task.
 
-```sql
-CREATE TABLE public.cross_sell_impressions (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  report_id uuid NOT NULL,
-  client_email text NOT NULL,
-  cta_type text NOT NULL,  -- 'citisignal' or 'gle'
-  sent_at timestamptz NOT NULL DEFAULT now(),
-  clicked_at timestamptz,
-  converted_at timestamptz
-);
-ALTER TABLE public.cross_sell_impressions ENABLE ROW LEVEL SECURITY;
--- Admin select, service_role full access
-```
+## Files touched
+- `src/pages/Auth.tsx` (navigation guard + error message)
+- `src/pages/Dashboard.tsx` (navigation guard only, if pattern matches)
 
-Also add `status` options to `architect_requests` and `closeout_requests` — they already have a `status` column with values like `submitted`, `assigned`, etc. We'll add UI support for: `submitted` → `contacted` → `converted` → `closed`.
-
-## Step 4: Email Templates
-
-Create 4 templates in `_shared/transactional-email-templates/`:
-
-**a) `report-ready.tsx`** — Sent to client when report is approved
-- Property address, report date, risk level summary
-- "View Your Report" CTA button
-- Conditional CitiSignal monitoring block (when `citisignal_recommended = true`)
-- Conditional GLE block (when open applications exist)
-- CTA links route through `track-cta-click` for impression tracking
-
-**b) `gle-lead-notification.tsx`** — Sent to `info@greenlightexpediting.com`
-- Request type (Architect Letter or Permit Closeout)
-- Property address, client name/email/phone
-- Selected violations or applications list
-- Urgency level and quoted price
-- "Reply to this email or call the client within 24hrs"
-
-**c) `client-request-confirmation.tsx`** — Sent to client after submitting a request
-- "Thank you for your request. Green Light Expediting will contact you within 24 hours regarding your [type] for [address]."
-
-**d) Register all in `registry.ts`**
-
-## Step 5: Trigger Wiring
-
-**On report approval** (in `DDReportViewer.tsx`):
-- After status update to `approved`, invoke `send-transactional-email` with `report-ready` template
-- If `citisignal_recommended`, insert row into `cross_sell_impressions` with `cta_type: 'citisignal'`
-- If open applications exist, insert with `cta_type: 'gle'`
-
-**On architect/closeout request submission** (in `ArchitectRequestDialog.tsx` and `CloseoutRequestDialog.tsx`):
-- After successful insert, invoke `send-transactional-email` twice:
-  1. `gle-lead-notification` to `info@greenlightexpediting.com`
-  2. `client-request-confirmation` to the client's contact email
-
-## Step 6: Click Tracking Edge Function
-
-Create `supabase/functions/track-cta-click/index.ts`:
-- Accepts `id` (impression ID) and `dest` (destination URL) query params
-- Updates `clicked_at` on the matching `cross_sell_impressions` row
-- Returns 302 redirect to destination
-- CTA links in report-ready email route through this function
-
-## Step 7: Client Email Capture
-
-Update `CreateDDReportDialog.tsx` to add an optional "Client Email" field that gets saved to `dd_reports.client_email`.
-
-## Step 8: Admin Service Requests Tab
-
-Replace the existing "Architect Letters" tab with a unified "Service Requests" tab in `AdminReportManager.tsx`:
-
-- Combines `architect_requests` and `closeout_requests` into one view
-- Sub-tabs or filter: All / Architect Letters / Permit Closeout
-- Status workflow: New → Contacted → Converted → Closed (with color-coded badges)
-- Each row shows: type, property address, client name/email/phone, urgency, price, time since submission
-- Flag rows where status is still "submitted" and >48 hours old (red highlight or warning icon)
-- Inline status update dropdown for admins
-- This replaces the current `ArchitectLettersTab` component
-
-## File Changes Summary
-
-| File | Action |
-|------|--------|
-| Migration SQL | Create `cross_sell_impressions` |
-| `src/components/dd-reports/CreateDDReportDialog.tsx` | Add client email field |
-| `src/components/dd-reports/ArchitectRequestDialog.tsx` | Add email sends after submit |
-| `src/components/dd-reports/CloseoutRequestDialog.tsx` | Add email sends after submit |
-| `src/components/dd-reports/DDReportViewer.tsx` | Add email send + cross-sell logging on approval |
-| `src/components/admin/ServiceRequestsTab.tsx` | New — unified leads/requests admin tab |
-| `src/components/admin/AdminReportManager.tsx` | Replace ArchitectLettersTab with ServiceRequestsTab |
-| `supabase/functions/track-cta-click/index.ts` | New — click tracking redirect |
-| `supabase/functions/_shared/transactional-email-templates/report-ready.tsx` | New |
-| `supabase/functions/_shared/transactional-email-templates/gle-lead-notification.tsx` | New |
-| `supabase/functions/_shared/transactional-email-templates/client-request-confirmation.tsx` | New |
-| `supabase/functions/_shared/transactional-email-templates/registry.ts` | Register templates |
-| `supabase/config.toml` | Add track-cta-click config |
-| Unsubscribe page (path TBD by scaffold) | New |
-
-## Ordino Integration (Future — Not Built Now)
-
-Noted for later: on architect/closeout request submission, call Ordino's `receive-lead` webhook to auto-create a lead/proposal with service type and pricing pre-filled. Requires Ordino webhook URL as a secret.
-
-## First Action
-
-Setting up the email domain. Let's start there.
-
+## How we'll verify
+1. Log out → click "Continue with Google" → land on `/dashboard` with no visible flash/double-render.
+2. Log out → enter `erussell25@gmail.com` + any password → see the new "may be registered with Google" toast.
+3. Click "Forgot password" → reset → confirm password sign-in then works alongside Google.
