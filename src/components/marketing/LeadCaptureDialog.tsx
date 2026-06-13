@@ -179,6 +179,13 @@ const LeadCaptureDialog = ({
               <DialogDescription>{description ?? copy.description}</DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-3 mt-2">
+              {/* Honeypot — visually hidden field; non-empty submissions are dropped. */}
+              <div aria-hidden="true" style={{ position: "absolute", left: "-10000px", top: "auto", width: 1, height: 1, overflow: "hidden" }}>
+                <label>
+                  Company website (leave blank)
+                  <input type="text" tabIndex={-1} autoComplete="off" value={hp} onChange={(e) => setHp(e.target.value)} />
+                </label>
+              </div>
               <div className="space-y-1.5">
                 <Label htmlFor="lc-name">Name *</Label>
                 <Input
