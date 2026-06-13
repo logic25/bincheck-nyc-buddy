@@ -276,6 +276,10 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
     emergency_declaration: Boolean((report as any).flags?.emergency_declaration),
     compromised_structure: Boolean((report as any).flags?.compromised_structure),
     vacant_structure: Boolean((report as any).flags?.vacant_structure),
+    // Outstanding DOF charges (property tax / sidewalk / emergency repair) feed
+    // the headline score so it cannot read LOW RISK while a six-figure DOF
+    // balance sits unpaid.
+    dof_outstanding: dofCharges?.totals?.outstanding || 0,
   };
 
   const complianceScore = calculateComplianceScore(propertyData, propertyFlags);
@@ -293,6 +297,44 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
       monitorItems.push({ note: cleanNote, agency: n.agency || '', id: n.item_id || '' });
     }
   });
+
+  // Synthetic Recommended Actions fallbacks. If the per-line-item tagger missed
+  // the major liabilities (the bug behind the 1221 Fteley report shipping
+  // without a single recommended action), surface them here so the section
+  // never disappears when there is real money or critical orders on file.
+  const dofOutstandingForActions = dofCharges?.totals?.outstanding || 0;
+  const totalEcbBalanceForActions = (propertyData.ecbViolations || [])
+    .filter((v: any) => v.status?.toLowerCase() !== 'resolved' && v.status?.toLowerCase() !== 'closed')
+    .reduce((sum: number, v: any) => sum + (parseFloat(v.penalty_balance_due || '0') || 0), 0);
+
+  if (dofOutstandingForActions > 5000 && !actionItems.some(a => a.agency === 'DOF-CHARGES')) {
+    actionItems.push({
+      note: `Reconcile $${Math.round(dofOutstandingForActions).toLocaleString()} in outstanding DOF charges (property tax, sidewalk assessment, emergency repair) before any title transfer; obtain current DOF Property Tax Account statement to confirm balance and any tax-lien sale exposure.`,
+      agency: 'DOF-CHARGES',
+      id: '',
+    });
+  }
+  if (totalEcbBalanceForActions > 1000 && !actionItems.some(a => a.agency === 'ECB')) {
+    actionItems.push({
+      note: `Pay or contest $${Math.round(totalEcbBalanceForActions).toLocaleString()} in open ECB/OATH penalty balances; unpaid ECB amounts can become tax liens after 1 year.`,
+      agency: 'ECB',
+      id: '',
+    });
+  }
+  if ((orders.stop_work?.length || 0) > 0 && !actionItems.some(a => /stop work/i.test(a.note))) {
+    actionItems.push({
+      note: 'Resolve active Stop Work Order through DOB before any further construction, financing, or transfer; rescission requires a DOB-registered professional and final inspection.',
+      agency: 'DOB',
+      id: '',
+    });
+  }
+  if ((orders.vacate?.length || 0) > 0 && !actionItems.some(a => /vacate/i.test(a.note))) {
+    actionItems.push({
+      note: 'Resolve active Vacate Order before transfer; HPD or DOB must rescind the order in writing after underlying conditions are corrected.',
+      agency: 'DOB',
+      id: '',
+    });
+  }
 
   // ─── Styles ──────────────────────────────────────────────────────────────
   const sectionHeaderStyle: React.CSSProperties = {
@@ -816,8 +858,15 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
             )}
           </div>
           <div style={{ marginTop: '20px', paddingTop: '12px', borderTop: `1px solid ${BORDER}` }}>
-            <p style={{ fontSize: '11px', fontWeight: 700, color: NAVY, margin: 0 }}>BinCheckNYC Analyst Team</p>
-            <p style={{ fontSize: '10px', color: '#6b7280', margin: '2px 0 0' }}>Prepared from NYC public records on {report.generated_at ? formatShortDate(report.generated_at) : ''}</p>
+            <p style={{ fontSize: '10px', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0 }}>Data Sources</p>
+            <p style={{ fontSize: '11px', color: '#111827', margin: '4px 0 0', lineHeight: 1.5 }}>
+              Compiled from NYC DOB, ECB/OATH, HPD, FDNY, DSNY, DOT, LPC, ACRIS, and DOF public records.
+            </p>
+            {report.generated_at && (
+              <p style={{ fontSize: '10px', color: '#6b7280', margin: '6px 0 0' }}>
+                Data current as of {formatShortDate(report.generated_at)}.
+              </p>
+            )}
           </div>
         </section>
       )}

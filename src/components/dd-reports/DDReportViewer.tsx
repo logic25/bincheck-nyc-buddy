@@ -126,6 +126,8 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
   const [isPreviewing, setIsPreviewing] = useState(false);
   const [previewBlobUrl, setPreviewBlobUrl] = useState<string | null>(null);
   const [generalNotes, setGeneralNotes] = useState(report.general_notes || '');
+  const [summaryDraft, setSummaryDraft] = useState((report as any).property_status_summary || '');
+  const [editingSummary, setEditingSummary] = useState(false);
   const [lineItemNotes, setLineItemNotes] = useState<Record<string, string>>(
     (report.line_item_notes || []).reduce((acc: Record<string, string>, item: any) => {
       acc[`${item.item_type}-${item.item_id}`] = item.note;
@@ -290,6 +292,28 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
     }
     setIsPreviewing(false);
   };
+
+  const saveSummary = useMutation({
+    mutationFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      const { error } = await supabase
+        .from('dd_reports')
+        .update({
+          property_status_summary: summaryDraft.trim() || null,
+          summary_edited_at: new Date().toISOString(),
+          summary_edited_by: user?.id || null,
+        } as any)
+        .eq('id', report.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['dd-reports'] });
+      queryClient.invalidateQueries({ queryKey: ['dd-report', report.id] });
+      setEditingSummary(false);
+      toast.success('Summary updated');
+    },
+    onError: (e: any) => toast.error(e?.message || 'Failed to save summary'),
+  });
 
   const saveNotes = useMutation({
     mutationFn: async () => {
@@ -739,10 +763,48 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
             <Badge variant="outline" className="text-[10px] px-2 py-0.5">Applications: {applications.length}</Badge>
             {openComplaints.length > 0 && <Badge variant="outline" className="text-[10px] px-2 py-0.5">Open Complaints: {openComplaints.length}</Badge>}
           </div>
-          <p className="text-sm leading-relaxed text-foreground/85 whitespace-pre-line">{(report as any).property_status_summary}</p>
+          {editingSummary && isAdmin && !isReadOnly ? (
+            <div className="space-y-2">
+              <Textarea
+                value={summaryDraft}
+                onChange={(e) => setSummaryDraft(e.target.value)}
+                rows={8}
+                className="text-sm leading-relaxed"
+                placeholder="Edit the AI-generated conclusion. Plain text, paragraphs separated by blank lines."
+              />
+              <div className="flex items-center gap-2">
+                <Button size="sm" onClick={() => saveSummary.mutate()} disabled={saveSummary.isPending}>
+                  {saveSummary.isPending ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <Save className="w-3.5 h-3.5 mr-1.5" />}
+                  Save Summary
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => { setSummaryDraft((report as any).property_status_summary || ''); setEditingSummary(false); }} disabled={saveSummary.isPending}>
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <p className="text-sm leading-relaxed text-foreground/85 whitespace-pre-line">{(report as any).property_status_summary}</p>
+              {isAdmin && !isReadOnly && (
+                <div className="mt-3">
+                  <Button size="sm" variant="outline" onClick={() => setEditingSummary(true)}>
+                    <Pencil className="w-3.5 h-3.5 mr-1.5" /> Edit Summary
+                  </Button>
+                </div>
+              )}
+            </>
+          )}
           <div className="mt-4 pt-3 border-t border-border">
-            <p className="text-xs font-semibold text-foreground">BinCheckNYC Analyst Team</p>
-            <p className="text-[10px] text-muted-foreground mt-1">Prepared from NYC public records. All findings may contain errors, omissions, or delays; verify with the relevant city agencies before relying on them.</p>
+            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Data Sources</p>
+            <p className="text-xs text-foreground/85 mt-1 leading-relaxed">
+              Compiled from NYC DOB, ECB/OATH, HPD, FDNY, DSNY, DOT, LPC, ACRIS, and DOF public records.
+            </p>
+            <p className="text-[10px] text-muted-foreground mt-2">
+              All findings may contain errors, omissions, or delays; verify with the relevant city agencies before relying on them.
+              {(report as any).summary_edited_at && (
+                <> · Conclusion edited {format(new Date((report as any).summary_edited_at), 'MMM d, yyyy')}.</>
+              )}
+            </p>
           </div>
         </div>
       )}
