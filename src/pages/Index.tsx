@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import SEO from "@/components/SEO";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
 
@@ -138,6 +139,11 @@ const Index = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
+      <SEO
+        title="BinCheckNYC — NYC property due diligence for closing teams"
+        description="Transaction-ready NYC property compliance reports. 8-agency violation search (DOB, ECB, HPD, FDNY, DSNY, DOT, LPC, DOF) with AI line-item notes and human analyst QA. 24–48 hour delivery. $499 flat."
+        path="/"
+      />
       {/* Nav */}
       <header className="border-b border-border/40 sticky top-0 z-50 bg-background/90 backdrop-blur-md">
         <div className="container flex items-center justify-between h-16">

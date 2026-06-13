@@ -3,28 +3,83 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://ai.gateway.lovable.dev; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev https://*.supabase.co; connect-src 'self' https://*.supabase.co https://ai.gateway.lovable.dev https://data.cityofnewyork.us https://geosearch.planninglabs.nyc; frame-ancestors 'none'; base-uri 'self'; form-action 'self';" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://ai.gateway.lovable.dev https://plausible.io; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev https://*.supabase.co; connect-src 'self' https://*.supabase.co https://ai.gateway.lovable.dev https://data.cityofnewyork.us https://geosearch.planninglabs.nyc https://plausible.io; frame-ancestors 'none'; base-uri 'self'; form-action 'self';" />
     <meta http-equiv="X-Content-Type-Options" content="nosniff" />
     <meta http-equiv="X-Frame-Options" content="DENY" />
     <meta name="referrer" content="strict-origin-when-cross-origin" />
-    <title>Bincheck NYC</title>
-    <meta name="description" content="Transaction-ready NYC property compliance reports for attorneys, investors, and deal teams.">
+
+    <!-- Primary meta -->
+    <title>BinCheckNYC — NYC property due diligence reports for attorneys & investors</title>
+    <meta name="description" content="Transaction-ready NYC property compliance reports. 8-agency violation search (DOB, ECB, HPD, FDNY, DSNY, DOT, LPC, DOF) with AI line-item notes and analyst QA. 24–48 hour delivery. $499 flat." />
     <meta name="author" content="BinCheckNYC" />
+    <meta name="keywords" content="NYC due diligence, NYC property report, DOB violation search, ECB violation lookup, HPD violations, NYC compliance report, BIN lookup, NYC real estate diligence, property closing report, ACRIS report" />
+    <link rel="canonical" href="https://binchecknyc.com/" />
+    <meta name="theme-color" content="#0f172a" />
 
-    <!-- TODO: Update og:title to match your application name -->
-    
-    
+    <!-- Open Graph -->
     <meta property="og:type" content="website" />
-    <meta property="og:image" content="https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/60f4f330-7227-4995-b9e0-9273d6fffed6/id-preview-1901df17--5687520e-43de-4827-98f8-73a2100ce635.lovable.app-1772160629488.png">
+    <meta property="og:site_name" content="BinCheckNYC" />
+    <meta property="og:url" content="https://binchecknyc.com/" />
+    <meta property="og:title" content="BinCheckNYC — NYC property due diligence for closing teams" />
+    <meta property="og:description" content="8-agency NYC violation search with AI line-item notes and human analyst QA. 24–48 hour delivery. $499 flat. Built for the buy side." />
+    <meta property="og:image" content="https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/60f4f330-7227-4995-b9e0-9273d6fffed6/id-preview-1901df17--5687520e-43de-4827-98f8-73a2100ce635.lovable.app-1772160629488.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
 
+    <!-- Twitter / X -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:site" content="@Lovable" />
-    <meta name="twitter:image" content="https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/60f4f330-7227-4995-b9e0-9273d6fffed6/id-preview-1901df17--5687520e-43de-4827-98f8-73a2100ce635.lovable.app-1772160629488.png">
-    <meta property="og:title" content="Bincheck NYC">
-  <meta name="twitter:title" content="Bincheck NYC">
-  <meta property="og:description" content="Permit reports">
-  <meta name="twitter:description" content="Permit reports">
-</head>
+    <meta name="twitter:site" content="@binchecknyc" />
+    <meta name="twitter:title" content="BinCheckNYC — NYC property due diligence for closing teams" />
+    <meta name="twitter:description" content="8-agency NYC violation search with AI line-item notes and human analyst QA. 24–48 hour delivery. $499 flat." />
+    <meta name="twitter:image" content="https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/60f4f330-7227-4995-b9e0-9273d6fffed6/id-preview-1901df17--5687520e-43de-4827-98f8-73a2100ce635.lovable.app-1772160629488.png" />
+
+    <!-- Organization + Product structured data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "Organization",
+          "@id": "https://binchecknyc.com/#organization",
+          "name": "BinCheckNYC",
+          "url": "https://binchecknyc.com",
+          "email": "hello@binchecknyc.com",
+          "areaServed": {
+            "@type": "City",
+            "name": "New York"
+          },
+          "description": "NYC property due diligence reports for attorneys, investors, and transaction teams."
+        },
+        {
+          "@type": "WebSite",
+          "@id": "https://binchecknyc.com/#website",
+          "url": "https://binchecknyc.com",
+          "name": "BinCheckNYC",
+          "publisher": { "@id": "https://binchecknyc.com/#organization" },
+          "potentialAction": {
+            "@type": "SearchAction",
+            "target": "https://binchecknyc.com/?q={search_term_string}",
+            "query-input": "required name=search_term_string"
+          }
+        },
+        {
+          "@type": "Service",
+          "@id": "https://binchecknyc.com/#service",
+          "name": "NYC Property Due Diligence Report",
+          "provider": { "@id": "https://binchecknyc.com/#organization" },
+          "areaServed": { "@type": "City", "name": "New York" },
+          "description": "Transaction-ready compliance report covering 8 NYC agencies (DOB, ECB, HPD, FDNY, DSNY, DOT, LPC, DOF) with AI-generated analyst notes and human QA.",
+          "offers": {
+            "@type": "Offer",
+            "price": "499.00",
+            "priceCurrency": "USD",
+            "availability": "https://schema.org/InStock"
+          }
+        }
+      ]
+    }
+    </script>
+  </head>
 
   <body>
     <div id="root"></div>

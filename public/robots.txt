@@ -1,14 +1,20 @@
-User-agent: Googlebot
-Allow: /
-
-User-agent: Bingbot
-Allow: /
-
-User-agent: Twitterbot
-Allow: /
-
-User-agent: facebookexternalhit
-Allow: /
+# BinCheckNYC robots.txt
+# Public marketing surfaces are indexable. Authenticated and admin
+# surfaces are disallowed so search engines don't waste budget on
+# login walls or attempt to crawl gated content.
 
 User-agent: *
 Allow: /
+Disallow: /auth
+Disallow: /reset-password
+Disallow: /admin
+Disallow: /admin/
+Disallow: /dashboard
+Disallow: /dd-reports
+Disallow: /report
+Disallow: /order
+Disallow: /settings
+Disallow: /unsubscribe
+
+# Sitemap
+Sitemap: https://binchecknyc.com/sitemap.xml
