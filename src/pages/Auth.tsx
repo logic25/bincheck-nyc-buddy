@@ -82,7 +82,16 @@ const Auth = () => {
     try {
       if (isLogin) {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
+        if (error) {
+          if (error.message?.toLowerCase().includes("invalid")) {
+            toast.error(
+              "Incorrect email or password. If you originally signed up with Google, use the Google button above — or click Forgot password to set a password for this email.",
+              { duration: 8000 }
+            );
+            return;
+          }
+          throw error;
+        }
         toast.success("Welcome back!");
         navigate("/dashboard");
       } else {
