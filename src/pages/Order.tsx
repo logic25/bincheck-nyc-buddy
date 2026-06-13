@@ -612,11 +612,15 @@ const Order = () => {
             </Card>
 
             {/* Full disclaimer + SSL chip — appears right above the pay button */}
-            <div className="rounded-md border border-border bg-muted/30 px-4 py-3 text-xs text-muted-foreground space-y-2">
+            <div className="rounded-md border border-border bg-muted/30 px-4 py-3 text-xs text-muted-foreground space-y-3">
+              <p className="font-semibold text-foreground/80 text-[11px] uppercase tracking-wide">Important notice</p>
               <p className="leading-relaxed">
-                <span className="font-semibold text-foreground/80">Disclaimer:</span> BinCheckNYC reports are compiled from publicly available government records. Public records may be delayed, incomplete, or not yet reflected in agency databases at the time of search. All findings should be independently verified with the relevant city agencies prior to reliance in any transaction. BinCheckNYC, its officers, employees, and affiliates assume no liability for errors or omissions in underlying government data.
+                This report was compiled from public records made available by various NYC, state, and federal agencies (DOB, ECB/OATH, HPD, FDNY, DOF, DEP, ACRIS, and related sources). It is provided "AS IS," WITHOUT WARRANTY OF ANY KIND, express or implied, including without limitation any warranty of merchantability, fitness for a particular purpose, or accuracy, completeness, or timeliness. NYC public data is frequently incomplete or lagged; items may exist that are not yet posted, and posted items may be superseded. All information is current only as of the per-source dates stated in the Sources &amp; As-Of section and is subject to continuation prior to any closing or filing decision.
               </p>
-              <div className="flex items-center gap-1.5 text-[11px]">
+              <p className="leading-relaxed">
+                This report is provided for informational and preliminary due-diligence purposes only. It is NOT a title search, title report, title insurance, or an insured service, and it is NOT legal advice. It does not guarantee against, and assumes no liability for, any condition of title or compliance. BinCheckNYC, Inc. disclaims any and all liability to any person or entity arising from use of or reliance on this report. This report is prepared exclusively for the named recipient and not for the benefit of any third party. Verify all findings with the issuing agency and qualified counsel before acting.
+              </p>
+              <div className="flex items-center gap-1.5 text-[11px] pt-1 border-t border-border/40">
                 <Shield className="h-3 w-3" /> SSL encrypted · Data transmitted over TLS 1.2+
               </div>
             </div>

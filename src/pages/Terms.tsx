@@ -61,19 +61,25 @@ const Terms = () => (
         </p>
       </Section>
 
-      <Section title="3. Source Data, Delays & Accuracy">
+      <Section title="3. Source Data, Disclaimer & Limitations">
         <p>
-          BinCheckNYC retrieves data from NYC Open Data, the DOB BIS and DOB-NOW public portals, ACRIS,
-          and other publicly accessible municipal sources. These sources may be incomplete, delayed,
-          contain errors, or fail to reflect very recent filings. We do not guarantee that any report
-          captures every record on file, and a report should be treated as a snapshot of public data
-          available at the time of generation.
+          <strong>IMPORTANT NOTICE.</strong> Reports are compiled from public records made available by
+          various NYC, state, and federal agencies (DOB, ECB/OATH, HPD, FDNY, DOF, DEP, ACRIS, and
+          related sources). Reports are provided "AS IS," WITHOUT WARRANTY OF ANY KIND, express or
+          implied, including without limitation any warranty of merchantability, fitness for a particular
+          purpose, or accuracy, completeness, or timeliness. NYC public data is frequently incomplete or
+          lagged; items may exist that are not yet posted, and posted items may be superseded. All
+          information is current only as of the per-source dates stated in the report's Sources &amp;
+          As-Of section and is subject to continuation prior to any closing or filing decision.
         </p>
         <p>
-          <strong>Independent verification.</strong> Before relying on a BinCheckNYC report in connection
-          with any real-estate transaction, closing, lien clearance, permit decision, or financial
-          commitment, you agree to independently verify the underlying records with the relevant city
-          agency. BinCheckNYC is a starting point for due diligence, not its conclusion.
+          Reports are provided for informational and preliminary due-diligence purposes only. They are
+          NOT a title search, title report, title insurance, or an insured service, and they are NOT
+          legal advice. They do not guarantee against, and assume no liability for, any condition of
+          title or compliance. BinCheckNYC, Inc. disclaims any and all liability to any person or entity
+          arising from use of or reliance on a report. Each report is prepared exclusively for the named
+          recipient and not for the benefit of any third party. You agree to verify all findings with the
+          issuing agency and qualified counsel before acting.
         </p>
       </Section>
 
