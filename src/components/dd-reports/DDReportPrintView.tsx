@@ -591,12 +591,12 @@ interface SignedByProps {
   reviewerName?: string | null;
 }
 const GLESignedBy = ({ reviewerName }: SignedByProps) => {
-  const name = reviewerName || GLE_REVIEWER_NAME;
+  const name = reviewerName || BINCHECK_REVIEWER_NAME;
   return (
     <div style={{ marginTop: '28px', fontSize: '12px', color: '#111827', pageBreakInside: 'avoid' }}>
       <p style={{ margin: '0 0 28px' }}>Sincerely,</p>
       <p style={{ margin: 0, fontWeight: 600 }}>{name}</p>
-      <p style={{ margin: '2px 0 0', color: MUTED }}>{GLE_FIRM_NAME} / BinCheck NYC</p>
+      <p style={{ margin: '2px 0 0', color: MUTED }}>{BINCHECK_FIRM_NAME}</p>
     </div>
   );
 };
