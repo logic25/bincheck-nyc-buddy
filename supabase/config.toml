@@ -50,3 +50,7 @@ verify_jwt = true
 
 [functions.refresh-accuracy-stats]
 verify_jwt = true
+
+# ACRIS read-through cache. Service-role + signed-in users only.
+[functions.fetch-acris-bbl]
+verify_jwt = true
