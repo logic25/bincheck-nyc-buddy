@@ -315,7 +315,7 @@ const Index = () => {
         )}
       </div>
 
-
+      <main className="flex-1">
         {!session && (
           <>
             {/* What's Included */}
