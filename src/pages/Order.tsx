@@ -611,6 +611,16 @@ const Order = () => {
               </CardContent>
             </Card>
 
+            {/* Full disclaimer + SSL chip — appears right above the pay button */}
+            <div className="rounded-md border border-border bg-muted/30 px-4 py-3 text-xs text-muted-foreground space-y-2">
+              <p className="leading-relaxed">
+                <span className="font-semibold text-foreground/80">Disclaimer:</span> BinCheckNYC reports are compiled from publicly available government records. Public records may be delayed, incomplete, or not yet reflected in agency databases at the time of search. All findings should be independently verified with the relevant city agencies prior to reliance in any transaction. BinCheckNYC, its officers, employees, and affiliates assume no liability for errors or omissions in underlying government data.
+              </p>
+              <div className="flex items-center gap-1.5 text-[11px]">
+                <Shield className="h-3 w-3" /> SSL encrypted · Data transmitted over TLS 1.2+
+              </div>
+            </div>
+
             <div className="space-y-3">
               <Button className="w-full" size="lg" onClick={handleSubmitOrder} disabled={isProcessing || !orderReady}>
                 {isProcessing ? (
