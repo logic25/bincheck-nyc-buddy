@@ -259,13 +259,6 @@ function buildACRISSearchUrl(): string {
   return `https://a836-acris.nyc.gov/DS/DocumentSearch/Index`;
 }
 
-const BOROUGH_CODES: Record<string, string> = {
-  "MANHATTAN": "1", "MN": "1", "NEW YORK": "1",
-  "BRONX": "2", "BX": "2", "THE BRONX": "2",
-  "BROOKLYN": "3", "BK": "3", "KINGS": "3",
-  "QUEENS": "4", "QN": "4",
-  "STATEN ISLAND": "5", "SI": "5", "RICHMOND": "5",
-};
 
 const NYC_APP_TOKEN = Deno.env.get("NYC_APP_TOKEN") || "";
 
