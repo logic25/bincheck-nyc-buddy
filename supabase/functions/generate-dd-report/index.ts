@@ -865,6 +865,169 @@ async function fetchBISLive(bin: string): Promise<any[] | null> {
   }
 }
 
+/**
+ * fetchDOFLive — live DOF PTAPS property tax data via the bis-scraper-proxy.
+ *
+ * Feature-flagged behind USE_LIVE_DOF=true. On any error or timeout the
+ * caller falls back to the Socrata scjx-j6np dataset and logs a warning so
+ * the report is never broken while the flag is being tested.
+ *
+ * Returns a data shape compatible with fetchDOFCharges so downstream
+ * rendering code requires no changes.
+ */
+async function fetchDOFLive(bbl: string): Promise<any | null> {
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!supabaseUrl || !supabaseServiceKey) {
+    console.warn("[fetchDOFLive] Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY — skipping live DOF");
+    return null;
+  }
+
+  try {
+    console.log(`[fetchDOFLive] Invoking bis-scraper-proxy for BBL ${bbl} (action=dof_ptaps)`);
+    const resp = await fetch(`${supabaseUrl}/functions/v1/bis-scraper-proxy`, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${supabaseServiceKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ action: "dof_ptaps", bbl }),
+    });
+
+    if (!resp.ok) {
+      console.warn(`[fetchDOFLive] Proxy returned ${resp.status} — falling back to Socrata`);
+      return null;
+    }
+
+    const data = await resp.json();
+
+    // Surface soft errors from the scraper (e.g. "no records found") as
+    // warnings so the caller can fall back cleanly.
+    if (data?.error) {
+      console.warn(`[fetchDOFLive] Scraper reported error: ${data.error} — falling back to Socrata`);
+      return null;
+    }
+
+    console.log(
+      `[fetchDOFLive] Live DOF data for BBL ${bbl}: outstanding=$${data?.totals?.outstanding ?? 0}, ` +
+      `items=${data?.totals?.count ?? 0}, source=${data?.source}`
+    );
+
+    // Attach provenance fields so the report footnote knows the source.
+    return {
+      ...data,
+      _live_source: "ptaps_live",
+      _fetched_at: data.fetched_at ?? new Date().toISOString(),
+    };
+  } catch (err: unknown) {
+    console.warn(`[fetchDOFLive] Error — falling back to Socrata:`, err instanceof Error ? err.message : String(err));
+    return null;
+  }
+}
+
+/**
+ * fetchDEPLive — live DEP CIS water/sewer account data via the bis-scraper-proxy.
+ *
+ * Feature-flagged behind USE_LIVE_DEP=true. On any error or timeout the
+ * caller falls back to the WAT/SEW entries in the Socrata scjx-j6np dataset
+ * and logs a warning.
+ *
+ * Returns a data shape compatible with the WAT/SEW items in fetchDOFCharges
+ * so the report's charge-rendering logic works without modification.
+ */
+async function fetchDEPLive(bbl: string, address?: string): Promise<any | null> {
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!supabaseUrl || !supabaseServiceKey) {
+    console.warn("[fetchDEPLive] Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY — skipping live DEP");
+    return null;
+  }
+
+  try {
+    console.log(`[fetchDEPLive] Invoking bis-scraper-proxy for BBL ${bbl} (action=dep_cis)`);
+    const resp = await fetch(`${supabaseUrl}/functions/v1/bis-scraper-proxy`, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${supabaseServiceKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ action: "dep_cis", bbl, address }),
+    });
+
+    if (!resp.ok) {
+      console.warn(`[fetchDEPLive] Proxy returned ${resp.status} — falling back to Socrata`);
+      return null;
+    }
+
+    const data = await resp.json();
+
+    if (data?.error) {
+      console.warn(`[fetchDEPLive] Scraper reported error: ${data.error} — falling back to Socrata`);
+      return null;
+    }
+
+    console.log(
+      `[fetchDEPLive] Live DEP data for BBL ${bbl}: outstanding=$${data?.totals?.outstanding ?? 0}, ` +
+      `items=${data?.totals?.count ?? 0}, source=${data?.source}`
+    );
+
+    return {
+      ...data,
+      _live_source: "cis_live",
+      _fetched_at: data.fetched_at ?? new Date().toISOString(),
+    };
+  } catch (err: unknown) {
+    console.warn(`[fetchDEPLive] Error — falling back to Socrata:`, err instanceof Error ? err.message : String(err));
+    return null;
+  }
+}
+
+/**
+ * fetchDateDown — rerun just DOF PTAPS + DEP CIS for a "date-down" add-on.
+ *
+ * Used by the $49 date-down report flow where an analyst needs to confirm
+ * the current property-tax and water balance without regenerating the full
+ * report. Calls both live endpoints in parallel and returns only the charge
+ * provenance payload. The caller (admin dashboard) writes the result back
+ * to dof_charges_data / dep_charges_data and updates dof_source /
+ * dep_source / dof_fetched_at / dep_fetched_at.
+ *
+ * Called via: POST /functions/v1/generate-dd-report
+ *   with body { action: "date_down", report_id: "<uuid>", bbl: "<10-digit>", address?: "..." }
+ *
+ * Returns:
+ *   {
+ *     dof: <DOF PTAPS result or null>,
+ *     dep: <DEP CIS result or null>,
+ *     dof_source: "ptaps_live" | "unavailable",
+ *     dep_source: "cis_live" | "unavailable",
+ *     dof_fetched_at: string | null,
+ *     dep_fetched_at: string | null,
+ *   }
+ */
+async function fetchDateDown(bbl: string, address?: string): Promise<{
+  dof: any | null;
+  dep: any | null;
+  dof_source: "ptaps_live" | "unavailable";
+  dep_source: "cis_live" | "unavailable";
+  dof_fetched_at: string | null;
+  dep_fetched_at: string | null;
+}> {
+  const [dofLive, depLive] = await Promise.all([
+    fetchDOFLive(bbl),
+    fetchDEPLive(bbl, address),
+  ]);
+
+  return {
+    dof: dofLive,
+    dep: depLive,
+    dof_source: dofLive !== null ? "ptaps_live" : "unavailable",
+    dep_source: depLive !== null ? "cis_live" : "unavailable",
+    dof_fetched_at: dofLive?._fetched_at ?? null,
+    dep_fetched_at: depLive?._fetched_at ?? null,
+  };
+}
+
 async function fetchApplications(bin: string): Promise<any[]> {
   const applications: any[] = [];
   if (!bin) return applications;
@@ -1835,9 +1998,28 @@ async function fetchTaxLienData(bbl: string): Promise<any[]> {
  * DOF Property Charges — outstanding tax / DEP / sidewalk / SAC charges by BBL.
  * Mirrors DataTrace's "Account Balance" and "Tax Search" sections.
  * Returns aggregated totals + raw line items grouped by charge type.
+ *
+ * Live path: USE_LIVE_DOF=true → fetches from DOF PTAPS via bis-scraper-proxy.
+ * Fallback:  Socrata scjx-j6np dataset (kept as-is; never removed).
+ * Source is recorded in the returned object as _live_source / _fetched_at so
+ * the PrintView footnote can show provenance (e.g. "Pulled live from DOF PTAPS").
  */
 async function fetchDOFCharges(bbl: string): Promise<any> {
   if (!bbl || bbl.length < 10) return { totals: { outstanding: 0, interest: 0, count: 0 }, by_type: {}, items: [] };
+
+  // ── Live DOF PTAPS path (feature flag: USE_LIVE_DOF=true) ───────────────────────
+  const useLiveDOF = Deno.env.get("USE_LIVE_DOF") === "true";
+  if (useLiveDOF) {
+    const liveData = await fetchDOFLive(bbl);
+    if (liveData !== null) {
+      console.log(`[fetchDOFCharges] Using live DOF PTAPS data for BBL ${bbl}`);
+      return { ...liveData, _source: "ptaps_live" };
+    }
+    // liveData === null means live fetch failed — fall through to Socrata
+    console.warn(`[fetchDOFCharges] USE_LIVE_DOF=true but live fetch failed for BBL ${bbl} — using Socrata fallback`);
+  }
+
+  // ── Socrata fallback (default path) ──────────────────────────────────────────
   try {
     // parid is 10-digit BBL same format we already use internally
     const records = await fetchNYCData(NYC_ENDPOINTS.DOF_CHARGES, {
@@ -1899,6 +2081,8 @@ async function fetchDOFCharges(bbl: string): Promise<any> {
     });
 
     return {
+      _source: "socrata",
+      _fetched_at: new Date().toISOString(),
       totals: {
         outstanding: Math.round(outstandingTotal * 100) / 100,
         interest: Math.round(interestTotal * 100) / 100,
@@ -1909,7 +2093,7 @@ async function fetchDOFCharges(bbl: string): Promise<any> {
     };
   } catch (error) {
     console.error("DOF Charges fetch error:", error);
-    return { totals: { outstanding: 0, interest: 0, count: 0 }, by_type: {}, items: [] };
+    return { _source: "socrata", totals: { outstanding: 0, interest: 0, count: 0 }, by_type: {}, items: [] };
   }
 }
 
@@ -2338,7 +2522,39 @@ serve(async (req) => {
     }
 
     const userId = claimsData.user.id;
-    const { reportId, address, customerConcern } = await req.json();
+    const requestBody = await req.json();
+    const { reportId, address, customerConcern } = requestBody;
+
+    // ── date_down action — rerun DOF PTAPS + DEP CIS only ($49 add-on) ────────────────
+    if (requestBody?.action === "date_down") {
+      const ddBbl: string = requestBody?.bbl ?? '';
+      const ddAddress: string | undefined = requestBody?.address;
+      if (!ddBbl || ddBbl.length < 10) {
+        return new Response(
+          JSON.stringify({ error: "bbl is required for date_down action (must be 10-digit)" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      const ddResult = await fetchDateDown(ddBbl, ddAddress);
+      // If a report_id is provided, update the cached columns in dd_reports
+      if (requestBody?.report_id) {
+        const supabase = createClient(supabaseUrl, supabaseServiceKey);
+        await supabase.from('dd_reports').update({
+          ...(ddResult.dof !== null ? { dof_charges_data: ddResult.dof } : {}),
+          ...(ddResult.dep !== null ? { dep_charges_data: ddResult.dep } : {}),
+          dof_source: ddResult.dof_source === "ptaps_live" ? "ptaps_live" : "unavailable",
+          dep_source: ddResult.dep_source === "cis_live" ? "cis_live" : "unavailable",
+          dof_fetched_at: ddResult.dof_fetched_at,
+          dep_fetched_at: ddResult.dep_fetched_at,
+        }).eq('id', requestBody.report_id);
+      }
+      return new Response(
+        JSON.stringify(ddResult),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    // ──────────────────────────────────────────────────────────────────
+
     if (!reportId || !address) {
       return new Response(JSON.stringify({ error: "Missing reportId or address" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
@@ -2437,6 +2653,7 @@ serve(async (req) => {
       fetchACRISData(bbl),
       fetchTaxLienData(bbl),
       // Coverage Exceed v1
+      // fetchDOFCharges already handles USE_LIVE_DOF internally
       fetchDOFCharges(bbl),
       fetchFuelBurners(bin),
       fetchCertificatesOfOccupancy(bin),
@@ -2447,6 +2664,30 @@ serve(async (req) => {
       fetchFDNYVacateOrders(bin, bbl),
       fetchFDNYBureauViolations(bin),
     ]);
+
+    // ── Step 6: Live DEP CIS water/sewer (feature flag: USE_LIVE_DEP=true) ─────────────────
+    // Runs after the parallel block so it doesn't block the critical-path fetches.
+    // On error/timeout, falls back to the WAT/SEW items already in dofCharges.
+    const useLiveDEP = Deno.env.get("USE_LIVE_DEP") === "true";
+    let depCharges: any = null; // null = use Socrata WAT/SEW items from dofCharges
+    if (useLiveDEP && bbl) {
+      const liveDepData = await fetchDEPLive(bbl, resolvedAddress ?? undefined);
+      if (liveDepData !== null) {
+        console.log(`[generate-dd-report] Using live DEP CIS data for BBL ${bbl}`);
+        depCharges = { ...liveDepData, _source: "cis_live" };
+      } else {
+        console.warn(`[generate-dd-report] USE_LIVE_DEP=true but live DEP fetch failed for BBL ${bbl} — using Socrata WAT/SEW from dofCharges`);
+      }
+    }
+
+    // Determine provenance strings for the PrintView footnote
+    const dofSource: string = (dofCharges as any)?._source === "ptaps_live" ? "ptaps_live"
+      : (dofCharges as any)?._source === "socrata" ? "socrata" : "socrata";
+    const depSource: string = depCharges?._source === "cis_live" ? "cis_live" : "socrata";
+    const dofFetchedAt: string | null = (dofCharges as any)?._fetched_at ?? null;
+    const depFetchedAt: string | null = depCharges?._fetched_at ?? null;
+    console.log(`[generate-dd-report] dof_source=${dofSource}, dep_source=${depSource}`);
+    // ─────────────────────────────────────────────────────────────────────────────────────
 
     // Build agencies_queried tracking
     const dobViolationsFromAll = allViolations.filter((v: any) => v.agency === 'DOB');
@@ -2479,7 +2720,8 @@ serve(async (req) => {
       { agency: 'ACRIS', label: 'ACRIS Property Records', queried: !!bbl, results: acrisDocs, category: 'transfers', error: agencyErrors.has('ACRIS') },
       { agency: 'DOF-LIEN', label: 'Tax Lien Sale List', queried: !!bbl, results: taxLienData.length, category: 'tax_liens', error: agencyErrors.has('DOF-LIEN') },
       // Coverage Exceed v1 — DataTrace parity
-      { agency: 'DOF-CHARGES', label: 'DOF Property Charges', queried: !!bbl, results: dofCharges.totals.count, category: 'charges', error: agencyErrors.has('DOF-CHARGES') },
+      { agency: 'DOF-CHARGES', label: 'DOF Property Charges', queried: !!bbl, results: dofCharges.totals.count, category: 'charges', error: agencyErrors.has('DOF-CHARGES'), source: dofSource },
+      { agency: 'DEP-CIS', label: 'DEP Water/Sewer (CIS)', queried: useLiveDEP && !!bbl, results: depCharges?.totals?.count ?? 0, category: 'charges', error: false, source: depSource },
       { agency: 'DEP-FUEL', label: 'DEP Air Resources / Fuel Burners', queried: !!bin, results: fuelBurners.total, category: 'equipment', error: agencyErrors.has('DEP-FUEL') },
       { agency: 'DOB-CO', label: 'Certificates of Occupancy', queried: !!bin, results: certificatesOfOccupancy.total, category: 'certificates', error: agencyErrors.has('DOB-CO') },
       { agency: 'DOT-SIDEWALK', label: 'DOT Sidewalk Violations', queried: !!building?.street_name, results: sidewalkViolations.total, category: 'violations', error: agencyErrors.has('DOT-SIDEWALK') },
@@ -2574,6 +2816,7 @@ serve(async (req) => {
       tax_lien_data: taxLienData,
       // Coverage Exceed v1 — DataTrace parity
       dof_charges_data: dofCharges,
+      dep_charges_data: depCharges,   // null when USE_LIVE_DEP is off; WAT/SEW in dofCharges used instead
       fuel_tank_data: fuelBurners,
       co_data: certificatesOfOccupancy,
       sidewalk_data: sidewalkViolations,
@@ -2588,6 +2831,11 @@ serve(async (req) => {
       line_item_notes: lineItemNotes,
       property_status_summary: propertyStatusSummary || null,
       citisignal_recommended: citisignalRecommended,
+      // Step 6 — provenance columns (from migration 20260614040000_dof_dep_live_cache.sql)
+      dof_source: dofSource,
+      dep_source: depSource,
+      dof_fetched_at: dofFetchedAt,
+      dep_fetched_at: depFetchedAt,
       status: 'pending_review',
     }).eq('id', reportId);
 
