@@ -25,9 +25,13 @@ function generateToken(): string {
     .join('')
 }
 
-// Auth note: this function uses verify_jwt = true in config.toml, so Supabase's
-// gateway validates the caller's JWT (anon or service_role) before the request
-// reaches this code. No in-function auth check is needed.
+// Auth: this function uses verify_jwt = true in config.toml, but Supabase's
+// gateway accepts any valid JWT — including the public anon key. That's not
+// enough; any browser client could fire emails. We require either:
+//   1. A signed-in end-user JWT (Authorization: Bearer <user access token>), OR
+//   2. The service-role key (server-to-server calls from other edge functions).
+//
+// Anon-only callers are rejected with 401.
 
 Deno.serve(async (req) => {
   const corsHeaders = getCorsHeaders(req)
@@ -38,6 +42,54 @@ Deno.serve(async (req) => {
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL')
   const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+  const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')
+
+  // Reject anon-only callers. The Supabase gateway already verified the JWT
+  // signature; we just need to confirm the caller is NOT just an anon key.
+  const authHeader = req.headers.get('authorization') || ''
+  const bearer = authHeader.toLowerCase().startsWith('bearer ')
+    ? authHeader.slice(7).trim()
+    : ''
+
+  if (!bearer) {
+    return new Response(
+      JSON.stringify({ error: 'Authentication required' }),
+      { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    )
+  }
+
+  // Service-role calls bypass user-context checks.
+  const isServiceRole = bearer === supabaseServiceKey
+
+  if (!isServiceRole) {
+    // Anon key alone is not enough.
+    if (bearer === supabaseAnonKey) {
+      return new Response(
+        JSON.stringify({ error: 'User authentication required' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+    // Verify the token resolves to a real user.
+    try {
+      const userClient = (await import('npm:@supabase/supabase-js@2')).createClient(
+        supabaseUrl ?? '',
+        supabaseAnonKey ?? '',
+        { global: { headers: { Authorization: authHeader } } }
+      )
+      const { data: userData, error: userErr } = await userClient.auth.getUser()
+      if (userErr || !userData?.user) {
+        return new Response(
+          JSON.stringify({ error: 'Invalid authentication token' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+    } catch {
+      return new Response(
+        JSON.stringify({ error: 'Authentication check failed' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+  }
 
   if (!supabaseUrl || !supabaseServiceKey) {
     console.error('Missing required environment variables')

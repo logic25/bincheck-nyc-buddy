@@ -2,11 +2,27 @@ import { createClient } from 'npm:@supabase/supabase-js@2'
 
 // CORS=* is intentional here: this endpoint is hit by email clients as a
 // redirect (GET ?id=&dest=) when a recipient clicks a CTA. There is no
-// browser/Origin context to validate, and the side effect is only logging an
-// impression — no data is leaked back to the caller.
+// browser/Origin context to validate.
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
+
+// Allowlist of host suffixes the redirect endpoint will send users to.
+// Anything else is rejected to prevent open-redirect phishing — an attacker
+// could otherwise craft `?dest=https://evil.example/login` and the link's
+// origin would appear to be our trusted edge-function domain.
+const ALLOWED_HOSTS = [
+  'binchecknyc.com',
+  'www.binchecknyc.com',
+  // Lovable preview deploys (the marketing site lives here pre-DNS cutover):
+  'lovable.app',
+  'lovable.dev',
+]
+
+function isHostAllowed(host: string): boolean {
+  const h = host.toLowerCase()
+  return ALLOWED_HOSTS.some(allowed => h === allowed || h.endsWith('.' + allowed))
 }
 
 Deno.serve(async (req) => {
@@ -20,6 +36,25 @@ Deno.serve(async (req) => {
 
   if (!dest) {
     return new Response('Missing dest parameter', { status: 400, headers: corsHeaders })
+  }
+
+  // Validate the destination URL: must parse, must use https, and the host
+  // must be on our allowlist. Reject anything else with 400 rather than
+  // silently sending the user somewhere unexpected.
+  let destUrl: URL
+  try {
+    destUrl = new URL(dest)
+  } catch {
+    return new Response('Invalid dest URL', { status: 400, headers: corsHeaders })
+  }
+
+  if (destUrl.protocol !== 'https:' && destUrl.protocol !== 'http:') {
+    return new Response('Unsupported protocol', { status: 400, headers: corsHeaders })
+  }
+
+  if (!isHostAllowed(destUrl.hostname)) {
+    console.warn(`[track-cta-click] rejected redirect to disallowed host: ${destUrl.hostname}`)
+    return new Response('Destination host not allowed', { status: 400, headers: corsHeaders })
   }
 
   // Track the click if we have an impression ID
@@ -40,12 +75,12 @@ Deno.serve(async (req) => {
     }
   }
 
-  // 302 redirect to destination
+  // 302 redirect to validated destination
   return new Response(null, {
     status: 302,
     headers: {
       ...corsHeaders,
-      'Location': dest,
+      'Location': destUrl.toString(),
     },
   })
 })
