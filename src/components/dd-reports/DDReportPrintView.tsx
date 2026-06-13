@@ -298,37 +298,47 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
 
   // ─── Styles ──────────────────────────────────────────────────────────────
   const sectionHeaderStyle: React.CSSProperties = {
-    fontSize: '14px',
+    fontSize: '11px',
     fontWeight: 700,
     textTransform: 'uppercase' as const,
-    letterSpacing: '0.08em',
+    letterSpacing: '0.16em',
     color: NAVY,
     borderBottom: `2px solid ${NAVY}`,
     paddingBottom: '6px',
     marginBottom: '16px',
   };
 
-  const tableHeaderStyle = `border border-gray-200 px-2 py-2 text-[10px] font-semibold uppercase tracking-wide text-gray-800 bg-gray-100`;
+  const tableHeaderStyle = `border border-gray-200 px-2 py-2 text-[10px] font-semibold uppercase tracking-wider text-gray-700 bg-gray-50`;
   const tableCellStyle = `border border-gray-200 px-2 py-2 text-[11px] align-top text-gray-900`;
 
   // ─── Score colors ────────────────────────────────────────────────────────
   const getScoreBg = (score: number) => {
-    if (score >= 80) return { bg: '#dcfce7', border: '#16a34a', text: '#15803d', label: 'LOW RISK' };
-    if (score >= 50) return { bg: '#fef9c3', border: '#ca8a04', text: '#a16207', label: 'MODERATE RISK' };
-    return { bg: '#fecaca', border: '#dc2626', text: '#b91c1c', label: 'HIGH RISK' };
+    if (score >= 80) return { bg: '#ffffff', border: '#166534', text: '#166534', label: 'LOW RISK' };
+    if (score >= 50) return { bg: '#ffffff', border: '#b45309', text: '#b45309', label: 'MODERATE RISK' };
+    return { bg: '#ffffff', border: '#991b1b', text: '#991b1b', label: 'HIGH RISK' };
   };
   const scoreStyle = getScoreBg(complianceScore.overall);
 
-  // ─── Severity badge ──────────────────────────────────────────────────────
+  // ─── Bordered rectangle label (severity / risk) ──────────────────────────
+  const rectLabel = (text: string, color: string): React.CSSProperties => ({
+    display: 'inline-block',
+    fontSize: '9px',
+    fontWeight: 700,
+    letterSpacing: '0.08em',
+    color,
+    border: `1.5px solid ${color}`,
+    padding: '3px 8px',
+    borderRadius: '3px',
+    textTransform: 'uppercase',
+    whiteSpace: 'nowrap',
+    backgroundColor: '#ffffff',
+  });
+
   const renderSeverityBadge = (note: string) => {
     const tag = getItemTag(note);
-    if (tag === 'action') {
-      return <span style={{ fontSize: '9px', fontWeight: 600, backgroundColor: '#fee2e2', color: '#991b1b', padding: '2px 8px', borderRadius: '9999px', whiteSpace: 'nowrap' }}>HIGH</span>;
-    }
-    if (tag === 'monitor') {
-      return <span style={{ fontSize: '9px', fontWeight: 600, backgroundColor: '#fef9c3', color: '#92400e', padding: '2px 8px', borderRadius: '9999px', whiteSpace: 'nowrap' }}>MONITOR</span>;
-    }
-    return <span style={{ fontSize: '9px', fontWeight: 600, backgroundColor: '#dcfce7', color: '#166534', padding: '2px 8px', borderRadius: '9999px', whiteSpace: 'nowrap' }}>CLEAR</span>;
+    if (tag === 'action') return <span style={rectLabel('HIGH', '#991b1b')}>HIGH</span>;
+    if (tag === 'monitor') return <span style={rectLabel('MONITOR', '#b45309')}>MONITOR</span>;
+    return <span style={rectLabel('CLEAR', '#166534')}>CLEAR</span>;
   };
 
   // ─── Agency Sources ──────────────────────────────────────────────────────
