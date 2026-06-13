@@ -178,6 +178,8 @@ const Order = () => {
   // we want the report ready when it's time to invoice. Until Stripe Checkout
   // lands, payment is collected out-of-band (ACH / wire / Stripe invoice link).
   const handleSubmitOrder = async () => {
+    // Honeypot — silently drop bot submissions.
+    if (hp.trim().length > 0) { setSubmitted(true); return; }
     setIsProcessing(true);
     try {
       const { data: sessionData } = await supabase.auth.getSession();
