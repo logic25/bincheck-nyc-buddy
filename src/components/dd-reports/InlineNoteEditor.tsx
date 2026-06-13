@@ -3,9 +3,18 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Pencil, X, Check, Loader2 } from 'lucide-react';
+
+const UNIT_RELEVANCE_OPTIONS = [
+  { value: 'affects_unit',   label: 'Affects Unit — directly concerns the subject unit' },
+  { value: 'common_area',   label: 'Common Area — elevator, lobby, facade, shared systems' },
+  { value: 'other_unit',    label: 'Other Unit — a different apartment or floor' },
+  { value: 'whole_building', label: 'Whole Building — SWO, CO issue, building-wide enforcement' },
+  { value: 'unknown',       label: 'Unknown — insufficient location data' },
+] as const;
 
 const ERROR_CATEGORIES = [
   { value: 'too_vague', label: 'Too Vague — generic language without specifics' },
@@ -28,6 +37,10 @@ interface EditStatus {
 interface InlineNoteEditorProps {
   note: string;
   onNoteChange: (note: string) => void;
+  unitRelevance?: string | null;
+  onUnitRelevanceChange?: (value: string) => void;
+  impactNote?: string | null;
+  onImpactNoteChange?: (value: string) => void;
   reportId: string;
   itemType: 'violation' | 'application' | 'complaint';
   itemIdentifier: string;
@@ -40,6 +53,10 @@ interface InlineNoteEditorProps {
 const InlineNoteEditor = ({
   note,
   onNoteChange,
+  unitRelevance,
+  onUnitRelevanceChange,
+  impactNote,
+  onImpactNoteChange,
   reportId,
   itemType,
   itemIdentifier,
@@ -50,17 +67,25 @@ const InlineNoteEditor = ({
 }: InlineNoteEditorProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editedNote, setEditedNote] = useState(note);
+  const [editedUnitRelevance, setEditedUnitRelevance] = useState(unitRelevance ?? '');
+  const [editedImpactNote, setEditedImpactNote] = useState(impactNote ?? '');
   const [errorCategory, setErrorCategory] = useState<string>('');
   const [isSaving, setIsSaving] = useState(false);
 
-  // Sync editedNote when note prop changes externally
+  // Sync local state when props change externally (e.g. AI regeneration)
   useEffect(() => {
-    if (!isEditing) setEditedNote(note);
-  }, [note, isEditing]);
+    if (!isEditing) {
+      setEditedNote(note);
+      setEditedUnitRelevance(unitRelevance ?? '');
+      setEditedImpactNote(impactNote ?? '');
+    }
+  }, [note, unitRelevance, impactNote, isEditing]);
 
   const handleStartEdit = (e: React.MouseEvent) => {
     e.stopPropagation();
     setEditedNote(note);
+    setEditedUnitRelevance(unitRelevance ?? '');
+    setEditedImpactNote(impactNote ?? '');
     setErrorCategory('');
     setIsEditing(true);
   };
@@ -68,6 +93,8 @@ const InlineNoteEditor = ({
   const handleCancel = (e: React.MouseEvent) => {
     e.stopPropagation();
     setEditedNote(note);
+    setEditedUnitRelevance(unitRelevance ?? '');
+    setEditedImpactNote(impactNote ?? '');
     setErrorCategory('');
     setIsEditing(false);
   };
@@ -78,7 +105,10 @@ const InlineNoteEditor = ({
       toast.error('Please select a reason for the change');
       return;
     }
-    if (editedNote.trim() === note.trim()) {
+    const noteUnchanged = editedNote.trim() === note.trim();
+    const relevanceUnchanged = editedUnitRelevance === (unitRelevance ?? '');
+    const impactUnchanged = editedImpactNote.trim() === (impactNote ?? '').trim();
+    if (noteUnchanged && relevanceUnchanged && impactUnchanged) {
       toast.info('No changes detected');
       setIsEditing(false);
       return;
@@ -104,14 +134,19 @@ const InlineNoteEditor = ({
           error_category: errorCategory,
           editor_id: userData.user.id,
           status: 'pending',
+          // Unit-relevance override fields (Step 3)
+          unit_relevance: editedUnitRelevance || null,
+          impact_note: editedImpactNote.trim() || null,
         } as any)
         .select('id')
         .single();
 
       if (error) throw error;
 
-      // Update the note immediately in the UI
+      // Update all fields immediately in the UI
       onNoteChange(editedNote.trim());
+      if (editedUnitRelevance) onUnitRelevanceChange?.(editedUnitRelevance);
+      if (editedImpactNote.trim()) onImpactNoteChange?.(editedImpactNote.trim());
       onEditSaved?.(data.id);
       setIsEditing(false);
       toast.success('Edit saved — pending admin review');
@@ -138,14 +173,27 @@ const InlineNoteEditor = ({
     </Badge>
   ) : null;
 
+  // Readable label for the unit_relevance value
+  const relevanceLabel = unitRelevance
+    ? UNIT_RELEVANCE_OPTIONS.find(o => o.value === unitRelevance)?.label.split(' —')[0] ?? unitRelevance
+    : null;
+
   if (readOnly) {
     return (
       <div className="space-y-1">
         <div className="flex items-center gap-2">
           <p className="text-sm font-medium text-muted-foreground">Notes</p>
           {statusBadge}
+          {relevanceLabel && (
+            <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-sky-500/10 text-sky-700 border-sky-500/30">
+              {relevanceLabel}
+            </Badge>
+          )}
         </div>
         <p className="text-sm text-foreground/80 whitespace-pre-wrap">{note || <span className="italic text-muted-foreground">No note</span>}</p>
+        {impactNote && (
+          <p className="text-xs text-muted-foreground italic">{impactNote}</p>
+        )}
       </div>
     );
   }
@@ -165,6 +213,35 @@ const InlineNoteEditor = ({
           placeholder="Write your corrected note..."
           autoFocus
         />
+
+        {/* Unit relevance override — pre-filled by AI, analyst can correct */}
+        <div className="space-y-1">
+          <label className="text-xs font-medium text-muted-foreground">Unit Relevance</label>
+          <Select value={editedUnitRelevance} onValueChange={setEditedUnitRelevance}>
+            <SelectTrigger className="h-8 text-xs">
+              <SelectValue placeholder="Select how this item relates to the subject..." />
+            </SelectTrigger>
+            <SelectContent>
+              {UNIT_RELEVANCE_OPTIONS.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value} className="text-xs">
+                  {opt.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Impact note override — pre-filled by AI, analyst can correct */}
+        <div className="space-y-1">
+          <label className="text-xs font-medium text-muted-foreground">Impact Note</label>
+          <Input
+            value={editedImpactNote}
+            onChange={(e) => setEditedImpactNote(e.target.value)}
+            className="h-8 text-xs"
+            placeholder='e.g. "No impact on Unit 10B." or "Restricts future combination of 10A+10B."'
+          />
+        </div>
+
         <div className="space-y-2">
           <label className="text-xs font-medium text-muted-foreground">Why was this changed? <span className="text-destructive">*</span></label>
           <Select value={errorCategory} onValueChange={setErrorCategory}>
@@ -202,6 +279,11 @@ const InlineNoteEditor = ({
           <Pencil className="w-3 h-3" />
         </Button>
         {statusBadge}
+        {relevanceLabel && (
+          <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-sky-500/10 text-sky-700 border-sky-500/30">
+            {relevanceLabel}
+          </Badge>
+        )}
       </div>
       {note ? (
         <p className="text-sm text-foreground/80 whitespace-pre-wrap">{note}</p>
@@ -216,6 +298,9 @@ const InlineNoteEditor = ({
           rows={2}
           className="resize-none"
         />
+      )}
+      {impactNote && (
+        <p className="text-xs text-muted-foreground italic">{impactNote}</p>
       )}
     </div>
   );
