@@ -29,6 +29,7 @@ import MobileViolationCard from './mobile/MobileViolationCard';
 import MobileApplicationCard from './mobile/MobileApplicationCard';
 import MobileComplaintCard from './mobile/MobileComplaintCard';
 import BatchEditPanel, { type SelectedItem } from './BatchEditPanel';
+import AnalystApprovalPanel from './AnalystApprovalPanel';
 import ArchitectRequestDialog from './ArchitectRequestDialog';
 import CloseoutRequestDialog from './CloseoutRequestDialog';
 import html2pdf from 'html2pdf.js';
@@ -638,6 +639,22 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
               <p className="text-sm text-muted-foreground">Fetching data from city agencies. This typically takes 30-60 seconds.</p>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Analyst approval panel — visible to analyst / admin only */}
+      {(isAdmin || isAnalyst) && !clientReadOnly && (
+        <div className="mb-6">
+          <AnalystApprovalPanel
+            reportId={report.id}
+            address={report.address}
+            clientEmail={(report as any).client_email ?? null}
+            workflowStatus={(report as any).workflow_status ?? null}
+            onStatusChange={() => {
+              // Trigger a full refetch of the report via query invalidation.
+              // The parent page uses queryKey ['dd_reports'] so this bubbles up.
+            }}
+          />
         </div>
       )}
 
