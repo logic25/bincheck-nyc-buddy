@@ -149,9 +149,9 @@ const Order = () => {
   const step1Valid = address.trim().length > 5 && isSubjectBlockValid(subject);
   const step2Valid = firstName.trim() && lastName.trim() && email.trim().includes("@") && company.trim();
 
-  // Pricing: One-Time = $499 flat (no rush fee). Pro = $2,499/mo (10 reports).
-  const totalPrice = plan === "professional" ? 2499 : 499;
-  const priceLabel = plan === "professional" ? "$2,499/mo" : "$499";
+  // Pricing: One-Time = $199 flat + $75 rush add-on. Pro = $599/mo (5 reports).
+  const totalPrice = plan === "professional" ? 599 : 199 + (rush ? 75 : 0);
+  const priceLabel = plan === "professional" ? "$599/mo" : `$${totalPrice}`;
 
   const handleContinueToPayment = () => {
     saveLead(3);
