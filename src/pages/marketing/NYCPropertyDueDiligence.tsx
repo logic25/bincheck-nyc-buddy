@@ -12,7 +12,7 @@ const config: AgencyLanderConfig = {
     title: "Why NYC property due diligence is its own discipline",
     paragraphs: [
       "Diligence on a NYC property isn't like diligence anywhere else. There are eight separate enforcement agencies (DOB, ECB, HPD, FDNY, DSNY, DOT, LPC, DOF) with their own systems, their own enforcement schedules, and their own ways of escalating to liens. A clean title search misses most of it. A standard property condition report misses all of it.",
-      "Most NYC compliance vendors are built for owners monitoring buildings they already own — alerting them when something new gets issued. BinCheckNYC is built for the buy side: the attorney, investor, or fund asking 'what am I actually buying?' before they wire money.",
+      "Most NYC compliance vendors are built for owners managing buildings they already own. BinCheckNYC is built for the buy side: the attorney, investor, or fund asking 'what am I actually buying?' before they wire money.",
       "Our reports consolidate every active record across all eight agencies, cross-reference OATH hearing dispositions, surface default judgments and lien-attachable items, and produce an attorney-ready PDF with AI line-item analysis. Every report is reviewed by a human analyst before delivery — not auto-shipped.",
     ],
   },
