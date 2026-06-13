@@ -209,10 +209,6 @@ const Index = () => {
 
               {/* Search */}
               <form onSubmit={handleSearch} className="relative max-w-xl" ref={wrapperRef}>
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="px-3 py-1 text-[11px] font-bold uppercase tracking-[0.12em] bg-[#e63946] text-white rounded-sm">Address</span>
-                  <span className="px-3 py-1 text-[11px] font-bold uppercase tracking-[0.12em] bg-white/10 text-white/70 rounded-sm">BIN</span>
-                </div>
                 <div className="relative flex items-center bg-white text-foreground rounded-md overflow-visible shadow-lg">
                   <Input
                     value={query}
