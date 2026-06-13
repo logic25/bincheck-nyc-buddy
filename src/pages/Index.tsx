@@ -248,48 +248,92 @@ const Index = () => {
               )}
             </div>
 
-            {/* Right column — sample compliance report card */}
+            {/* Right column — hero card mirrors the real BinCheck DD report */}
             {!session && (
-              <div className="bg-white text-gray-900 rounded-xl shadow-2xl border border-white/20 overflow-hidden">
-                <div className="px-6 pt-6 pb-4 border-b border-gray-200">
-                  <div className="flex items-center justify-between mb-3">
-                    <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-gray-500">Compliance Report <span className="ml-1.5 px-1.5 py-0.5 text-[9px] bg-gray-100 rounded-sm text-gray-600">SAMPLE</span></p>
-                    <Shield className="h-4 w-4 text-[#0c1730]" />
-                  </div>
-                  <p className="font-serif text-xl font-bold leading-tight">123 Sample Street</p>
-                  <p className="text-[11px] text-gray-500 mt-1 font-mono">BIN 0000000 · Illustrative · not a live record</p>
+              <div className="relative bg-white text-gray-900 rounded-md shadow-2xl border border-white/10 overflow-hidden">
+                {/* SAMPLE watermark */}
+                <div className="pointer-events-none absolute inset-0 flex items-center justify-center overflow-hidden">
+                  <span className="font-serif font-bold text-[120px] text-gray-900/[0.045] -rotate-[18deg] tracking-[0.2em] select-none whitespace-nowrap">
+                    SAMPLE
+                  </span>
                 </div>
-                <div className="px-6 py-5 bg-[#fafaf7]">
-                  <div className="rounded-md border border-emerald-600/40 bg-emerald-50/60 p-4 flex items-center justify-between">
+
+                {/* Letterhead band */}
+                <div className="relative px-6 pt-5 pb-3 bg-white border-b border-gray-300">
+                  <div className="flex items-start justify-between gap-4">
                     <div>
-                      <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-emerald-800">Compliance Risk Score</p>
-                      <p className="font-serif text-4xl font-bold text-emerald-800 mt-1 leading-none">94<span className="text-base text-emerald-700/70 font-normal">/100</span></p>
-                      <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-emerald-800 mt-1">Low risk</p>
+                      <div className="flex items-baseline gap-1">
+                        <span className="font-serif text-xl font-bold text-[#1e3a5f] tracking-tight">BinCheck</span>
+                        <span className="font-serif text-xl font-bold text-[#dc2626] tracking-tight">NYC</span>
+                      </div>
+                      <p className="text-[8px] font-bold uppercase tracking-[0.2em] text-gray-500 mt-0.5">NYC Property Due Diligence</p>
                     </div>
-                    <div className="flex gap-4 text-center">
-                      {[['DOB', 100], ['HPD', 100], ['OATH', 60]].map(([k, v]) => (
-                        <div key={k as string}>
-                          <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-gray-500">{k}</p>
-                          <p className="font-serif text-xl font-bold text-gray-900 mt-0.5">{v}</p>
-                        </div>
-                      ))}
+                    <div className="text-right">
+                      <p className="text-[8px] font-bold uppercase tracking-[0.16em] text-gray-400">Report ID</p>
+                      <p className="font-mono text-[10px] font-bold text-gray-700 mt-0.5">BC-20260613-001</p>
                     </div>
                   </div>
                 </div>
-                <div className="px-6 pb-6 space-y-1.5">
-                  {[
-                    { tag: 'MONITOR', tagColor: 'border-amber-600 text-amber-700', label: 'FDNY · Fire protection systems', status: 'open' },
-                    { tag: 'MONITOR', tagColor: 'border-amber-600 text-amber-700', label: 'FDNY · Inspection & testing', status: 'open' },
-                    { tag: 'CLEAR', tagColor: 'border-emerald-600 text-emerald-700', label: 'FDNY · Certificates of fitness', status: 'closed' },
-                  ].map((row) => (
-                    <div key={row.label} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
-                      <div className="flex items-center gap-3">
-                        <span className={`px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.1em] border rounded-sm ${row.tagColor}`}>{row.tag}</span>
-                        <span className="text-[12px] text-gray-700">{row.label}</span>
+
+                {/* Property header */}
+                <div className="relative px-6 py-4 border-b border-gray-200">
+                  <p className="font-serif text-base font-bold leading-tight">123 Sample Street · Unit 12B</p>
+                  <p className="text-[11px] text-gray-500 mt-1 font-mono">BIN 0000000 · Brooklyn, NY · Prepared for Sample Counsel LLP</p>
+                </div>
+
+                {/* DOB Violations section */}
+                <div className="relative px-6 pt-5 pb-4">
+                  <h3 className="text-[11px] font-bold uppercase tracking-[0.08em] text-black pb-1 mb-3 border-b-[1.5px] border-black">
+                    DOB Violations — 3
+                  </h3>
+
+                  <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#991b1b] mb-2">
+                    Affects Unit 12B (2)
+                  </p>
+                  <div className="space-y-2 mb-4">
+                    {[
+                      { id: 'V012345678', note: 'Issued 03/14/24 for unpermitted partition wall in Unit 12B; affects certificate of occupancy.', status: 'open' },
+                      { id: 'V012567890', note: 'Issued 11/02/23 for failed FISP inspection; facade work scheduled for Unit 12B line.', status: 'open' },
+                    ].map((row) => (
+                      <div key={row.id} className="flex items-start justify-between gap-3 text-[11px]">
+                        <div className="min-w-0 flex-1">
+                          <span className="font-mono text-[10px] text-gray-600">{row.id}</span>
+                          <p className="text-gray-800 leading-snug mt-0.5"><em className="not-italic text-gray-700">{row.note}</em></p>
+                        </div>
+                        <span className="shrink-0 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.08em] border border-red-600 text-red-700 rounded-sm">{row.status}</span>
                       </div>
-                      <span className="text-[11px] text-gray-500 font-mono">{row.status}</span>
+                    ))}
+                  </div>
+
+                  <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-gray-500 mb-2">
+                    Other Units / Floors (1)
+                  </p>
+                  <div className="space-y-2">
+                    <div className="flex items-start justify-between gap-3 text-[11px]">
+                      <div className="min-w-0 flex-1">
+                        <span className="font-mono text-[10px] text-gray-600">V011998771</span>
+                        <p className="text-gray-800 leading-snug mt-0.5"><em className="not-italic text-gray-700">Issued 07/18/23 for roof bulkhead defect on the 14th-floor mechanical room; no impact on Unit 12B.</em></p>
+                      </div>
+                      <span className="shrink-0 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.08em] border border-red-600 text-red-700 rounded-sm">open</span>
                     </div>
-                  ))}
+                  </div>
+                </div>
+
+                {/* ECB Violations section */}
+                <div className="relative px-6 pb-5">
+                  <h3 className="text-[11px] font-bold uppercase tracking-[0.08em] text-black pb-1 mb-3 border-b-[1.5px] border-black">
+                    ECB Violations — 1
+                  </h3>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#991b1b] mb-2">
+                    Affects Unit 12B (1)
+                  </p>
+                  <div className="flex items-start justify-between gap-3 text-[11px]">
+                    <div className="min-w-0 flex-1">
+                      <span className="font-mono text-[10px] text-gray-600">E034958721</span>
+                      <p className="text-gray-800 leading-snug mt-0.5"><em className="not-italic text-gray-700">Default judgment 09/14/24 — $8,500 balance, lien attachable; tied to Unit 12B alteration.</em></p>
+                    </div>
+                    <span className="shrink-0 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.08em] border border-red-600 text-red-700 rounded-sm">open</span>
+                  </div>
                 </div>
               </div>
             )}
