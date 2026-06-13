@@ -422,7 +422,7 @@ const Index = () => {
                     { icon: Building2, title: "8 city agencies", desc: "DOB, ECB, HPD, FDNY, DSNY, DOT, LPC, DOF — every record we can legally pull" },
                     { icon: ClipboardCheck, title: "Analyst-reviewed notes", desc: "Per-item factual notes tagged [ACTION REQUIRED], [MONITOR], or [RESOLVED]" },
                     { icon: Eye, title: "Human QA before delivery", desc: "Every report reviewed by an analyst before delivery — not auto-shipped" },
-                    { icon: Download, title: "Attorney-ready PDF", desc: "Formatted and citation-ready for closing files and lender packets" },
+                    { icon: Download, title: "Closing-file PDF", desc: "Formatted and citation-ready for closing files, lender packets, and IC memos" },
                   ].map((f) => (
                     <div key={f.title} className="p-5 rounded-lg bg-card/50 border border-border/40 space-y-2">
                       <f.icon className="h-4 w-4 text-primary" />
