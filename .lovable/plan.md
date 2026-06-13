@@ -1,51 +1,75 @@
-## What's already merged (from the GitHub push)
+## BinCheck Step 7 — Visual Polish (final plan)
 
-Perplexity shipped most of PRs #23–#25. Here's the actual state vs. the original plan:
+Hero card composition is locked. I read `DDReportPrintView.tsx` directly — real report uses "Affects {Unit} (N)" + "Other Units / Floors (N)" groupings, navy section headers, dark-red affects-unit eyebrow, one-line factual note per item, status pill on the right. The hero will mirror that exactly with `SAMPLE` watermark.
 
-| Plan item | Status on `main` | Notes |
-|---|---|---|
-| Migration: `subject_type` / `subject_unit` / `scope_of_work` / `requested_by_role` on `dd_reports` + `order_leads` | **Done** | `20260614010000_subject_and_requester_intake.sql` |
-| `SubjectAndRequesterBlock` + wiring in `Order.tsx`, `CreateDDReportDialog`, `AdminLeads` | **Done** | All three call sites pass the 4 fields through |
-| Per-item AI notes in `generate-dd-report` | **Done** | Generates `note` + `unit_relevance` + `impact_note` per item via tool-call schema |
-| Admin per-item editing surface | **Done (different name)** | Lives in `InlineNoteEditor.tsx` + `AnalystApprovalPanel.tsx`, not a separate `LineItemReviewTab` |
-| Report rendering: per-item notes + grouped-by-relevance + collapse | **Done** | `DDReportPrintView.tsx` groups by `unit_relevance === 'affects_unit' / 'other_unit'`, renders `impact_note` |
-| Workflow lifecycle (`lead_pending` → … → `delivered`) | **Done** | `20260614030000_workflow_status.sql` + `email_log` table |
-| `report_edits.unit_relevance` / `impact_note` override columns | **Done** | Same migration as above |
-| AI learning loop for line-item edits | **Partial** | Edit columns exist on `report_edits`, but `get-learning-examples` doesn't yet inject them as few-shot |
-| Landing copy broadened (attorneys + title cos + brokers + investors) | **Partial** | Marketing pages already mention all four audiences; `Index.tsx` still has attorney-leaning hero microcopy ("attorney-ready", "attorney notes") |
-| Sample card copy (no advisory verbs) | **Not done** | Still needs the rewrite pass |
+### 1. GLE strip (everywhere except referral CTAs)
 
-## Key shape divergence to acknowledge
+Remove from: `DDReportPrintView.tsx` (GLELetterhead, GLE_* constants, "Powered by GLE" footer), `Index.tsx`, `Order.tsx`, `AgencyLandingTemplate.tsx`, `NYCPropertyDueDiligence.tsx`, `HPDViolations.tsx`, `DOBViolationSearch.tsx`, `ECBViolationLookup.tsx`.
 
-My original plan proposed an **object keyed by `{source}:{external_id}`** with `impact: none|possible|direct`. What landed is:
+Carve-out — `ArchitectRequestDialog.tsx` + `CloseoutRequestDialog.tsx` reframed to:
+> "Need this resolved? We recommend Green Light Expediting, a licensed NYC expediter we work with. Call 718-392-1969."
 
-- **Array** shape (back-compatible with the original `line_item_notes`).
-- Field is **`unit_relevance`** with 5 values (`affects_unit | common_area | other_unit | whole_building | unknown`) — strictly factual, no "possible/direct" severity language. **This is the better choice given the no-advisory-verbs rule** — adopting it as the canonical shape.
-- Separate `note` (full explanation) + `impact_note` (one-liner) instead of one combined field.
+with `tel:7183921969` link.
 
-The render layer uses `unit_relevance` to group items into "Affects Unit 10B" vs "Other Units / Common Areas" buckets, which matches the 361 Clinton hand report better than my original "collapse if impact=none" idea.
+### 2. Lead form trim — `LeadCaptureDialog.tsx`
 
-**Verdict on the merged work: keep it as-is.** No re-migration, no shape rework.
+Keep: **email, name, company, role**. Drop: property address field, message textarea. RPC keeps signature; removed fields pass `null`.
 
-## What remains (revised remaining-work plan)
+Role stays a dropdown with the current 6 options (attorney, investor, broker, title, developer, other).
 
-### PR #26 — AI learning loop wiring (~45 min)
-- Extend `get-learning-examples/index.ts` to surface approved `report_edits` rows where `unit_relevance` or `impact_note` were overridden, grouped by agency, as a new `relevance_examples` block in the response.
-- Update `generate-dd-report/index.ts` per-item prompt to inject those examples alongside the existing few-shot.
-- Bump `error_category` enum (if needed) with `wrong_unit_relevance` so the existing edit-review UI in `EditReviewTab.tsx` can classify these properly.
+### 3. Sample CTA — mailto only (no pipeline this PR)
 
-### PR #27 — copy rewrite (~30 min, presentation only)
-- `src/pages/Index.tsx`:
-  - Replace "attorney-ready PDF" / "attorney notes" / "attorney review" with audience-neutral phrasing ("transaction-ready PDF", "analyst notes", "pre-closing review") in the hero, feature cards, and FAQ.
-  - "For law firms & title companies" subtitle on pricing → "For attorneys, title, brokers, and investors".
-- Sample card on landing: drop any remaining advisory verbs (search for "recommend", "should", "advise" — replace with declarative "Note:" / "Impact:" framing per the core rule).
-- Section microcopy on `DDReportPrintView` / `DDReportViewer` empty-state lines: confirm "No items affect Unit {X}" / "No items affect this building" wording matches the rendered subject.
-- No component structure changes; pure string edits.
+On `intent="sample"` submit success, show:
+> "Thanks — request a sample by emailing hello@binchecknyc.com with your address and we'll send one back within one business day."
 
-## Out of scope (unchanged)
-- No scoring weight changes.
-- No "AI Risk Assessment & Conclusion" narrative re-add.
-- No payment/pricing changes.
-- No re-shaping `line_item_notes` — the array+`unit_relevance` shape that landed is the canonical shape.
+No bucket, no template, no edge function. Real send pipeline deferred to follow-up.
 
-Two small PRs left. Want me to flip to build and start with #27 (copy, lower risk, visible immediately) or #26 (learning loop, higher leverage)?
+### 4. Hero card — mirrors real report
+
+`Index.tsx` hero right column becomes a print-view-styled card:
+
+- Navy band header: `123 Sample Street · Unit 12B · BIN 0000000` (mono)
+- `SAMPLE` diagonal watermark, low opacity
+- Section: `DOB Violations – 3`
+  - Eyebrow `AFFECTS UNIT 12B (2)` in #991b1b
+  - 2 rows: agency pill · one-line factual note · status pill
+  - Eyebrow `OTHER UNITS / FLOORS (1)` muted
+  - 1 row
+- 2px gray dividers between sections
+- One more mini-section (e.g. `ECB Violations – 1`) so the grouping pattern reads at a glance
+
+Drop the compliance-score block from the hero. Drop the BIN chips below the search (Index.tsx ~L213-214).
+
+### 5. AI copy → analyst-reviewed
+
+Sweep `Index.tsx`, `Order.tsx`, marketing pages, SEO meta. "AI-powered" → "analyst-reviewed" in hero, feature cards, comparison rows, pricing bullets. Keep "AI-drafted, analyst-reviewed" only in the trust ladder / how-it-works section. Zero model names.
+
+### 6. No monitoring copy
+
+Sweep marketing pages + SEO meta for "monitor", "ongoing", "alerts", "watch", "track changes", "continuous". Phase 0 stays silent.
+
+### 7. "You don't pay" reframe
+
+`Index.tsx` and `Order.tsx`: "If we can't deliver a complete report, you don't pay."
+
+### 8. `/order` aesthetic refactor
+
+Match landing page: dark navy header band, serif title with `#e63946` accent, numbered step chips, black-border plan cards (red top on active), confirmation card mirrors hero style. **No form logic, no pricing math, no Stripe.**
+
+### 9. Sample section + dedicated block
+
+Remove the standalone `#sample` block from `Index.tsx`. Replace with one inline CTA opening `LeadCaptureDialog intent="sample"`.
+
+### 10. NULL `subject_unit` guard — `DDReportPrintView.tsx`
+
+If `subject_unit` is NULL/empty, skip "Affects Unit {x}" / "Other Units" grouping entirely and render flat whole-building view. No empty `Unit ` label ever rendered.
+
+---
+
+### Files touched
+
+`src/pages/Index.tsx`, `src/pages/Order.tsx`, `src/components/marketing/LeadCaptureDialog.tsx`, `src/components/dd-reports/DDReportPrintView.tsx`, `src/components/dd-reports/ArchitectRequestDialog.tsx`, `src/components/dd-reports/CloseoutRequestDialog.tsx`, `src/pages/marketing/AgencyLandingTemplate.tsx`, `src/pages/marketing/NYCPropertyDueDiligence.tsx`, `src/pages/marketing/HPDViolations.tsx`, `src/pages/marketing/DOBViolationSearch.tsx`, `src/pages/marketing/ECBViolationLookup.tsx`.
+
+### Out of scope
+
+Pricing math/tiers, Stripe wiring, sample-report send pipeline (bucket/template/edge function), `DDReportViewer` polish, Source Serif font swap, `gle-logo.png` deletion, DB migrations.
