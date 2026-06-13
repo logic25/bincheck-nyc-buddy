@@ -118,7 +118,10 @@ interface DDReportViewerProps {
 
 const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating = false, userProfile, clientReadOnly = false }: DDReportViewerProps) => {
   const queryClient = useQueryClient();
-  const { isAdmin } = useUserRole();
+  const { isAdmin, isAnalyst } = useUserRole();
+  // Anyone with server-side UPDATE access on dd_reports can edit the summary.
+  // Keeping this aligned with RLS (admin OR analyst) prevents UI/API drift.
+  const canEditSummary = isAdmin || isAnalyst;
   const printRef = useRef<HTMLDivElement>(null);
   // True when content cannot be edited: approved status OR non-admin client viewing
   const isReadOnly = report.status === 'approved' || clientReadOnly;
@@ -295,13 +298,13 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
 
   const saveSummary = useMutation({
     mutationFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      // Do NOT send summary_edited_by / summary_edited_at from the client —
+      // the BEFORE UPDATE trigger enforces them server-side from auth.uid()
+      // so the audit trail cannot be spoofed.
       const { error } = await supabase
         .from('dd_reports')
         .update({
           property_status_summary: summaryDraft.trim() || null,
-          summary_edited_at: new Date().toISOString(),
-          summary_edited_by: user?.id || null,
         } as any)
         .eq('id', report.id);
       if (error) throw error;
@@ -763,7 +766,7 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
             <Badge variant="outline" className="text-[10px] px-2 py-0.5">Applications: {applications.length}</Badge>
             {openComplaints.length > 0 && <Badge variant="outline" className="text-[10px] px-2 py-0.5">Open Complaints: {openComplaints.length}</Badge>}
           </div>
-          {editingSummary && isAdmin && !isReadOnly ? (
+          {editingSummary && canEditSummary && !isReadOnly ? (
             <div className="space-y-2">
               <Textarea
                 value={summaryDraft}
@@ -785,7 +788,7 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
           ) : (
             <>
               <p className="text-sm leading-relaxed text-foreground/85 whitespace-pre-line">{(report as any).property_status_summary}</p>
-              {isAdmin && !isReadOnly && (
+              {canEditSummary && !isReadOnly && (
                 <div className="mt-3">
                   <Button size="sm" variant="outline" onClick={() => setEditingSummary(true)}>
                     <Pencil className="w-3.5 h-3.5 mr-1.5" /> Edit Summary
