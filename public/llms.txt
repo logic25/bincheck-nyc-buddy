@@ -1,0 +1,20 @@
+# BinCheckNYC
+
+> Premium due diligence reports for NYC real estate — instant building compliance checks, violation lookups, and property risk assessments for attorneys, investors, and brokers.
+
+## Pages
+
+- [/](/): Home — search any NYC building by address or BIN for an instant compliance preview, pricing, and product overview.
+- [/order](/order): Order a custom BinCheck due diligence report for a specific property and closing date.
+- [/report](/report): Public property compliance report lookup — view DOB, ECB, HPD, and other agency data for a building (requires BIN or address parameter).
+- [/help](/help): Help center with FAQs and support resources.
+- [/terms](/terms): Terms of service.
+- [/privacy](/privacy): Privacy policy.
+- [/unsubscribe](/unsubscribe): Email preferences and unsubscribe.
+
+## Resources
+
+- [/dob-violation-search](/dob-violation-search): Guide to NYC DOB violations, penalties, and how to clear them.
+- [/ecb-violation-lookup](/ecb-violation-lookup): Guide to ECB / OATH violations, hearing process, and resolution timelines.
+- [/hpd-violations](/hpd-violations): Guide to NYC HPD violations, classes, and required repairs.
+- [/nyc-property-due-diligence](/nyc-property-due-diligence): Overview of NYC property due diligence for real estate transactions.
