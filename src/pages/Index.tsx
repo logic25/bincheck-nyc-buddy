@@ -453,7 +453,7 @@ const Index = () => {
                   <Badge variant="outline" className="mb-3">Why BinCheckNYC</Badge>
                   <h2 className="font-display text-2xl md:text-3xl font-bold">Built for the buy side</h2>
                   <p className="text-muted-foreground text-sm mt-2 max-w-2xl mx-auto">
-                    Most NYC compliance reports are built for owners monitoring buildings they already own. BinCheckNYC is built for the deal team asking <span className="italic">"what am I actually buying?"</span>
+                    Most NYC compliance reports are built for owners managing buildings they already own. BinCheckNYC is built for the deal team asking <span className="italic">"what am I actually buying?"</span>
                   </p>
                 </div>
 
