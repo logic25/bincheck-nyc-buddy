@@ -493,8 +493,8 @@ const Order = () => {
                   <div className="flex items-start justify-between">
                     <div>
                       <p className="font-semibold">One-Time Report</p>
-                      <p className="font-serif text-3xl font-bold mt-1">$499</p>
-                      <p className="text-xs text-muted-foreground">Flat price — no rush fee</p>
+                      <p className="font-serif text-3xl font-bold mt-1">$199</p>
+                      <p className="text-xs text-muted-foreground">Flat price · Rush +$75</p>
                     </div>
                     <div className={cn("w-5 h-5 rounded-full border-2 mt-1 flex items-center justify-center transition-colors",
                       plan === "one-time" ? "border-[#0c1730] bg-[#0c1730]" : "border-muted-foreground")}>
@@ -505,7 +505,7 @@ const Order = () => {
                     {[
                       "8-agency violation search (DOB, ECB, HPD, FDNY, DSNY, DOT, LPC, DOF)",
                       "Analyst-reviewed notes on every line item",
-                      "Transaction-ready PDF for attorneys, title cos, brokers, and investors",
+                      "Closing-file PDF for attorneys, title cos, brokers, and investors",
                       "24–48 business-hour delivery",
                       "One-time purchase, no subscription"
                     ].map(f => (
