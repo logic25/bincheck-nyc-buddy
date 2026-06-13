@@ -512,7 +512,7 @@ const Index = () => {
                     },
                     {
                       q: "What's actually included in the 8-agency search?",
-                      a: "DOB (Department of Buildings) violations and permits, ECB / OATH hearings, HPD (Housing Preservation & Development) violations by class, FDNY records, DSNY (Sanitation), DOT (Transportation), LPC (Landmarks Preservation), and DOF (Finance — tax liens and water charges). Plus AI-powered analyst notes on every line item.",
+                      a: "DOB (Department of Buildings) violations and permits, ECB / OATH hearings, HPD (Housing Preservation & Development) violations by class, FDNY records, DSNY (Sanitation), DOT (Transportation), LPC (Landmarks Preservation), and DOF (Finance — tax liens and water charges). Plus analyst-reviewed notes on every line item.",
                     },
                     {
                       q: "How accurate is the data?",
