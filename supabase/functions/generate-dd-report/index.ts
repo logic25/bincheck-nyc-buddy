@@ -2596,7 +2596,7 @@ serve(async (req) => {
     console.log(`Agencies queried: ${agenciesQueried.filter(a => a.queried).length}, with data: ${agenciesQueried.filter(a => a.results > 0).length}, with errors: ${errorAgencies.length} (${errorAgencies.map(a => a.agency).join(', ')})`);
 
     // CRITICAL: Filter out closed/resolved/dismissed violations — report must only contain open items
-    const CLOSED_STATUSES = ['closed', 'resolved', 'dismissed', 'paid', 'complied', 'certified closed'];
+    // CLOSED_STATUSES imported from ./constants/statusTerms.ts
     const violations = allViolations.filter((v: any) => {
       const status = (v.status || '').toLowerCase();
       if (CLOSED_STATUSES.includes(status)) return false;
