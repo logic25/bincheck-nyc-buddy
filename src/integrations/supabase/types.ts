@@ -984,6 +984,75 @@ export type Database = {
         }
         Relationships: []
       }
+      marketing_leads: {
+        Row: {
+          id: string
+          email: string
+          name: string | null
+          company: string | null
+          role: string | null
+          property_address: string | null
+          intent: string | null
+          message: string | null
+          utm_source: string | null
+          utm_medium: string | null
+          utm_campaign: string | null
+          referrer: string | null
+          user_agent: string | null
+          status: string
+          notes: string | null
+          contacted_at: string | null
+          converted_at: string | null
+          converted_to_report_id: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          email: string
+          name?: string | null
+          company?: string | null
+          role?: string | null
+          property_address?: string | null
+          intent?: string | null
+          message?: string | null
+          utm_source?: string | null
+          utm_medium?: string | null
+          utm_campaign?: string | null
+          referrer?: string | null
+          user_agent?: string | null
+          status?: string
+          notes?: string | null
+          contacted_at?: string | null
+          converted_at?: string | null
+          converted_to_report_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          email?: string
+          name?: string | null
+          company?: string | null
+          role?: string | null
+          property_address?: string | null
+          intent?: string | null
+          message?: string | null
+          utm_source?: string | null
+          utm_medium?: string | null
+          utm_campaign?: string | null
+          referrer?: string | null
+          user_agent?: string | null
+          status?: string
+          notes?: string | null
+          contacted_at?: string | null
+          converted_at?: string | null
+          converted_to_report_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       report_documents: {
         Row: {
           id: string
@@ -1114,6 +1183,23 @@ export type Database = {
           _metadata?: Json | null
         }
         Returns: number
+      }
+      submit_lead: {
+        Args: {
+          _email: string
+          _name?: string | null
+          _company?: string | null
+          _role?: string | null
+          _property_address?: string | null
+          _intent?: string | null
+          _message?: string | null
+          _utm_source?: string | null
+          _utm_medium?: string | null
+          _utm_campaign?: string | null
+          _referrer?: string | null
+          _user_agent?: string | null
+        }
+        Returns: Json
       }
       move_to_dlq: {
         Args: {
