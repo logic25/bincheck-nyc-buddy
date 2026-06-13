@@ -51,8 +51,10 @@ interface DDReportPrintViewProps {
 
 // ─── Constants ─────────────────────────────────────────────────────────────
 const NAVY = '#1e3a5f';
-const CARD_BG = '#f9fafb';
+const CARD_BG = '#fafaf7';
 const BORDER = '#e5e7eb';
+const MUTED = '#6b7280';
+const SERIF = "'Libre Baskerville', Georgia, 'Times New Roman', serif";
 
 const generateReportId = (date: string): string => {
   const d = new Date(date);
