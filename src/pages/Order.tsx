@@ -531,8 +531,8 @@ const Order = () => {
                   <div className="flex items-start justify-between">
                     <div>
                       <p className="font-semibold">Professional</p>
-                      <p className="font-serif text-3xl font-bold mt-1">$2,499<span className="text-base font-normal text-muted-foreground">/mo</span></p>
-                      <p className="text-xs text-muted-foreground">10 reports · $249/report effective</p>
+                      <p className="font-serif text-3xl font-bold mt-1">$599<span className="text-base font-normal text-muted-foreground">/mo</span></p>
+                      <p className="text-xs text-muted-foreground">5 reports · $120/report effective</p>
                     </div>
                     <div className={cn("w-5 h-5 rounded-full border-2 mt-1 flex items-center justify-center transition-colors",
                       plan === "professional" ? "border-[#0c1730] bg-[#0c1730]" : "border-muted-foreground")}>
