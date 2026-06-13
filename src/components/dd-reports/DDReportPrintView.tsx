@@ -162,38 +162,7 @@ const tableCellStyle = `border border-gray-300 px-2 py-2 text-[11px] align-top t
 // SECTION COMPONENTS
 // ═══════════════════════════════════════════════════════════════════════════
 
-// ── 1. GLE Letterhead ──────────────────────────────────────────────────────
-interface LetterheadProps {
-  reportId: string;
-  generatedAt?: string | null;
-  reportDate: string;
-}
-const GLELetterhead = ({ reportId, generatedAt, reportDate }: LetterheadProps) => (
-  <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-    {/* Firm name + brand */}
-    <div>
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
-        <span style={{ fontFamily: SERIF, fontSize: '20px', fontWeight: 700, color: '#2a7a2a', letterSpacing: '-0.01em' }}>GREEN LIGHT</span>
-        <span style={{ fontFamily: SERIF, fontSize: '20px', fontWeight: 400, color: '#5a5a5a', letterSpacing: '-0.01em' }}>EXPEDITING</span>
-      </div>
-      <p style={{ fontSize: '9px', fontWeight: 600, letterSpacing: '0.2em', color: '#5a5a5a', margin: '2px 0 8px', textTransform: 'uppercase' }}>Permit Expediting &amp; Consulting</p>
-      <p style={{ fontSize: '10px', color: MUTED, margin: 0 }}>{GLE_ADDRESS}</p>
-      <p style={{ fontSize: '10px', color: MUTED, margin: '1px 0' }}>
-        Tel: {GLE_PHONE} &nbsp;·&nbsp; Fax: {GLE_FAX}
-      </p>
-      <p style={{ fontSize: '10px', color: '#1e40af', margin: '1px 0' }}>{GLE_EMAIL}</p>
-    </div>
-    {/* Right-side brand + report meta */}
-    <div style={{ textAlign: 'right', fontSize: '10px', color: MUTED }}>
-      <p style={{ margin: 0, fontSize: '9px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', color: '#9ca3af' }}>Powered by</p>
-      <p style={{ margin: '2px 0 0', fontWeight: 700, fontSize: '12px', color: NAVY }}>BinCheck NYC</p>
-      <p style={{ margin: '6px 0 0', fontSize: '9px', color: '#9ca3af' }}>Report ID: <span style={{ fontFamily: 'monospace', color: '#374151', fontWeight: 600 }}>{reportId}</span></p>
-      <p style={{ margin: '2px 0 0', fontSize: '9px', color: '#9ca3af' }}>
-        Data as of {generatedAt ? format(new Date(generatedAt), "MMM d, yyyy 'at' h:mm a") : format(new Date(reportDate), 'MMM d, yyyy')}
-      </p>
-    </div>
-  </div>
-);
+
 
 // ── 2. Report Title ────────────────────────────────────────────────────────
 const GLEReportTitle = () => (
