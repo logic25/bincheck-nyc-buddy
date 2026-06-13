@@ -90,8 +90,6 @@ const LeadCaptureDialog = ({
   const [name, setName] = useState("");
   const [company, setCompany] = useState("");
   const [role, setRole] = useState<string>("");
-  const [propertyAddress, setPropertyAddress] = useState(defaultAddress);
-  const [message, setMessage] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -108,9 +106,9 @@ const LeadCaptureDialog = ({
         _name: name || null,
         _company: company || null,
         _role: role || null,
-        _property_address: propertyAddress || null,
+        _property_address: null,
         _intent: intent,
-        _message: message || null,
+        _message: null,
         _utm_source: utm.utm_source ?? null,
         _utm_medium: utm.utm_medium ?? null,
         _utm_campaign: utm.utm_campaign ?? null,
@@ -126,7 +124,6 @@ const LeadCaptureDialog = ({
       trackEvent("lead_submitted", { intent });
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Something went wrong. Try again or email hello@binchecknyc.com directly.";
-      // Rate-limit error from the RPC surfaces as 'Too many submissions ...'
       toast.error(msg);
     } finally {
       setSubmitting(false);
@@ -139,8 +136,6 @@ const LeadCaptureDialog = ({
     setName("");
     setCompany("");
     setRole("");
-    setPropertyAddress(defaultAddress);
-    setMessage("");
   };
 
   return (
