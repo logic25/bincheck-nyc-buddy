@@ -4,13 +4,10 @@ import { decodeComplaintCategory } from '@/lib/complaint-category-decoder';
 import { calculateComplianceScore } from '@/lib/scoring';
 import type { PropertyData } from '@/types/property';
 
-// ─── GLE firm constants (fallback when reviewer_name not on report) ──────────
-const GLE_REVIEWER_NAME = 'Emmanuel Russell';
-const GLE_FIRM_NAME = 'Green Light Expediting';
-const GLE_ADDRESS = '26 Broadway, 3rd Floor, New York, NY 10004';
-const GLE_PHONE = '718-392-1969';
-const GLE_FAX = '718-228-9112';
-const GLE_EMAIL = 'info@greenlightexpediting.com';
+// ─── BinCheck firm constants ──────────
+const BINCHECK_REVIEWER_NAME = 'BinCheckNYC Analyst Team';
+const BINCHECK_FIRM_NAME = 'BinCheckNYC';
+const BINCHECK_EMAIL = 'hello@binchecknyc.com';
 
 interface UserProfile {
   email: string | null;
