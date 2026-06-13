@@ -13,7 +13,7 @@ const config: AgencyLanderConfig = {
     paragraphs: [
       "The NYC Department of Buildings (DOB) issues violations for everything from work-without-permit to structural defects. Open DOB violations can prevent recording of deeds, block financing, trigger lender holdbacks, and in extreme cases result in stop work orders or vacate orders that prevent occupancy entirely.",
       "DOB data is spread across two legacy systems — BIS (Building Information System) and DOB NOW. Both have search interfaces that are clunky, sometimes incomplete, and don't surface the actual penalty status or cure path. Pulling a clean compliance picture on a single property typically takes a paralegal 1–3 hours of cross-referencing.",
-      "BinCheckNYC consolidates every active DOB record on a property — violations, ECB hearings, open permits, partial filings, certificates of occupancy issues — into one PDF with line-item AI analysis flagging which items are deal-killers, which need escrow, and which are merely informational.",
+      "BinCheckNYC consolidates every active DOB record on a property — violations, ECB hearings, open permits, partial filings, certificates of occupancy issues — into one PDF with analyst-reviewed line-item notes flagging which items are deal-killers, which need escrow, and which are merely informational.",
     ],
   },
   whatsIncluded: [
