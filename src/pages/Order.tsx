@@ -55,6 +55,8 @@ const Order = () => {
   const [email, setEmail] = useState("");
   const [company, setCompany] = useState("");
   const [phone, setPhone] = useState("");
+  // Honeypot — real users never fill this; bots tend to. If non-empty we silently drop.
+  const [hp, setHp] = useState("");
 
   // Pre-fill email from auth session if logged in
   useEffect(() => {
@@ -122,9 +124,19 @@ const Order = () => {
   // Save lead when user fills contact step and moves to step 3
   const saveLead = useCallback(async (stepReached: number) => {
     if (!email.trim().includes("@")) return;
+    // Silently drop bot submissions.
+    if (hp.trim().length > 0) return;
     // If lead already saved, skip insert
     if (leadId) return;
     try {
+      // Rate limit by email — 5 lead inserts / hour. Fails open on RPC error.
+      const { data: rl } = await supabase.rpc("check_rate_limit", {
+        _key: `order_lead:${email.trim().toLowerCase()}`,
+        _max_in_window: 5,
+        _window_minutes: 60,
+      });
+      if (rl && typeof rl === "object" && (rl as any).allowed === false) return;
+
       const { data } = await supabase.from("order_leads").insert({
         email: email.trim(),
         first_name: firstName.trim() || null,
@@ -144,7 +156,7 @@ const Order = () => {
       } as any).select('id').single();
       if (data) setLeadId(data.id);
     } catch { /* silently fail — lead capture is best-effort */ }
-  }, [email, firstName, lastName, company, phone, address, concern, rush, deliveryDate, leadId]);
+  }, [email, firstName, lastName, company, phone, address, concern, rush, deliveryDate, leadId, hp, subject]);
 
   const step1Valid = address.trim().length > 5 && isSubjectBlockValid(subject);
   const step2Valid = firstName.trim() && lastName.trim() && email.trim().includes("@") && company.trim();
@@ -166,6 +178,8 @@ const Order = () => {
   // we want the report ready when it's time to invoice. Until Stripe Checkout
   // lands, payment is collected out-of-band (ACH / wire / Stripe invoice link).
   const handleSubmitOrder = async () => {
+    // Honeypot — silently drop bot submissions.
+    if (hp.trim().length > 0) { setSubmitted(true); return; }
     setIsProcessing(true);
     try {
       const { data: sessionData } = await supabase.auth.getSession();
@@ -450,6 +464,21 @@ const Order = () => {
               <Input placeholder="Smith & Associates, LLC" value={company} onChange={(e) => setCompany(e.target.value)} />
               <p className="text-xs text-muted-foreground">Law firm, title company, investment firm, or individual</p>
             </div>
+
+            {/* Honeypot — hidden from humans, off-screen + aria-hidden + tabIndex=-1. Bots fill it; we drop. */}
+            <div aria-hidden="true" style={{ position: "absolute", left: "-10000px", top: "auto", width: 1, height: 1, overflow: "hidden" }}>
+              <label>
+                Company website (leave blank)
+                <input
+                  type="text"
+                  tabIndex={-1}
+                  autoComplete="off"
+                  value={hp}
+                  onChange={(e) => setHp(e.target.value)}
+                />
+              </label>
+            </div>
+
             <div className="space-y-2">
               <Label>Phone <span className="text-muted-foreground">(Optional)</span></Label>
               <Input
