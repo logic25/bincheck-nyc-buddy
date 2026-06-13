@@ -473,11 +473,11 @@ const Index = () => {
                     {[
                       { row: "Primary use case", us: "Closing-day decisions", them: "Owner portfolio reporting" },
                       { row: "Turnaround", us: "24–48 hours", them: "3–10 business days" },
-                      { row: "Per-report price", us: "$499 flat", them: "$800–$1,500+" },
+                      { row: "Per-report price", us: "$199 flat", them: "$800–$1,500+" },
                       { row: "Analyst-reviewed notes per item", us: true, them: false },
                       { row: "Human QA before delivery", us: true, them: "Sometimes" },
                       { row: "Action-priority flags", us: "[ACTION REQUIRED] / [MONITOR] / [RESOLVED]", them: "Raw record dump" },
-                      { row: "Attorney-ready PDF format", us: true, them: "CSV / portal export" },
+                      { row: "Closing-file PDF format", us: true, them: "CSV / portal export" },
                       { row: "Subscription required", us: false, them: "Often" },
                     ].map((r, i, arr) => (
                       <CompareRow key={r.row} row={r.row} us={r.us} them={r.them} last={i === arr.length - 1} />
