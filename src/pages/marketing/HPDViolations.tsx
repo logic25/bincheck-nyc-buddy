@@ -6,7 +6,7 @@ const config: AgencyLanderConfig = {
   seoDescription: "Search NYC HPD housing violations by class (A, B, C). Includes immediately hazardous, hazardous, and non-hazardous items. Attorney-ready PDF in 24–48 hours. $499 flat.",
   eyebrow: "HPD violations",
   h1: "NYC HPD Violations Search",
-  subtitle: "NYC Housing Preservation & Development violations by class — Class A (non-hazardous), Class B (hazardous), and Class C (immediately hazardous) — with cure status, certification deadlines, and AI line-item analysis.",
+  subtitle: "NYC Housing Preservation & Development violations by class — Class A (non-hazardous), Class B (hazardous), and Class C (immediately hazardous) — with cure status, certification deadlines, and analyst-reviewed line-item notes.",
   serviceName: "NYC HPD Violations Report",
   whatItIs: {
     title: "What are HPD violations, and how do classes work?",
@@ -23,7 +23,7 @@ const config: AgencyLanderConfig = {
     "Heat & hot water complaints and seasonal HPD enforcement history",
     "Open emergency repair work (HPD does the work, owner gets billed) and outstanding charges",
     "Cross-reference to ECB / OATH for any HPD violations escalated to fines",
-    "AI line-item notes flagging deal-killers, escrow candidates, and tenant-litigation exposure",
+    "analyst-reviewed line-item notes flagging deal-killers, escrow candidates, and tenant-litigation exposure",
     "Analyst review and attorney-ready PDF delivery",
   ],
   whoNeedsThis: [

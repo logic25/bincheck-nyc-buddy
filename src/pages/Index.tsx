@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Building2, Shield, FileText, ArrowRight, AlertTriangle, MapPin, LogOut, Settings, CheckCircle, Clock, Download, Zap, Star, X, Eye, Brain, ClipboardCheck, Mail } from "lucide-react";
+import { Search, Building2, Shield, FileText, ArrowRight, AlertTriangle, MapPin, LogOut, Settings, CheckCircle, Clock, Download, Zap, Star, X, Eye, ClipboardCheck, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -143,7 +143,7 @@ const Index = () => {
     <div className="min-h-screen flex flex-col bg-background">
       <SEO
         title="BinCheckNYC — NYC property due diligence for closing teams"
-        description="Transaction-ready NYC property compliance reports. 8-agency violation search (DOB, ECB, HPD, FDNY, DSNY, DOT, LPC, DOF) with AI line-item notes and human analyst QA. 24–48 hour delivery. $499 flat."
+        description="Transaction-ready NYC property compliance reports. 8-agency violation search (DOB, ECB, HPD, FDNY, DSNY, DOT, LPC, DOF) with analyst-reviewed line-item notes. 24–48 hour delivery. $499 flat."
         path="/"
       />
 
@@ -170,7 +170,7 @@ const Index = () => {
               ) : (
                 <>
                   <a href="#coverage" className="hidden sm:inline-block px-3 py-2 text-sm text-white/70 hover:text-white">Coverage</a>
-                  <a href="#sample" className="hidden sm:inline-block px-3 py-2 text-sm text-white/70 hover:text-white">Sample report</a>
+                  <a href="#sample" className="hidden sm:inline-block px-3 py-2 text-sm text-white/70 hover:text-white">Sample</a>
                   <a href="#pricing" className="hidden sm:inline-block px-3 py-2 text-sm text-white/70 hover:text-white">Pricing</a>
                   <Button variant="ghost" size="sm" onClick={() => navigate("/auth")} className="text-white/70 hover:text-white hover:bg-white/10">Log in</Button>
                   <Button size="sm" onClick={() => navigate("/order")} className="bg-[#e63946] hover:bg-[#d62b39] text-white font-semibold">
@@ -209,10 +209,6 @@ const Index = () => {
 
               {/* Search */}
               <form onSubmit={handleSearch} className="relative max-w-xl" ref={wrapperRef}>
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="px-3 py-1 text-[11px] font-bold uppercase tracking-[0.12em] bg-[#e63946] text-white rounded-sm">Address</span>
-                  <span className="px-3 py-1 text-[11px] font-bold uppercase tracking-[0.12em] bg-white/10 text-white/70 rounded-sm">BIN</span>
-                </div>
                 <div className="relative flex items-center bg-white text-foreground rounded-md overflow-visible shadow-lg">
                   <Input
                     value={query}
@@ -252,48 +248,92 @@ const Index = () => {
               )}
             </div>
 
-            {/* Right column — sample compliance report card */}
+            {/* Right column — hero card mirrors the real BinCheck DD report */}
             {!session && (
-              <div className="bg-white text-gray-900 rounded-xl shadow-2xl border border-white/20 overflow-hidden">
-                <div className="px-6 pt-6 pb-4 border-b border-gray-200">
-                  <div className="flex items-center justify-between mb-3">
-                    <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-gray-500">Compliance Report <span className="ml-1.5 px-1.5 py-0.5 text-[9px] bg-gray-100 rounded-sm text-gray-600">SAMPLE</span></p>
-                    <Shield className="h-4 w-4 text-[#0c1730]" />
-                  </div>
-                  <p className="font-serif text-xl font-bold leading-tight">123 Sample Street</p>
-                  <p className="text-[11px] text-gray-500 mt-1 font-mono">BIN 0000000 · Illustrative · not a live record</p>
+              <div className="relative bg-white text-gray-900 rounded-md shadow-2xl border border-white/10 overflow-hidden">
+                {/* SAMPLE watermark */}
+                <div className="pointer-events-none absolute inset-0 flex items-center justify-center overflow-hidden">
+                  <span className="font-serif font-bold text-[120px] text-gray-900/[0.045] -rotate-[18deg] tracking-[0.2em] select-none whitespace-nowrap">
+                    SAMPLE
+                  </span>
                 </div>
-                <div className="px-6 py-5 bg-[#fafaf7]">
-                  <div className="rounded-md border border-emerald-600/40 bg-emerald-50/60 p-4 flex items-center justify-between">
+
+                {/* Letterhead band */}
+                <div className="relative px-6 pt-5 pb-3 bg-white border-b border-gray-300">
+                  <div className="flex items-start justify-between gap-4">
                     <div>
-                      <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-emerald-800">Compliance Risk Score</p>
-                      <p className="font-serif text-4xl font-bold text-emerald-800 mt-1 leading-none">94<span className="text-base text-emerald-700/70 font-normal">/100</span></p>
-                      <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-emerald-800 mt-1">Low risk</p>
+                      <div className="flex items-baseline gap-1">
+                        <span className="font-serif text-xl font-bold text-[#1e3a5f] tracking-tight">BinCheck</span>
+                        <span className="font-serif text-xl font-bold text-[#dc2626] tracking-tight">NYC</span>
+                      </div>
+                      <p className="text-[8px] font-bold uppercase tracking-[0.2em] text-gray-500 mt-0.5">NYC Property Due Diligence</p>
                     </div>
-                    <div className="flex gap-4 text-center">
-                      {[['DOB', 100], ['HPD', 100], ['OATH', 60]].map(([k, v]) => (
-                        <div key={k as string}>
-                          <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-gray-500">{k}</p>
-                          <p className="font-serif text-xl font-bold text-gray-900 mt-0.5">{v}</p>
-                        </div>
-                      ))}
+                    <div className="text-right">
+                      <p className="text-[8px] font-bold uppercase tracking-[0.16em] text-gray-400">Report ID</p>
+                      <p className="font-mono text-[10px] font-bold text-gray-700 mt-0.5">BC-20260613-001</p>
                     </div>
                   </div>
                 </div>
-                <div className="px-6 pb-6 space-y-1.5">
-                  {[
-                    { tag: 'MONITOR', tagColor: 'border-amber-600 text-amber-700', label: 'FDNY · Fire protection systems', status: 'open' },
-                    { tag: 'MONITOR', tagColor: 'border-amber-600 text-amber-700', label: 'FDNY · Inspection & testing', status: 'open' },
-                    { tag: 'CLEAR', tagColor: 'border-emerald-600 text-emerald-700', label: 'FDNY · Certificates of fitness', status: 'closed' },
-                  ].map((row) => (
-                    <div key={row.label} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
-                      <div className="flex items-center gap-3">
-                        <span className={`px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.1em] border rounded-sm ${row.tagColor}`}>{row.tag}</span>
-                        <span className="text-[12px] text-gray-700">{row.label}</span>
+
+                {/* Property header */}
+                <div className="relative px-6 py-4 border-b border-gray-200">
+                  <p className="font-serif text-base font-bold leading-tight">123 Sample Street · Unit 12B</p>
+                  <p className="text-[11px] text-gray-500 mt-1 font-mono">BIN 0000000 · Brooklyn, NY · Prepared for Sample Counsel LLP</p>
+                </div>
+
+                {/* DOB Violations section */}
+                <div className="relative px-6 pt-5 pb-4">
+                  <h3 className="text-[11px] font-bold uppercase tracking-[0.08em] text-black pb-1 mb-3 border-b-[1.5px] border-black">
+                    DOB Violations — 3
+                  </h3>
+
+                  <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#991b1b] mb-2">
+                    Affects Unit 12B (2)
+                  </p>
+                  <div className="space-y-2 mb-4">
+                    {[
+                      { id: 'V012345678', note: 'Issued 03/14/24 for unpermitted partition wall in Unit 12B; affects certificate of occupancy.', status: 'open' },
+                      { id: 'V012567890', note: 'Issued 11/02/23 for failed FISP inspection; facade work scheduled for Unit 12B line.', status: 'open' },
+                    ].map((row) => (
+                      <div key={row.id} className="flex items-start justify-between gap-3 text-[11px]">
+                        <div className="min-w-0 flex-1">
+                          <span className="font-mono text-[10px] text-gray-600">{row.id}</span>
+                          <p className="text-gray-800 leading-snug mt-0.5"><em className="not-italic text-gray-700">{row.note}</em></p>
+                        </div>
+                        <span className="shrink-0 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.08em] border border-red-600 text-red-700 rounded-sm">{row.status}</span>
                       </div>
-                      <span className="text-[11px] text-gray-500 font-mono">{row.status}</span>
+                    ))}
+                  </div>
+
+                  <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-gray-500 mb-2">
+                    Other Units / Floors (1)
+                  </p>
+                  <div className="space-y-2">
+                    <div className="flex items-start justify-between gap-3 text-[11px]">
+                      <div className="min-w-0 flex-1">
+                        <span className="font-mono text-[10px] text-gray-600">V011998771</span>
+                        <p className="text-gray-800 leading-snug mt-0.5"><em className="not-italic text-gray-700">Issued 07/18/23 for roof bulkhead defect on the 14th-floor mechanical room; no impact on Unit 12B.</em></p>
+                      </div>
+                      <span className="shrink-0 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.08em] border border-red-600 text-red-700 rounded-sm">open</span>
                     </div>
-                  ))}
+                  </div>
+                </div>
+
+                {/* ECB Violations section */}
+                <div className="relative px-6 pb-5">
+                  <h3 className="text-[11px] font-bold uppercase tracking-[0.08em] text-black pb-1 mb-3 border-b-[1.5px] border-black">
+                    ECB Violations — 1
+                  </h3>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#991b1b] mb-2">
+                    Affects Unit 12B (1)
+                  </p>
+                  <div className="flex items-start justify-between gap-3 text-[11px]">
+                    <div className="min-w-0 flex-1">
+                      <span className="font-mono text-[10px] text-gray-600">E034958721</span>
+                      <p className="text-gray-800 leading-snug mt-0.5"><em className="not-italic text-gray-700">Default judgment 09/14/24 — $8,500 balance, lien attachable; tied to Unit 12B alteration.</em></p>
+                    </div>
+                    <span className="shrink-0 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.08em] border border-red-600 text-red-700 rounded-sm">open</span>
+                  </div>
                 </div>
               </div>
             )}
@@ -331,7 +371,7 @@ const Index = () => {
                     { icon: Shield, title: "HPD Violations", desc: "Housing Preservation & Development violations by class — A, B, and C (immediately hazardous)" },
                     { icon: FileText, title: "Permit Activity", desc: "BIS and DOB NOW permit applications — partial, pending, and in-progress filings flagged for pre-closing review" },
                     { icon: Zap, title: "FDNY, DSNY, DOT, LPC, DOF", desc: "OATH hearing records for all city agencies — open fines, default judgments, and enforcement actions" },
-                    { icon: CheckCircle, title: "AI Line-Item Analysis", desc: "AI-generated analyst notes on every item, scored by impact on the subject unit or whole building, then reviewed by a human analyst." },
+                    { icon: CheckCircle, title: "Analyst-Reviewed Notes", desc: "Per-item factual notes on every line, scoped to your subject unit or whole building. AI-drafted, signed off by a human analyst before delivery." },
                   ].map((f) => (
                     <div key={f.title} className="p-6 rounded-lg bg-card/50 text-left space-y-3 hover:bg-card transition-colors border border-border/40">
                       <f.icon className="h-5 w-5 text-primary" />
@@ -350,7 +390,7 @@ const Index = () => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
                   {[
                     { step: "01", icon: MapPin, title: "Submit Your Property", desc: "Enter the NYC address and tell us what you need — buying a unit, closing a deal, a specific concern." },
-                    { step: "02", icon: Clock, title: "We Prepare Your Report", desc: "Our team runs 8-agency searches, AI flags every item, and our analysts review before delivery." },
+                    { step: "02", icon: Clock, title: "We Prepare Your Report", desc: "Our team runs 8-agency searches, drafts per-item notes, and an analyst signs off before delivery." },
                     { step: "03", icon: Download, title: "Download & Close", desc: "Receive a transaction-ready PDF with per-item analyst notes, agency sub-scores, and a signed-off conclusion." },
                   ].map((s) => (
                     <div key={s.step} className="text-center space-y-3">
@@ -366,81 +406,23 @@ const Index = () => {
               </div>
             </section>
 
-            {/* What's actually in the report */}
-            <section className="border-t border-border/40 py-16 px-4">
-              <div className="container max-w-5xl">
-                <div className="text-center mb-10">
+            {/* What's actually in the report — analyst signoff strip + inline sample CTA */}
+            <section id="sample" className="border-t border-border/40 py-16 px-4">
+              <div className="container max-w-4xl">
+                <div className="text-center mb-8">
                   <Badge variant="outline" className="mb-3">The deliverable</Badge>
-                  <h2 className="font-display text-2xl md:text-3xl font-bold">What's actually in your report</h2>
+                  <h2 className="font-display text-2xl md:text-3xl font-bold">A transaction-ready PDF, not a CSV dump</h2>
                   <p className="text-muted-foreground text-sm mt-2 max-w-2xl mx-auto">
-                    Every BinCheckNYC report is a transaction-ready PDF with per-item analyst notes scoped to your subject unit or whole building — not a CSV dump or a raw violation list.
+                    Every BinCheckNYC report is grouped by what affects your subject unit versus the rest of the building, with per-item factual notes scoped to your transaction — drafted by AI, signed off by a human analyst before delivery.
                   </p>
-                </div>
-
-                {/* Sample report mockup card */}
-                <div className="rounded-xl border border-border bg-card overflow-hidden shadow-sm">
-                  <div className="border-b border-border bg-muted/40 px-5 py-3 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <FileText className="h-4 w-4 text-primary" />
-                      <span className="text-sm font-semibold">Sample: 123 W 42nd St — Manhattan, NY</span>
-                    </div>
-                    <Badge variant="outline" className="text-xs">Sample preview</Badge>
-                  </div>
-                  <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="space-y-2">
-                      <p className="text-xs uppercase tracking-wide text-muted-foreground font-semibold">Risk Score</p>
-                      <p className="font-display text-4xl font-extrabold text-amber-600">62<span className="text-base font-normal text-muted-foreground">/100</span></p>
-                      <p className="text-xs text-muted-foreground">Moderate — active items require action before closing</p>
-                    </div>
-                    <div className="space-y-2">
-                      <p className="text-xs uppercase tracking-wide text-muted-foreground font-semibold">Open Items</p>
-                      <div className="space-y-1.5 text-sm">
-                        <div className="flex items-center justify-between"><span>DOB violations</span><span className="font-semibold">4</span></div>
-                        <div className="flex items-center justify-between"><span>ECB / OATH fines</span><span className="font-semibold">2</span></div>
-                        <div className="flex items-center justify-between"><span>HPD violations</span><span className="font-semibold">1</span></div>
-                        <div className="flex items-center justify-between"><span>Open permits</span><span className="font-semibold">3</span></div>
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <p className="text-xs uppercase tracking-wide text-muted-foreground font-semibold">Outstanding Penalties</p>
-                      <p className="font-display text-3xl font-extrabold">$14,250</p>
-                      <p className="text-xs text-muted-foreground">Plus 2 default judgments under review</p>
-                    </div>
-                  </div>
-                  <div className="border-t border-border bg-muted/20 px-6 py-5 space-y-3">
-                    <p className="text-xs uppercase tracking-wide text-muted-foreground font-semibold">Sample analyst note</p>
-                    <div className="rounded-md border border-amber-500/30 bg-amber-500/5 p-4">
-                      <div className="flex items-start gap-2">
-                        <span className="inline-flex items-center text-xs font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded shrink-0 mt-0.5">[ACTION REQUIRED]</span>
-                      </div>
-                      <p className="text-sm mt-2 leading-relaxed">
-                        ECB violation #34958721 (Class 1, hazardous) issued 2024-09-14 for unpermitted facade work. Default judgment entered — lien attachable. <span className="font-semibold">Recommend curing before title transfer or escrowing $8,500 + interest.</span>
-                      </p>
-                    </div>
-                  </div>
-                  <div className="border-t border-border px-6 py-4 flex items-center justify-between text-xs text-muted-foreground">
-                    <span className="flex items-center gap-1.5"><ClipboardCheck className="h-3.5 w-3.5" /> Signed off by our analyst team before delivery</span>
-                    <span>Sample data — not a real property</span>
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap items-center justify-center gap-3 mt-6">
-                  <Button size="lg" onClick={() => { trackEvent("cta_clicked", { cta: "sample_section" }); navigate("/order"); }} className="font-semibold">
-                    Order a Report — $499 <ArrowRight className="h-4 w-4 ml-1" />
-                  </Button>
-                  <LeadCaptureDialog intent="sample">
-                    <Button size="lg" variant="outline" onClick={() => trackEvent("cta_clicked", { cta: "sample" })}>
-                      <FileText className="h-4 w-4 mr-2" /> Get a free sample
-                    </Button>
-                  </LeadCaptureDialog>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-8">
                   {[
                     { icon: Building2, title: "8 city agencies", desc: "DOB, ECB, HPD, FDNY, DSNY, DOT, LPC, DOF — every record we can legally pull" },
-                    { icon: Brain, title: "AI line-item analysis", desc: "Gemini-powered notes prefixed [ACTION REQUIRED], [MONITOR], or [RESOLVED]" },
-                    { icon: Eye, title: "Analyst QA", desc: "Every report reviewed by a human before delivery — not auto-shipped" },
-                    { icon: Download, title: "Attorney-ready PDF", desc: "Branded, formatted, citation-ready for closing files and lender packets" },
+                    { icon: ClipboardCheck, title: "Analyst-reviewed notes", desc: "Per-item factual notes tagged [ACTION REQUIRED], [MONITOR], or [RESOLVED]" },
+                    { icon: Eye, title: "Human QA before delivery", desc: "Every report reviewed by an analyst before delivery — not auto-shipped" },
+                    { icon: Download, title: "Attorney-ready PDF", desc: "Formatted and citation-ready for closing files and lender packets" },
                   ].map((f) => (
                     <div key={f.title} className="p-5 rounded-lg bg-card/50 border border-border/40 space-y-2">
                       <f.icon className="h-4 w-4 text-primary" />
@@ -449,8 +431,20 @@ const Index = () => {
                     </div>
                   ))}
                 </div>
+
+                <div className="flex flex-wrap items-center justify-center gap-3 mt-10">
+                  <Button size="lg" onClick={() => { trackEvent("cta_clicked", { cta: "sample_section" }); navigate("/order"); }} className="font-semibold">
+                    Order a Report — $499 <ArrowRight className="h-4 w-4 ml-1" />
+                  </Button>
+                  <LeadCaptureDialog intent="sample">
+                    <Button size="lg" variant="outline" onClick={() => trackEvent("cta_clicked", { cta: "sample" })}>
+                      <FileText className="h-4 w-4 mr-2" /> See a sample report
+                    </Button>
+                  </LeadCaptureDialog>
+                </div>
               </div>
             </section>
+
 
             {/* Comparison: BinCheck vs other DD providers */}
             <section className="border-t border-border/40 py-16 px-4 bg-card/20">
@@ -459,7 +453,7 @@ const Index = () => {
                   <Badge variant="outline" className="mb-3">Why BinCheckNYC</Badge>
                   <h2 className="font-display text-2xl md:text-3xl font-bold">Built for the buy side</h2>
                   <p className="text-muted-foreground text-sm mt-2 max-w-2xl mx-auto">
-                    Most NYC compliance reports are built for owners monitoring buildings they already own. BinCheckNYC is built for the deal team asking <span className="italic">"what am I actually buying?"</span>
+                    Most NYC compliance reports are built for owners managing buildings they already own. BinCheckNYC is built for the deal team asking <span className="italic">"what am I actually buying?"</span>
                   </p>
                 </div>
 
@@ -477,10 +471,10 @@ const Index = () => {
                     </div>
 
                     {[
-                      { row: "Primary use case", us: "Closing-day decisions", them: "Ongoing portfolio monitoring" },
+                      { row: "Primary use case", us: "Closing-day decisions", them: "Owner portfolio reporting" },
                       { row: "Turnaround", us: "24–48 hours", them: "3–10 business days" },
                       { row: "Per-report price", us: "$499 flat", them: "$800–$1,500+" },
-                      { row: "AI analyst notes", us: true, them: false },
+                      { row: "Analyst-reviewed notes per item", us: true, them: false },
                       { row: "Human QA before delivery", us: true, them: "Sometimes" },
                       { row: "Action-priority flags", us: "[ACTION REQUIRED] / [MONITOR] / [RESOLVED]", them: "Raw record dump" },
                       { row: "Attorney-ready PDF format", us: true, them: "CSV / portal export" },
@@ -514,11 +508,11 @@ const Index = () => {
                     },
                     {
                       q: "How is this different from running my own ACRIS / BIS / ECB searches?",
-                      a: "Manually pulling 8 agency portals on a single property takes a paralegal 3–6 hours. Then someone still has to read the results, flag which items are actionable, and assemble a clean closing-file PDF. BinCheckNYC delivers that final product in 24–48 hours for less than the cost of the paralegal time — with AI line-item analysis and human QA on top.",
+                      a: "Manually pulling 8 agency portals on a single property takes a paralegal 3–6 hours. Then someone still has to read the results, flag which items are actionable, and assemble a clean closing-file PDF. BinCheckNYC delivers that final product in 24–48 hours for less than the cost of the paralegal time — with analyst-reviewed line-item notes on top.",
                     },
                     {
                       q: "What's actually included in the 8-agency search?",
-                      a: "DOB (Department of Buildings) violations and permits, ECB / OATH hearings, HPD (Housing Preservation & Development) violations by class, FDNY records, DSNY (Sanitation), DOT (Transportation), LPC (Landmarks Preservation), and DOF (Finance — tax liens and water charges). Plus AI-powered analyst notes on every line item.",
+                      a: "DOB (Department of Buildings) violations and permits, ECB / OATH hearings, HPD (Housing Preservation & Development) violations by class, FDNY records, DSNY (Sanitation), DOT (Transportation), LPC (Landmarks Preservation), and DOF (Finance — tax liens and water charges). Plus analyst-reviewed notes on every line item.",
                     },
                     {
                       q: "How accurate is the data?",
@@ -530,7 +524,7 @@ const Index = () => {
                     },
                     {
                       q: "How do payments work?",
-                      a: "During our launch period, every order is invoiced after the report is QA'd and delivered — Net 7, payable by ACH, wire, or card. You only owe us if we deliver. Card-on-file checkout is coming soon.",
+                      a: "During our launch period, every order is invoiced after the report is QA'd and delivered — Net 7, payable by ACH, wire, or card. If we can't deliver a complete report, you don't pay. Card-on-file checkout is coming soon.",
                     },
                     {
                       q: "Can you do rush turnarounds?",
@@ -571,7 +565,7 @@ const Index = () => {
                       <p className="text-xs text-muted-foreground mt-1">Flat price · no rush fee</p>
                     </div>
                     <ul className="space-y-2 text-sm">
-                      {["8-agency violation search", "AI line-item notes", "Attorney-ready PDF", "24–48 hr delivery", "One-time purchase, no subscription"].map(f => (
+                      {["8-agency violation search", "Analyst-reviewed line-item notes", "Attorney-ready PDF", "24–48 hr delivery", "One-time purchase, no subscription"].map(f => (
                         <li key={f} className="flex items-center gap-2">
                           <CheckCircle className="h-3.5 w-3.5 text-primary shrink-0" />
                           <span className="text-muted-foreground">{f}</span>
@@ -592,7 +586,7 @@ const Index = () => {
                       <p className="text-xs text-muted-foreground mt-1">10 reports · $249/report effective</p>
                     </div>
                     <ul className="space-y-2 text-sm">
-                      {["8-agency violation search", "AI line-item notes", "Attorney-ready PDF", "Priority processing queue", "Same-day delivery on most reports", "White-label PDF option", "Rollover unused reports", "Dedicated support"].map(f => (
+                      {["8-agency violation search", "Analyst-reviewed line-item notes", "Attorney-ready PDF", "Priority processing queue", "Same-day delivery on most reports", "White-label PDF option", "Rollover unused reports", "Dedicated support"].map(f => (
                         <li key={f} className="flex items-center gap-2">
                           <CheckCircle className="h-3.5 w-3.5 text-primary shrink-0" />
                           <span className="text-muted-foreground">{f}</span>
@@ -626,7 +620,7 @@ const Index = () => {
                 <div className="flex items-center justify-center gap-6 mt-8 text-xs text-muted-foreground flex-wrap">
                   <span className="flex items-center gap-1.5"><Mail className="h-3.5 w-3.5" /> Invoice on delivery — Net 7</span>
                   <span className="flex items-center gap-1.5"><Shield className="h-3.5 w-3.5" /> SSL encrypted</span>
-                  <span className="flex items-center gap-1.5"><CheckCircle className="h-3.5 w-3.5" /> You only pay if we deliver</span>
+                  <span className="flex items-center gap-1.5"><CheckCircle className="h-3.5 w-3.5" /> If we can't deliver a complete report, you don't pay</span>
                 </div>
               </div>
             </section>

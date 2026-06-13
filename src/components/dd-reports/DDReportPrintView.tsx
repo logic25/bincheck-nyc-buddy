@@ -4,13 +4,10 @@ import { decodeComplaintCategory } from '@/lib/complaint-category-decoder';
 import { calculateComplianceScore } from '@/lib/scoring';
 import type { PropertyData } from '@/types/property';
 
-// ─── GLE firm constants (fallback when reviewer_name not on report) ──────────
-const GLE_REVIEWER_NAME = 'Emmanuel Russell';
-const GLE_FIRM_NAME = 'Green Light Expediting';
-const GLE_ADDRESS = '26 Broadway, 3rd Floor, New York, NY 10004';
-const GLE_PHONE = '718-392-1969';
-const GLE_FAX = '718-228-9112';
-const GLE_EMAIL = 'info@greenlightexpediting.com';
+// ─── BinCheck firm constants ──────────
+const BINCHECK_REVIEWER_NAME = 'BinCheckNYC Analyst Team';
+const BINCHECK_FIRM_NAME = 'BinCheckNYC';
+const BINCHECK_EMAIL = 'hello@binchecknyc.com';
 
 interface UserProfile {
   email: string | null;
@@ -121,7 +118,31 @@ const stripTag = (note: string): string => {
   return note.replace(/\[ACTION REQUIRED\]\s*/g, '').replace(/\[MONITOR\]\s*/g, '').trim();
 };
 
-// ─── GLE Section header style ───────────────────────────────────────────────
+// ── 1. BinCheck Letterhead ─────────────────────────────────────────────────
+interface LetterheadProps {
+  reportId: string;
+  generatedAt?: string | null;
+  reportDate: string;
+}
+const GLELetterhead = ({ reportId, generatedAt, reportDate }: LetterheadProps) => (
+  <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+    <div>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
+        <span style={{ fontFamily: SERIF, fontSize: '22px', fontWeight: 700, color: NAVY, letterSpacing: '-0.01em' }}>BinCheck</span>
+        <span style={{ fontFamily: SERIF, fontSize: '22px', fontWeight: 700, color: '#dc2626', letterSpacing: '-0.01em' }}>NYC</span>
+      </div>
+      <p style={{ fontSize: '9px', fontWeight: 600, letterSpacing: '0.2em', color: '#5a5a5a', margin: '2px 0 8px', textTransform: 'uppercase' }}>NYC Property Due Diligence</p>
+      <p style={{ fontSize: '10px', color: '#1e40af', margin: '1px 0' }}>{BINCHECK_EMAIL}</p>
+    </div>
+    <div style={{ textAlign: 'right', fontSize: '10px', color: MUTED }}>
+      <p style={{ margin: 0, fontSize: '9px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', color: '#9ca3af' }}>Report ID</p>
+      <p style={{ margin: '2px 0 0', fontFamily: 'monospace', color: '#374151', fontWeight: 700, fontSize: '12px' }}>{reportId}</p>
+      <p style={{ margin: '6px 0 0', fontSize: '9px', color: '#9ca3af' }}>
+        Data as of {generatedAt ? format(new Date(generatedAt), "MMM d, yyyy 'at' h:mm a") : format(new Date(reportDate), 'MMM d, yyyy')}
+      </p>
+    </div>
+  </div>
+);
 const gleSectionHeaderStyle: React.CSSProperties = {
   fontSize: '12px',
   fontWeight: 700,
@@ -141,38 +162,7 @@ const tableCellStyle = `border border-gray-300 px-2 py-2 text-[11px] align-top t
 // SECTION COMPONENTS
 // ═══════════════════════════════════════════════════════════════════════════
 
-// ── 1. GLE Letterhead ──────────────────────────────────────────────────────
-interface LetterheadProps {
-  reportId: string;
-  generatedAt?: string | null;
-  reportDate: string;
-}
-const GLELetterhead = ({ reportId, generatedAt, reportDate }: LetterheadProps) => (
-  <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-    {/* Firm name + brand */}
-    <div>
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
-        <span style={{ fontFamily: SERIF, fontSize: '20px', fontWeight: 700, color: '#2a7a2a', letterSpacing: '-0.01em' }}>GREEN LIGHT</span>
-        <span style={{ fontFamily: SERIF, fontSize: '20px', fontWeight: 400, color: '#5a5a5a', letterSpacing: '-0.01em' }}>EXPEDITING</span>
-      </div>
-      <p style={{ fontSize: '9px', fontWeight: 600, letterSpacing: '0.2em', color: '#5a5a5a', margin: '2px 0 8px', textTransform: 'uppercase' }}>Permit Expediting &amp; Consulting</p>
-      <p style={{ fontSize: '10px', color: MUTED, margin: 0 }}>{GLE_ADDRESS}</p>
-      <p style={{ fontSize: '10px', color: MUTED, margin: '1px 0' }}>
-        Tel: {GLE_PHONE} &nbsp;·&nbsp; Fax: {GLE_FAX}
-      </p>
-      <p style={{ fontSize: '10px', color: '#1e40af', margin: '1px 0' }}>{GLE_EMAIL}</p>
-    </div>
-    {/* Right-side brand + report meta */}
-    <div style={{ textAlign: 'right', fontSize: '10px', color: MUTED }}>
-      <p style={{ margin: 0, fontSize: '9px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', color: '#9ca3af' }}>Powered by</p>
-      <p style={{ margin: '2px 0 0', fontWeight: 700, fontSize: '12px', color: NAVY }}>BinCheck NYC</p>
-      <p style={{ margin: '6px 0 0', fontSize: '9px', color: '#9ca3af' }}>Report ID: <span style={{ fontFamily: 'monospace', color: '#374151', fontWeight: 600 }}>{reportId}</span></p>
-      <p style={{ margin: '2px 0 0', fontSize: '9px', color: '#9ca3af' }}>
-        Data as of {generatedAt ? format(new Date(generatedAt), "MMM d, yyyy 'at' h:mm a") : format(new Date(reportDate), 'MMM d, yyyy')}
-      </p>
-    </div>
-  </div>
-);
+
 
 // ── 2. Report Title ────────────────────────────────────────────────────────
 const GLEReportTitle = () => (
@@ -601,12 +591,12 @@ interface SignedByProps {
   reviewerName?: string | null;
 }
 const GLESignedBy = ({ reviewerName }: SignedByProps) => {
-  const name = reviewerName || GLE_REVIEWER_NAME;
+  const name = reviewerName || BINCHECK_REVIEWER_NAME;
   return (
     <div style={{ marginTop: '28px', fontSize: '12px', color: '#111827', pageBreakInside: 'avoid' }}>
       <p style={{ margin: '0 0 28px' }}>Sincerely,</p>
       <p style={{ margin: 0, fontWeight: 600 }}>{name}</p>
-      <p style={{ margin: '2px 0 0', color: MUTED }}>{GLE_FIRM_NAME} / BinCheck NYC</p>
+      <p style={{ margin: '2px 0 0', color: MUTED }}>{BINCHECK_FIRM_NAME}</p>
     </div>
   );
 };
@@ -665,9 +655,10 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
   const reportId = generateReportId(report.report_date);
   const lineItemNotes = report.line_item_notes || [];
 
-  // Subject type / unit / scope — GLE shape fields
-  const subjectType = (report as any).subject_type || 'building';
+  // Subject type / unit / scope — guard NULL subject_unit by falling through to building view
+  const rawSubjectType = (report as any).subject_type || 'building';
   const subjectUnit = (report as any).subject_unit || null;
+  const subjectType = rawSubjectType === 'unit' && subjectUnit ? 'unit' : 'building';
   const scopeOfWork = (report as any).scope_of_work || null;
   const reviewerName = (report as any).reviewer_name || null;
 
@@ -989,7 +980,7 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
         @page { margin: 0.6in 0.5in 0.8in; }
         @media print {
           @page {
-            @bottom-left { content: "BinCheck by Green Light Expediting · Report ${reportId}"; font-family: Inter, sans-serif; font-size: 9px; color: #6b7280; }
+            @bottom-left { content: "BinCheckNYC · Report ${reportId}"; font-family: Inter, sans-serif; font-size: 9px; color: #6b7280; }
             @bottom-right { content: "Page " counter(page) " of " counter(pages); font-family: Inter, sans-serif; font-size: 9px; color: #6b7280; }
           }
           .print-footer { display: none !important; }
@@ -1288,7 +1279,7 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
         <div style={{ marginTop: '8px', padding: '12px 16px', border: '1px solid #a7f3d0', backgroundColor: '#ecfdf5', borderRadius: '8px', pageBreakInside: 'avoid', marginBottom: '20px' }}>
           <p style={{ fontSize: '12px', fontWeight: 600, color: '#065f46', margin: '0 0 4px' }}>Permit Closeout May Be Required</p>
           <p style={{ fontSize: '11px', color: '#374151', lineHeight: '1.6', margin: 0 }}>
-            {closeoutTaggedCount} application{closeoutTaggedCount !== 1 ? 's' : ''} {closeoutTaggedCount !== 1 ? 'are' : 'is'} still open and may need to be formally closed out with DOB. Open permits can affect property transfers and new filings. Green Light Expediting can manage the closeout process on your behalf.
+            {closeoutTaggedCount} application{closeoutTaggedCount !== 1 ? 's' : ''} {closeoutTaggedCount !== 1 ? 'are' : 'is'} still open and may need to be formally closed out with DOB. Open permits can affect property transfers and new filings.
           </p>
         </div>
       )}
@@ -1857,13 +1848,13 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
         <p style={{ fontSize: '10px', color: '#6b7280', textAlign: 'justify', lineHeight: '1.7' }}>
           This report is prepared in connection with real estate due diligence using information derived from
           publicly available municipal records which may contain errors, omissions, or delays.
-          BinCheck by Green Light Expediting{userProfile?.company_name ? ` and ${userProfile.company_name}` : ''} makes no warranties
+          BinCheckNYC{userProfile?.company_name ? ` and ${userProfile.company_name}` : ''} makes no warranties
           regarding the accuracy or completeness of underlying government data. All findings should be
           independently verified with the relevant city agencies prior to reliance in any transaction.
         </p>
         <div style={{ textAlign: 'center', marginTop: '16px', paddingTop: '12px', borderTop: '1px solid #e5e7eb' }}>
           <p style={{ fontSize: '11px', fontWeight: 600, color: '#9ca3af' }}>
-            © {new Date().getFullYear()} BinCheck by Green Light Expediting{userProfile?.company_name ? ` · ${userProfile.company_name}` : ''}
+            © {new Date().getFullYear()} BinCheckNYC{userProfile?.company_name ? ` · ${userProfile.company_name}` : ''}
           </p>
           <p style={{ fontSize: '10px', color: '#9ca3af', marginTop: '2px' }}>Proprietary analysis · All rights reserved</p>
         </div>
@@ -1872,15 +1863,6 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
         <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid #e5e7eb' }}>
           <p style={{ fontSize: '10px', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.15em', color: '#9ca3af', marginBottom: '12px', textAlign: 'center' }}>Additional Services</p>
 
-          {report.citisignal_recommended && (
-            <div style={{ marginBottom: '10px', padding: '12px 16px', borderRadius: '8px', border: `1px solid ${BORDER}`, pageBreakInside: 'avoid' }}>
-              <p style={{ fontSize: '11px', fontWeight: 600, color: '#6b7280', margin: '0 0 4px' }}>Ongoing Compliance Monitoring</p>
-              <p style={{ fontSize: '10px', color: '#9ca3af', lineHeight: '1.6', margin: 0 }}>
-                This property has {violations.length} active violation{violations.length !== 1 ? 's' : ''} and {applications.length} open application{applications.length !== 1 ? 's' : ''} across multiple agencies. CitiSignal by BinCheck NYC provides real-time monitoring, AI-powered compliance scoring, and alerts for new filings.
-                Learn more at <span style={{ fontWeight: 600 }}>citisignal.com</span>
-              </p>
-            </div>
-          )}
 
           <div style={{ padding: '12px 16px', borderRadius: '8px', border: `1px solid ${BORDER}`, pageBreakInside: 'avoid' }}>
             <p style={{ fontSize: '11px', fontWeight: 600, color: '#6b7280', margin: '0 0 4px' }}>Certified Physical Copy — $150</p>

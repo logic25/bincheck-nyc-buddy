@@ -6,14 +6,14 @@ const config: AgencyLanderConfig = {
   seoDescription: "Search NYC Department of Buildings violations, stop work orders, and permit history on any address. Attorney-ready PDF in 24–48 hours. $499 flat.",
   eyebrow: "DOB violations",
   h1: "NYC DOB Violation Search",
-  subtitle: "Open Department of Buildings violations, stop work orders, partial stop work, vacate orders, and permit history — pulled directly from DOB BIS and DOB NOW. Delivered as an attorney-ready PDF with AI line-item analysis.",
+  subtitle: "Open Department of Buildings violations, stop work orders, partial stop work, vacate orders, and permit history — pulled directly from DOB BIS and DOB NOW. Delivered as an attorney-ready PDF with analyst-reviewed line-item notes.",
   serviceName: "NYC DOB Violation Search Report",
   whatItIs: {
     title: "What's a DOB violation, and why does it matter at closing?",
     paragraphs: [
       "The NYC Department of Buildings (DOB) issues violations for everything from work-without-permit to structural defects. Open DOB violations can prevent recording of deeds, block financing, trigger lender holdbacks, and in extreme cases result in stop work orders or vacate orders that prevent occupancy entirely.",
       "DOB data is spread across two legacy systems — BIS (Building Information System) and DOB NOW. Both have search interfaces that are clunky, sometimes incomplete, and don't surface the actual penalty status or cure path. Pulling a clean compliance picture on a single property typically takes a paralegal 1–3 hours of cross-referencing.",
-      "BinCheckNYC consolidates every active DOB record on a property — violations, ECB hearings, open permits, partial filings, certificates of occupancy issues — into one PDF with line-item AI analysis flagging which items are deal-killers, which need escrow, and which are merely informational.",
+      "BinCheckNYC consolidates every active DOB record on a property — violations, ECB hearings, open permits, partial filings, certificates of occupancy issues — into one PDF with analyst-reviewed line-item notes flagging which items are deal-killers, which need escrow, and which are merely informational.",
     ],
   },
   whatsIncluded: [
@@ -22,7 +22,7 @@ const config: AgencyLanderConfig = {
     "Open and in-progress permit applications (BIS and DOB NOW), including pending work",
     "Certificate of Occupancy status, including TCOs and pending updates",
     "ECB / OATH hearings tied to DOB violations, with default judgment status",
-    "AI line-item notes prefixed [ACTION REQUIRED], [MONITOR], or [RESOLVED]",
+    "analyst-reviewed line-item notes prefixed [ACTION REQUIRED], [MONITOR], or [RESOLVED]",
     "Human analyst review and signoff on every report before delivery",
     "Attorney-ready PDF suitable for closing files, lender packets, and IC memos",
   ],
@@ -35,7 +35,7 @@ const config: AgencyLanderConfig = {
   faq: [
     {
       q: "How is BinCheckNYC different from the free DOB BIS search?",
-      a: "DOB BIS lets you look up records, but it doesn't tell you which items are actionable, doesn't combine with ECB/OATH hearings, and doesn't produce a closing-grade PDF. BinCheckNYC reports include AI analyst notes on every line item, cross-reference ECB hearings and default judgments, and arrive as a signed-off PDF ready for the closing file.",
+      a: "DOB BIS lets you look up records, but it doesn't tell you which items are actionable, doesn't combine with ECB/OATH hearings, and doesn't produce a closing-grade PDF. BinCheckNYC reports include Analyst-reviewed notes on every line item, cross-reference ECB hearings and default judgments, and arrive as a signed-off PDF ready for the closing file.",
     },
     {
       q: "Do you cover DOB NOW filings too?",

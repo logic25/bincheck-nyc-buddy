@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -41,9 +41,9 @@ interface LeadCaptureDialogProps {
 
 const INTENT_TITLES: Record<NonNullable<LeadCaptureDialogProps["intent"]>, { title: string; description: string; submit: string }> = {
   sample: {
-    title: "Get a free 1-page sample report",
-    description: "Drop your email and the address you're diligencing. We'll send a sample showing what the full $499 report looks like — no card required.",
-    submit: "Send me the sample",
+    title: "See a sample report",
+    description: "Tell us who you are and we'll point you at a sample.",
+    submit: "Continue",
   },
   pricing: {
     title: "Talk to us about pricing",
@@ -90,8 +90,6 @@ const LeadCaptureDialog = ({
   const [name, setName] = useState("");
   const [company, setCompany] = useState("");
   const [role, setRole] = useState<string>("");
-  const [propertyAddress, setPropertyAddress] = useState(defaultAddress);
-  const [message, setMessage] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -108,9 +106,9 @@ const LeadCaptureDialog = ({
         _name: name || null,
         _company: company || null,
         _role: role || null,
-        _property_address: propertyAddress || null,
+        _property_address: null,
         _intent: intent,
-        _message: message || null,
+        _message: null,
         _utm_source: utm.utm_source ?? null,
         _utm_medium: utm.utm_medium ?? null,
         _utm_campaign: utm.utm_campaign ?? null,
@@ -126,7 +124,6 @@ const LeadCaptureDialog = ({
       trackEvent("lead_submitted", { intent });
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Something went wrong. Try again or email hello@binchecknyc.com directly.";
-      // Rate-limit error from the RPC surfaces as 'Too many submissions ...'
       toast.error(msg);
     } finally {
       setSubmitting(false);
@@ -139,8 +136,6 @@ const LeadCaptureDialog = ({
     setName("");
     setCompany("");
     setRole("");
-    setPropertyAddress(defaultAddress);
-    setMessage("");
   };
 
   return (
@@ -153,11 +148,19 @@ const LeadCaptureDialog = ({
               <CheckCircle className="h-6 w-6 text-primary" />
             </div>
             <DialogHeader className="space-y-2">
-              <DialogTitle className="text-center">You're on the list</DialogTitle>
+              <DialogTitle className="text-center">Thanks</DialogTitle>
               <DialogDescription className="text-center">
-                {intent === "sample"
-                  ? "We'll send the sample report to your inbox shortly. Keep an eye out from hello@binchecknyc.com."
-                  : "Thanks — someone from our team will be in touch within one business day."}
+                {intent === "sample" ? (
+                  <>
+                    Request a sample by emailing{" "}
+                    <a href="mailto:hello@binchecknyc.com?subject=Sample%20report%20request" className="font-semibold text-primary underline">
+                      hello@binchecknyc.com
+                    </a>{" "}
+                    with your address and we'll send one back within one business day.
+                  </>
+                ) : (
+                  "Someone from our team will be in touch within one business day."
+                )}
               </DialogDescription>
             </DialogHeader>
             <Button onClick={() => setOpen(false)} className="w-full">Close</Button>
@@ -167,12 +170,23 @@ const LeadCaptureDialog = ({
             <DialogHeader>
               <div className="mb-3 inline-flex items-center gap-2 text-xs font-medium text-primary bg-primary/10 px-2.5 py-1 rounded-full w-fit">
                 {intent === "sample" ? <FileText className="h-3 w-3" /> : <Mail className="h-3 w-3" />}
-                {intent === "sample" ? "Free sample" : intent === "pricing" ? "Pricing" : intent === "enterprise" ? "Enterprise" : "Contact"}
+                {intent === "sample" ? "Sample report" : intent === "pricing" ? "Pricing" : intent === "enterprise" ? "Enterprise" : "Contact"}
               </div>
               <DialogTitle>{title ?? copy.title}</DialogTitle>
               <DialogDescription>{description ?? copy.description}</DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-3 mt-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="lc-name">Name *</Label>
+                <Input
+                  id="lc-name"
+                  required
+                  placeholder="Your name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  autoComplete="name"
+                />
+              </div>
               <div className="space-y-1.5">
                 <Label htmlFor="lc-email">Work email *</Label>
                 <Input
@@ -185,31 +199,20 @@ const LeadCaptureDialog = ({
                   autoComplete="email"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label htmlFor="lc-name">Name</Label>
-                  <Input
-                    id="lc-name"
-                    placeholder="Your name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    autoComplete="name"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="lc-company">Firm</Label>
-                  <Input
-                    id="lc-company"
-                    placeholder="Law firm / company"
-                    value={company}
-                    onChange={(e) => setCompany(e.target.value)}
-                    autoComplete="organization"
-                  />
-                </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="lc-company">Company / Firm *</Label>
+                <Input
+                  id="lc-company"
+                  required
+                  placeholder="Law firm / company"
+                  value={company}
+                  onChange={(e) => setCompany(e.target.value)}
+                  autoComplete="organization"
+                />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="lc-role">Your role</Label>
-                <Select value={role} onValueChange={setRole}>
+                <Label htmlFor="lc-role">Your role *</Label>
+                <Select value={role} onValueChange={setRole} required>
                   <SelectTrigger id="lc-role">
                     <SelectValue placeholder="Select role" />
                   </SelectTrigger>
@@ -223,30 +226,6 @@ const LeadCaptureDialog = ({
                   </SelectContent>
                 </Select>
               </div>
-              {intent === "sample" && (
-                <div className="space-y-1.5">
-                  <Label htmlFor="lc-addr">Property address (optional)</Label>
-                  <Input
-                    id="lc-addr"
-                    placeholder="123 Main St, Manhattan, NY"
-                    value={propertyAddress}
-                    onChange={(e) => setPropertyAddress(e.target.value)}
-                  />
-                  <p className="text-xs text-muted-foreground">If you give us a real address, we'll send a sample with real findings on it.</p>
-                </div>
-              )}
-              {intent !== "sample" && (
-                <div className="space-y-1.5">
-                  <Label htmlFor="lc-msg">Anything we should know? (optional)</Label>
-                  <Textarea
-                    id="lc-msg"
-                    placeholder="Volume, timeline, specific use case…"
-                    value={message}
-                    onChange={(e) => setMessage(e.target.value)}
-                    rows={3}
-                  />
-                </div>
-              )}
               <Button type="submit" disabled={submitting} className="w-full">
                 {submitting ? (
                   <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Sending…</>

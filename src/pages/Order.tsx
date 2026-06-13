@@ -263,27 +263,27 @@ const Order = () => {
   if (submitted) {
     return (
       <div className="min-h-screen bg-background flex flex-col">
-        <header className="border-b border-border/40 bg-background/90 backdrop-blur-md sticky top-0 z-50">
+        <header className="bg-[#0c1730] text-white border-b border-white/10">
           <div className="container flex items-center h-16">
             <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate("/")}>
-              <Shield className="h-6 w-6 text-primary" />
-              <span className="font-display text-xl tracking-tight">BinCheck<span className="text-primary">NYC</span></span>
+              <Shield className="h-5 w-5 text-[#e63946]" />
+              <span className="text-lg tracking-tight font-semibold">BinCheck<span className="text-[#e63946]">NYC</span></span>
             </div>
           </div>
         </header>
         <main className="flex-1 flex items-center justify-center px-4">
           <div className="max-w-md w-full text-center space-y-6">
-            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
-              <CheckCircle className="h-8 w-8 text-primary" />
+            <div className="w-16 h-16 rounded-full bg-[#0c1730]/5 border border-[#0c1730]/10 flex items-center justify-center mx-auto">
+              <CheckCircle className="h-8 w-8 text-[#0c1730]" />
             </div>
             <div className="space-y-2">
-              <h1 className="font-display text-2xl font-bold">Order received</h1>
+              <h1 className="font-serif text-3xl font-bold">Order <span className="text-[#e63946] italic">received</span></h1>
               <p className="text-muted-foreground text-sm leading-relaxed">
                 We’re preparing your report for <span className="font-semibold text-foreground">{address}</span>.<br />
                 The completed report and your invoice will go to <span className="font-semibold text-foreground">{email}</span>.
               </p>
               <p className="text-xs text-muted-foreground pt-1">
-                You’ll receive a Stripe invoice for <span className="font-medium text-foreground">{priceLabel}</span> on delivery (Net 7). You only owe if we deliver.
+                You’ll receive a Stripe invoice for <span className="font-medium text-foreground">{priceLabel}</span> on delivery (Net 7). If we can't deliver a complete report, you don't pay.
               </p>
             </div>
             {(deliveryDate || rush) && (
@@ -312,28 +312,37 @@ const Order = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <header className="border-b border-border/40 bg-background/90 backdrop-blur-md sticky top-0 z-50">
+      {/* Dark navy header band — mirrors landing */}
+      <header className="bg-[#0c1730] text-white border-b border-white/10">
         <div className="container flex items-center justify-between h-16">
           <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate("/")}>
-            <Shield className="h-6 w-6 text-primary" />
-            <span className="font-display text-xl tracking-tight">BinCheck<span className="text-primary">NYC</span></span>
+            <Shield className="h-5 w-5 text-[#e63946]" />
+            <span className="text-lg tracking-tight font-semibold">BinCheck<span className="text-[#e63946]">NYC</span></span>
           </div>
-          <Button variant="ghost" size="sm" onClick={() => navigate("/")}>
+          <Button variant="ghost" size="sm" onClick={() => navigate("/")} className="text-white/80 hover:text-white hover:bg-white/10">
             <ArrowLeft className="h-4 w-4 mr-1" /> Back
           </Button>
         </div>
       </header>
 
       <main className="flex-1 container max-w-2xl py-10 px-4 space-y-8">
-        {/* Step indicator */}
+        {/* Page title — serif with red accent */}
+        <div className="space-y-1">
+          <h1 className="font-serif text-3xl md:text-4xl font-bold tracking-tight">
+            Order a <span className="text-[#e63946] italic">report</span>
+          </h1>
+          <p className="text-muted-foreground text-sm">Three quick steps. We start the moment you submit.</p>
+        </div>
+
+        {/* Step indicator — numbered chips, black border on active */}
         <div className="flex items-center gap-2">
           {[1, 2, 3].map((s) => (
             <div key={s} className="flex items-center gap-2">
               <div className={cn(
-                "w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-colors",
-                s < step ? "bg-primary text-primary-foreground" :
-                s === step ? "bg-primary text-primary-foreground ring-2 ring-primary/30" :
-                "bg-muted text-muted-foreground"
+                "w-8 h-8 rounded-sm flex items-center justify-center text-xs font-bold transition-colors border-2",
+                s < step ? "bg-[#0c1730] text-white border-[#0c1730]" :
+                s === step ? "bg-white text-[#0c1730] border-[#0c1730]" :
+                "bg-muted text-muted-foreground border-border"
               )}>
                 {s < step ? <CheckCircle className="h-4 w-4" /> : s}
               </div>
@@ -473,30 +482,34 @@ const Order = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* One-Time */}
               <Card
-                className={cn("cursor-pointer border-2 transition-colors", plan === "one-time" ? "border-primary" : "border-border hover:border-border/80")}
+                className={cn(
+                  "cursor-pointer border-2 rounded-sm transition-colors relative overflow-hidden",
+                  plan === "one-time" ? "border-black" : "border-border hover:border-border/80"
+                )}
                 onClick={() => setPlan("one-time")}
               >
+                {plan === "one-time" && <div className="absolute top-0 left-0 right-0 h-1 bg-[#e63946]" />}
                 <CardContent className="p-5 space-y-4">
                   <div className="flex items-start justify-between">
                     <div>
                       <p className="font-semibold">One-Time Report</p>
-                      <p className="font-display text-3xl font-extrabold mt-1">$499</p>
+                      <p className="font-serif text-3xl font-bold mt-1">$499</p>
                       <p className="text-xs text-muted-foreground">Flat price — no rush fee</p>
                     </div>
                     <div className={cn("w-5 h-5 rounded-full border-2 mt-1 flex items-center justify-center transition-colors",
-                      plan === "one-time" ? "border-primary bg-primary" : "border-muted-foreground")}>
-                      {plan === "one-time" && <div className="w-2.5 h-2.5 rounded-full bg-primary-foreground" />}
+                      plan === "one-time" ? "border-[#0c1730] bg-[#0c1730]" : "border-muted-foreground")}>
+                      {plan === "one-time" && <div className="w-2.5 h-2.5 rounded-full bg-white" />}
                     </div>
                   </div>
                   <ul className="space-y-1.5 text-sm text-muted-foreground">
                     {[
                       "8-agency violation search (DOB, ECB, HPD, FDNY, DSNY, DOT, LPC, DOF)",
-                      "AI analyst notes on every line item",
+                      "Analyst-reviewed notes on every line item",
                       "Transaction-ready PDF for attorneys, title cos, brokers, and investors",
                       "24–48 business-hour delivery",
                       "One-time purchase, no subscription"
                     ].map(f => (
-                      <li key={f} className="flex items-start gap-2"><CheckCircle className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" /> {f}</li>
+                      <li key={f} className="flex items-start gap-2"><CheckCircle className="h-3.5 w-3.5 text-[#0c1730] shrink-0 mt-0.5" /> {f}</li>
                     ))}
                   </ul>
                 </CardContent>
@@ -504,33 +517,37 @@ const Order = () => {
 
               {/* Professional */}
               <Card
-                className={cn("cursor-pointer border-2 transition-colors relative", plan === "professional" ? "border-primary" : "border-border hover:border-border/80")}
+                className={cn(
+                  "cursor-pointer border-2 rounded-sm transition-colors relative overflow-hidden",
+                  plan === "professional" ? "border-black" : "border-border hover:border-border/80"
+                )}
                 onClick={() => setPlan("professional")}
               >
-                <div className="absolute -top-3 left-4">
-                  <Badge className="bg-primary text-primary-foreground text-xs">Most Popular</Badge>
+                {plan === "professional" && <div className="absolute top-0 left-0 right-0 h-1 bg-[#e63946]" />}
+                <div className="absolute top-2 right-2">
+                  <Badge className="bg-[#e63946] hover:bg-[#e63946] text-white text-[10px]">Most Popular</Badge>
                 </div>
-                <CardContent className="p-5 space-y-4">
+                <CardContent className="p-5 space-y-4 pt-6">
                   <div className="flex items-start justify-between">
                     <div>
                       <p className="font-semibold">Professional</p>
-                      <p className="font-display text-3xl font-extrabold mt-1">$2,499<span className="text-base font-normal text-muted-foreground">/mo</span></p>
+                      <p className="font-serif text-3xl font-bold mt-1">$2,499<span className="text-base font-normal text-muted-foreground">/mo</span></p>
                       <p className="text-xs text-muted-foreground">10 reports · $249/report effective</p>
                     </div>
                     <div className={cn("w-5 h-5 rounded-full border-2 mt-1 flex items-center justify-center transition-colors",
-                      plan === "professional" ? "border-primary bg-primary" : "border-muted-foreground")}>
-                      {plan === "professional" && <div className="w-2.5 h-2.5 rounded-full bg-primary-foreground" />}
+                      plan === "professional" ? "border-[#0c1730] bg-[#0c1730]" : "border-muted-foreground")}>
+                      {plan === "professional" && <div className="w-2.5 h-2.5 rounded-full bg-white" />}
                     </div>
                   </div>
                   <ul className="space-y-1.5 text-sm text-muted-foreground">
                     {[
-                      "Everything in One-Time (all 8 agencies, AI notes, PDF)",
+                      "Everything in One-Time (all 8 agencies, analyst notes, PDF)",
                       "Priority processing queue — moves to front",
                       "Same-day delivery on most reports",
                       "White-label PDF option",
                       "Rollover unused reports"
                     ].map(f => (
-                      <li key={f} className="flex items-start gap-2"><CheckCircle className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" /> {f}</li>
+                      <li key={f} className="flex items-start gap-2"><CheckCircle className="h-3.5 w-3.5 text-[#0c1730] shrink-0 mt-0.5" /> {f}</li>
                     ))}
                   </ul>
                 </CardContent>
@@ -571,7 +588,7 @@ const Order = () => {
                     Stripe invoice to <span className="font-medium text-foreground">{email || "your email"}</span>{company ? <> for <span className="font-medium text-foreground">{company}</span></> : null}.
                   </p>
                   <p className="text-muted-foreground">
-                    Pay by card, ACH, or wire — Net 7. You only owe if we deliver.
+                    Pay by card, ACH, or wire — Net 7. If we can't deliver a complete report, you don't pay.
                   </p>
                 </div>
 
