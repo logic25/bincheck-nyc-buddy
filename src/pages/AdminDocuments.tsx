@@ -24,6 +24,7 @@ import {
   FileText, ExternalLink, Upload, Paperclip, AlertTriangle,
   Loader2, CheckCircle2, Clock, UserCheck, Search, Download, Ban,
 } from 'lucide-react';
+import AdminNav from '@/components/admin/AdminNav';
 
 type DocStatus = 'pending' | 'needs_manual_pull' | 'in_progress' | 'attached' | 'unavailable' | 'not_applicable';
 
@@ -281,7 +282,9 @@ const AdminDocuments = () => {
   if (!isStaff) return null;
 
   return (
-    <div className="container mx-auto py-10 space-y-6">
+    <>
+      <AdminNav />
+      <div className="container mx-auto py-10 space-y-6">
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div className="flex items-center gap-3">
           <div className="rounded-lg bg-primary/10 p-2">
@@ -553,7 +556,8 @@ const AdminDocuments = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+      </div>
+    </>
   );
 };
 
