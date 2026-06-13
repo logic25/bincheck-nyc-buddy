@@ -586,7 +586,7 @@ const Index = () => {
                       <p className="text-xs text-muted-foreground mt-1">10 reports · $249/report effective</p>
                     </div>
                     <ul className="space-y-2 text-sm">
-                      {["8-agency violation search", "AI line-item notes", "Attorney-ready PDF", "Priority processing queue", "Same-day delivery on most reports", "White-label PDF option", "Rollover unused reports", "Dedicated support"].map(f => (
+                      {["8-agency violation search", "Analyst-reviewed line-item notes", "Attorney-ready PDF", "Priority processing queue", "Same-day delivery on most reports", "White-label PDF option", "Rollover unused reports", "Dedicated support"].map(f => (
                         <li key={f} className="flex items-center gap-2">
                           <CheckCircle className="h-3.5 w-3.5 text-primary shrink-0" />
                           <span className="text-muted-foreground">{f}</span>
