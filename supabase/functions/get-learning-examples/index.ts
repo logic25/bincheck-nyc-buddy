@@ -45,6 +45,35 @@ serve(async (req) => {
 
     const edits = approvedEdits || [];
 
+    // PART A.5: Relevance examples (unit_relevance / impact_note overrides)
+    // Captures cases where the analyst corrected the AI's per-item relevance
+    // classification or impact one-liner. Surfaced as few-shot pairs so the
+    // generator learns to scope items correctly to the subject unit/building.
+    const relevanceExamples: string[] = [];
+    const relevanceEdits = edits.filter(
+      (e: any) => e.unit_relevance || (e.impact_note && e.impact_note.trim())
+    );
+    const byAgency: Record<string, any[]> = {};
+    for (const e of relevanceEdits) {
+      const a = e.agency || 'unknown';
+      if (!byAgency[a]) byAgency[a] = [];
+      byAgency[a].push(e);
+    }
+    let relevanceTotal = 0;
+    for (const [agency, list] of Object.entries(byAgency)) {
+      if (relevanceTotal >= 10) break;
+      const picked = list.slice(0, 2);
+      for (const e of picked) {
+        if (relevanceTotal >= 10) break;
+        const parts: string[] = [`Agency: ${agency}`, `Item: ${e.item_type}`];
+        if (e.unit_relevance) parts.push(`Corrected unit_relevance → "${e.unit_relevance}"`);
+        if (e.impact_note) parts.push(`Corrected impact_note → "${e.impact_note.slice(0, 200)}"`);
+        relevanceExamples.push(`  ${parts.join(' | ')}`);
+        relevanceTotal++;
+      }
+    }
+
+
     // Group by error_category
     const byCategory: Record<string, typeof edits> = {};
     for (const edit of edits) {
