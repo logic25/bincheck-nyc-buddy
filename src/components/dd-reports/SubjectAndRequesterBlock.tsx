@@ -14,12 +14,14 @@
  * the conclusion. They never gate features — only frame language.
  */
 
+import { useState, type ReactNode } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Building2, Home } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Building2, Home, ChevronDown } from 'lucide-react';
 
 export type SubjectType = 'unit' | 'building';
 export type RequestedByRole = 'Attorney' | 'Title Company' | 'Broker' | 'Investor' | 'Owner' | 'Other';
@@ -53,6 +55,18 @@ interface SubjectAndRequesterBlockProps {
   disabled?: boolean;
   /** Render compact (intake form) vs. spacious (admin dialog). Default 'compact'. */
   variant?: 'compact' | 'spacious';
+  /**
+   * If true, scope_of_work + requested_by_role are tucked into a single
+   * "Add context for analyst" disclosure. Use on the customer-facing order
+   * form to keep the page short. Admin still defaults to inline.
+   */
+  collapseOptional?: boolean;
+  /**
+   * Slot rendered inside the optional disclosure (only when collapseOptional
+   * is true). Used by Order.tsx to colocate its freeform "anything else to
+   * flag" textarea under the same trigger.
+   */
+  extraOptional?: ReactNode;
 }
 
 export const SubjectAndRequesterBlock = ({
@@ -60,10 +74,69 @@ export const SubjectAndRequesterBlock = ({
   onChange,
   disabled = false,
   variant = 'compact',
+  collapseOptional = false,
+  extraOptional,
 }: SubjectAndRequesterBlockProps) => {
   const update = (patch: Partial<SubjectAndRequesterValue>) => onChange({ ...value, ...patch });
+  const [optionalOpen, setOptionalOpen] = useState(false);
 
   const gap = variant === 'spacious' ? 'space-y-4' : 'space-y-3';
+
+  // Reused markup for the optional fields — rendered inline (admin) or
+  // inside a CollapsibleContent (customer order form).
+  const optionalFields = (
+    <>
+      <div className="space-y-2">
+        <Label htmlFor="scope-of-work">
+          Transaction Context <span className="text-muted-foreground">(Optional)</span>
+        </Label>
+        <Textarea
+          id="scope-of-work"
+          placeholder={
+            value.subject_type === 'unit'
+              ? 'e.g. Purchase closing in 6 weeks; want assurance no open items affect Unit 10B or block a future combination with 10A.'
+              : 'e.g. Refi underwriting — lender needs confirmation no SWO, vacate, or unresolved tax liens of record.'
+          }
+          value={value.scope_of_work}
+          onChange={(e) => update({ scope_of_work: e.target.value })}
+          disabled={disabled}
+          rows={3}
+          className="resize-none text-sm"
+          maxLength={1000}
+        />
+        <p className="text-xs text-muted-foreground">
+          Helps tailor the per-item notes and conclusion to your transaction.
+        </p>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="requested-by-role">
+          Requested By <span className="text-muted-foreground">(Optional)</span>
+        </Label>
+        <Select
+          value={value.requested_by_role || undefined}
+          onValueChange={(v) => update({ requested_by_role: v as RequestedByRole })}
+          disabled={disabled}
+        >
+          <SelectTrigger id="requested-by-role">
+            <SelectValue placeholder="Select your role" />
+          </SelectTrigger>
+          <SelectContent>
+            {REQUESTED_BY_ROLES.map((role) => (
+              <SelectItem key={role} value={role}>
+                {role}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <p className="text-xs text-muted-foreground">
+          Lightly tunes the language for your audience. Never gates content.
+        </p>
+      </div>
+
+      {extraOptional}
+    </>
+  );
 
   return (
     <div className={gap}>
@@ -87,10 +160,10 @@ export const SubjectAndRequesterBlock = ({
             <RadioGroupItem value="building" id="subject-building" className="mt-0.5" />
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1.5 text-sm font-medium">
-                <Building2 className="h-3.5 w-3.5" /> Whole Building
+                <Building2 className="h-3.5 w-3.5" /> Entire Property
               </div>
               <p className="text-xs text-muted-foreground mt-0.5 leading-snug">
-                Title, refi, or full-property due diligence.
+                Full-building diligence — title, refi, or acquisition.
               </p>
             </div>
           </label>
@@ -103,10 +176,10 @@ export const SubjectAndRequesterBlock = ({
             <RadioGroupItem value="unit" id="subject-unit" className="mt-0.5" />
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1.5 text-sm font-medium">
-                <Home className="h-3.5 w-3.5" /> Specific Unit
+                <Home className="h-3.5 w-3.5" /> Single Unit
               </div>
               <p className="text-xs text-muted-foreground mt-0.5 leading-snug">
-                Purchase, transfer, or combination of one apartment.
+                One apartment — coop / condo purchase or transfer.
               </p>
             </div>
           </label>
@@ -133,55 +206,25 @@ export const SubjectAndRequesterBlock = ({
         </div>
       )}
 
-      {/* Scope of work ---------------------------------------------------- */}
-      <div className="space-y-2">
-        <Label htmlFor="scope-of-work">
-          Transaction Context <span className="text-muted-foreground">(Optional)</span>
-        </Label>
-        <Textarea
-          id="scope-of-work"
-          placeholder={
-            value.subject_type === 'unit'
-              ? 'e.g. Purchase closing in 6 weeks; want assurance no open items affect Unit 10B or block a future combination with 10A.'
-              : 'e.g. Refi underwriting — lender needs confirmation no SWO, vacate, or unresolved tax liens of record.'
-          }
-          value={value.scope_of_work}
-          onChange={(e) => update({ scope_of_work: e.target.value })}
-          disabled={disabled}
-          rows={3}
-          className="resize-none text-sm"
-          maxLength={1000}
-        />
-        <p className="text-xs text-muted-foreground">
-          Helps tailor the per-item notes and conclusion to your transaction.
-        </p>
-      </div>
-
-      {/* Requester role --------------------------------------------------- */}
-      <div className="space-y-2">
-        <Label htmlFor="requested-by-role">
-          Requested By <span className="text-muted-foreground">(Optional)</span>
-        </Label>
-        <Select
-          value={value.requested_by_role || undefined}
-          onValueChange={(v) => update({ requested_by_role: v as RequestedByRole })}
-          disabled={disabled}
-        >
-          <SelectTrigger id="requested-by-role">
-            <SelectValue placeholder="Select your role" />
-          </SelectTrigger>
-          <SelectContent>
-            {REQUESTED_BY_ROLES.map((role) => (
-              <SelectItem key={role} value={role}>
-                {role}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <p className="text-xs text-muted-foreground">
-          Lightly tunes the language for your audience. Never gates content.
-        </p>
-      </div>
+      {/* Optional fields -------------------------------------------------- */}
+      {collapseOptional ? (
+        <Collapsible open={optionalOpen} onOpenChange={setOptionalOpen}>
+          <CollapsibleTrigger
+            disabled={disabled}
+            className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors py-1"
+          >
+            <ChevronDown
+              className={`h-4 w-4 transition-transform ${optionalOpen ? 'rotate-180' : ''}`}
+            />
+            Add context for analyst (optional)
+          </CollapsibleTrigger>
+          <CollapsibleContent className="space-y-3 pt-3">
+            {optionalFields}
+          </CollapsibleContent>
+        </Collapsible>
+      ) : (
+        optionalFields
+      )}
     </div>
   );
 };
