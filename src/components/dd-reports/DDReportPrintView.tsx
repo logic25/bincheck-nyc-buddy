@@ -980,7 +980,7 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
         @page { margin: 0.6in 0.5in 0.8in; }
         @media print {
           @page {
-            @bottom-left { content: "BinCheck by Green Light Expediting · Report ${reportId}"; font-family: Inter, sans-serif; font-size: 9px; color: #6b7280; }
+            @bottom-left { content: "BinCheckNYC · Report ${reportId}"; font-family: Inter, sans-serif; font-size: 9px; color: #6b7280; }
             @bottom-right { content: "Page " counter(page) " of " counter(pages); font-family: Inter, sans-serif; font-size: 9px; color: #6b7280; }
           }
           .print-footer { display: none !important; }
