@@ -789,10 +789,120 @@ function extractFloorAptFromDescription(description: string | null): { floor: st
   return { floor, apartment };
 }
 
+/**
+ * fetchBISLive — live BIS job data via the bis-scraper-proxy edge function.
+ *
+ * Feature-flagged behind USE_LIVE_BIS=true. Falls back to the existing
+ * Socrata path (DOB_JOBS dataset ic3t-wcy2) on any error so production
+ * reports are never broken while testing.
+ *
+ * Returns normalized app objects in the same shape as the bisApps array
+ * produced by fetchApplications, so downstream code is unaffected.
+ */
+async function fetchBISLive(bin: string): Promise<any[] | null> {
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!supabaseUrl || !supabaseServiceKey) {
+    console.warn("[fetchBISLive] Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY — skipping live BIS");
+    return null;
+  }
+
+  try {
+    console.log(`[fetchBISLive] Invoking bis-scraper-proxy for BIN ${bin}`);
+    const resp = await fetch(`${supabaseUrl}/functions/v1/bis-scraper-proxy`, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${supabaseServiceKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ action: "jobs", bin }),
+    });
+
+    if (!resp.ok) {
+      console.warn(`[fetchBISLive] Proxy returned ${resp.status} — falling back to Socrata`);
+      return null;
+    }
+
+    const data = await resp.json();
+    const rawJobs: any[] = data?.jobs ?? [];
+    console.log(`[fetchBISLive] Got ${rawJobs.length} live BIS jobs for BIN ${bin}`);
+
+    // Normalize scraped job fields into the same shape as bisApps
+    // (the mapped output of the Socrata DOB_JOBS fetch in fetchApplications).
+    // Fields not available from the live scraper are set to null so
+    // downstream code never encounters undefined.
+    const normalized = rawJobs.map((j: any) => ({
+      id: j.job_number ?? null,
+      source: "BIS",
+      application_number: j.job_number ?? null,
+      application_type: j.job_type_code ?? j.job_type ?? null,
+      work_type: null,
+      job_description: j.description ?? null,
+      status: j.job_status ?? null,
+      status_code: j.job_status_code ?? null,
+      status_description: null,
+      filing_date: j.filing_date ?? null,
+      latest_action_date: j.status_date ?? null,
+      estimated_cost: null,
+      floor: j.floors ?? null,
+      apartment: null,
+      owner_name: null,
+      filing_professional_name: j.applicant ?? null,
+      // Extra live-only fields — ignored by existing downstream logic
+      // but available for future use
+      doc_number: j.doc_number ?? null,
+      license_number: j.license_number ?? null,
+      license_type: j.license_type ?? null,
+      zoning_approval: j.zoning_approval ?? null,
+      withdrawn: j.withdrawn ?? false,
+      bis_scraped_at: data.scraped_at ?? null,
+    }));
+
+    return normalized;
+  } catch (err: unknown) {
+    console.warn(`[fetchBISLive] Error — falling back to Socrata:`, err instanceof Error ? err.message : String(err));
+    return null;
+  }
+}
+
 async function fetchApplications(bin: string): Promise<any[]> {
   const applications: any[] = [];
   if (!bin) return applications;
 
+  // ── Live BIS path (feature flag: USE_LIVE_BIS=true) ──────────────────────
+  // When enabled, fetches job filings directly from the DOB BIS website via
+  // the bis-scraper-proxy edge function (Playwright on Railway). This gives
+  // real-time data that matches what hand-written reports look up on BIS NOW,
+  // replacing the stale Socrata dataset (scjx-j6np / ic3t-wcy2).
+  // Falls back to Socrata automatically on any error.
+  const useLiveBIS = Deno.env.get("USE_LIVE_BIS") === "true";
+  if (useLiveBIS && bin) {
+    const liveApps = await fetchBISLive(bin);
+    if (liveApps !== null) {
+      // Live fetch succeeded — use it; still fetch DOB NOW below for completeness
+      applications.push(...liveApps);
+
+      const dobNowAppsLive = await fetchNYCData(NYC_ENDPOINTS.DOB_NOW, { "bin": bin, "$limit": "200" }, 'DOB-NOW');
+      const nowAppsLive = dobNowAppsLive.map((a: any) => ({
+        id: a.job_filing_number || a.filing_number, source: "DOB_NOW",
+        application_number: a.job_filing_number || a.filing_number,
+        application_type: a.job_type || a.filing_type || null, work_type: a.work_type || null,
+        job_description: a.job_description || null, status: a.filing_status || a.current_status || null,
+        filing_date: a.filing_date || null, floor: a.work_on_floor || null, apartment: a.apt_condo_no_s || null,
+        applicant_name: a.applicant_first_name && a.applicant_last_name ? `${a.applicant_first_name} ${a.applicant_last_name}` : a.applicant_business_name || null,
+        applicant_first_name: a.applicant_first_name || null, applicant_last_name: a.applicant_last_name || null,
+        applicant_business_name: a.applicant_business_name || null,
+        approved_date: a.approved_date || null, issued_date: a.issued_date || null,
+        permit_status: a.permit_status || null, filing_reason: a.filing_reason || null,
+      }));
+      applications.push(...nowAppsLive);
+      return applications;
+    }
+    // liveApps === null means live fetch failed — fall through to Socrata below
+    console.warn(`[fetchApplications] USE_LIVE_BIS=true but live fetch failed for BIN ${bin} — using Socrata fallback`);
+  }
+
+  // ── Socrata fallback (default path) ──────────────────────────────────────
   // Dual-query DOB Jobs: recent activity + oldest filings
   const [dobJobsRecent, dobJobsOldest] = await Promise.all([
     fetchNYCData(NYC_ENDPOINTS.DOB_JOBS, {
@@ -1149,14 +1259,24 @@ async function fetchLearningExamples(supabaseUrl: string, supabaseServiceKey: st
   }
 }
 
+interface UnitContext {
+  subjectType: 'unit' | 'building';
+  subjectUnit: string | null;     // e.g. "10B" — null for whole-building reports
+  scopeOfWork: string | null;     // e.g. "future combination 10A+10B"
+  requestedByRole: string | null; // e.g. "Attorney"
+}
+
 async function generateLineItemNotes(
   violations: any[],
   applications: any[],
   address: string,
   customerConcern: string | null,
   LOVABLE_API_KEY: string,
-  learningContext?: LearningContext
+  learningContext?: LearningContext,
+  unitContext?: UnitContext
 ): Promise<any[]> {
+  // Default to whole-building framing when no unit context is provided (back-compat).
+  const ctx: UnitContext = unitContext ?? { subjectType: 'building', subjectUnit: null, scopeOfWork: null, requestedByRole: null };
   // Parse the customer concern ONCE — used as AI context, NOT for tag elevation
   const concern = parseConcern(customerConcern);
 
@@ -1272,10 +1392,86 @@ ${learningContext.confidence_flags.map(f =>
     }
   }
 
+  // ── Unit-aware subject framing ────────────────────────────────────────────
+  const subjectLabel = ctx.subjectType === 'unit' && ctx.subjectUnit
+    ? `Unit ${ctx.subjectUnit}`
+    : 'the whole building';
+  const scopeLine = ctx.scopeOfWork
+    ? `Transaction context: ${ctx.scopeOfWork}.`
+    : 'Transaction context: standard purchase / due diligence.';
+  const roleLine = ctx.requestedByRole
+    ? `Report requested by: ${ctx.requestedByRole}.`
+    : '';
+
+  const unitAwareInstruction = `
+━━━ SUBJECT & UNIT CONTEXT ━━━
+The subject of this report is ${subjectLabel} at ${address}.
+${scopeLine}
+${roleLine}
+
+For EVERY item you must return three fields:
+
+1. "note"         — plain-English explanation (1–3 sentences), starting with the pre_assigned_tag.
+2. "unit_relevance" — one of: affects_unit | common_area | other_unit | whole_building | unknown
+   - affects_unit   → the item directly concerns the subject unit (e.g. violation filed against that apt, permit for that floor/unit).
+   - common_area    → elevator, lobby, facade, roof, sidewalk shed, boiler, shared systems.
+   - other_unit     → another specific apartment or floor — not the subject unit.
+   - whole_building → stop work orders, certificate of occupancy issues, vacate orders, building-wide ECB penalties.
+   - unknown        → insufficient location data to classify.
+3. "impact_note"  — one declarative sentence scoped to the subject. Examples:
+   - "No impact on Unit 10B."
+   - "Common area work; no direct impact on Unit 10B."
+   - "Restricts future combination of 10A+10B."
+   - "Affects building-wide certificate of occupancy — title should verify resolution before closing."
+   - "Filed for adjacent unit 10A; relevant to planned combination scope."
+
+When subjectType is 'building', use whole-building framing for impact_note (e.g. "Affects all units.").
+If the item has no floor/unit data, default unit_relevance to "unknown" and note that location data is unavailable.
+
+━━━ FEW-SHOT EXAMPLES (361 Clinton Ave, Unit 10B) ━━━
+These show correct output for a unit-scoped report:
+
+Example A — elevator violation:
+{
+  "note": "[MONITOR] Active DOB violation for elevator maintenance deficiency. Elevator violations are building-wide compliance matters.",
+  "unit_relevance": "common_area",
+  "impact_note": "No impact on Unit 10B."
+}
+
+Example B — partial stop work order on apt 3G:
+{
+  "note": "[MONITOR] Partial Stop Work Order (Job B00939880-I1) relates to apartment 3G on the 3rd floor; the partial SWO allows work to continue on other floors. Issued 12/30/25, partial lift granted 2/4/26.",
+  "unit_relevance": "other_unit",
+  "impact_note": "No impact on Unit 10B. Work on the 10th floor remains permitted."
+}
+
+Example C — permit for Unit 10A (adjacent unit):
+{
+  "note": "[MONITOR] Open DOB NOW alteration permit for apartment 10A filed 11/15/25. Scope includes interior partition work.",
+  "unit_relevance": "other_unit",
+  "impact_note": "Filed for adjacent unit 10A; relevant to future combination of 10A+10B — buyer should confirm permit scope before proceeding with combination."
+}
+
+Example D — lobby renovation permit:
+{
+  "note": "[CLEAN] DOB permit for lobby renovation (Application 301974861). No open enforcement actions.",
+  "unit_relevance": "common_area",
+  "impact_note": "Common area work; no impact on Unit 10B specifically."
+}
+
+Example E — whole-building ECB penalty:
+{
+  "note": "[ACTION REQUIRED] Open ECB violation with $8,500 penalty balance due for failure to maintain building facade under Local Law 11. Outstanding ECB penalties are liens on the property.",
+  "unit_relevance": "whole_building",
+  "impact_note": "Affects building-wide certificate of occupancy — title should verify resolution before closing."
+}
+`;
+
   const prompt = `PROPERTY: ${address}
 BIN: ${allItems[0]?.bin || 'see data'} | Reviewing ${allItems.length} items
 
 ${concernInstruction}
+${unitAwareInstruction}
 ${knowledgeSection}${fewShotSection}${confidenceSection}
 ━━━ CLASSIFICATION ━━━
 Each item has a "pre_assigned_tag" field that has ALREADY been classified by our rules engine.
@@ -1327,14 +1523,19 @@ ${JSON.stringify(allItems, null, 2)}`;
       body: JSON.stringify({
         model: "google/gemini-3-flash-preview",
         messages: [
-          { role: "system", content: "You are an experienced NYC real estate compliance data analyst with 15 years of experience reviewing DOB, ECB, HPD, FDNY, DSNY, DOT, LPC, and DOF records for transactional due diligence. Your notes are read by real estate attorneys, title companies, and sophisticated investors. Be precise, professional, and factual. Never provide legal advice, recommendations, or characterize risk levels. State facts and data only. Return structured JSON via the tool call. CRITICAL: Use the pre_assigned_tag from each item exactly as-is — do NOT change the classification." },
+          { role: "system", content: `You are a senior NYC real estate compliance data analyst with 15 years of experience reviewing DOB, ECB, HPD, FDNY, DSNY, DOT, LPC, and DOF records for transactional due diligence.
+The subject of this report is ${subjectLabel} at ${address}. ${scopeLine} ${roleLine}
+Your notes are read by real estate attorneys, title companies, and sophisticated investors.
+Be precise, professional, and factual. Never provide legal advice, recommendations, or characterize risk levels. State facts and data only.
+For each item return all three fields (note, unit_relevance, impact_note) via the tool call.
+CRITICAL: Use the pre_assigned_tag from each item exactly as-is — do NOT change the classification.` },
           { role: "user", content: prompt },
         ],
         tools: [{
           type: "function",
           function: {
             name: "save_line_item_notes",
-            description: "Save the generated notes for each violation and application.",
+            description: "Save the generated notes for each violation and application, including per-item unit relevance and impact analysis.",
             parameters: {
               type: "object",
               properties: {
@@ -1345,9 +1546,18 @@ ${JSON.stringify(allItems, null, 2)}`;
                     properties: {
                       item_type: { type: "string", enum: ["violation", "application"] },
                       item_id: { type: "string" },
-                      note: { type: "string" },
+                      note: { type: "string", description: "Plain-English explanation, 1–3 sentences, starting with the pre_assigned_tag." },
+                      unit_relevance: {
+                        type: "string",
+                        enum: ["affects_unit", "common_area", "other_unit", "whole_building", "unknown"],
+                        description: "How this item relates to the subject unit or building.",
+                      },
+                      impact_note: {
+                        type: "string",
+                        description: "One declarative sentence scoped to the subject, e.g. 'No impact on Unit 10B.' or 'Restricts future combination of 10A+10B.'",
+                      },
                     },
-                    required: ["item_type", "item_id", "note"],
+                    required: ["item_type", "item_id", "note", "unit_relevance", "impact_note"],
                     additionalProperties: false,
                   },
                 },
@@ -2151,7 +2361,7 @@ serve(async (req) => {
     // Prevents authenticated user A from regenerating/overwriting user B's report.
     const { data: reportRow, error: reportLookupError } = await supabase
       .from('dd_reports')
-      .select('id, user_id')
+      .select('id, user_id, subject_type, subject_unit, scope_of_work, requested_by_role')
       .eq('id', reportId)
       .maybeSingle();
 
@@ -2318,7 +2528,15 @@ serve(async (req) => {
 
     // Generate line-item notes and property status summary in parallel (AI analysis removed)
     const [lineItemNotes, propertyStatusSummary] = await Promise.all([
-      generateLineItemNotes(violations, applications, resolvedAddress, customerConcern || null, LOVABLE_API_KEY, learningContext),
+      generateLineItemNotes(
+        violations, applications, resolvedAddress, customerConcern || null, LOVABLE_API_KEY, learningContext,
+        {
+          subjectType: (reportRow as any).subject_type || 'building',
+          subjectUnit: (reportRow as any).subject_unit || null,
+          scopeOfWork: (reportRow as any).scope_of_work || null,
+          requestedByRole: (reportRow as any).requested_by_role || null,
+        }
+      ),
       generatePropertyStatusSummary(
         building || { address: resolvedAddress, bin, bbl },
         violations, applications, complaints, orders,
