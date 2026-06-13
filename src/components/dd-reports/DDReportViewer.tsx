@@ -750,8 +750,8 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
           </div>
           <p className="text-sm leading-relaxed text-foreground/85 whitespace-pre-line">{(report as any).property_status_summary}</p>
           <div className="mt-4 pt-3 border-t border-border">
-            <p className="text-xs font-semibold text-foreground">BinCheckNYC Analyst Team</p>
-            <p className="text-[10px] text-muted-foreground mt-1">Prepared from NYC public records. All findings may contain errors, omissions, or delays; verify with the relevant city agencies before relying on them.</p>
+            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">Data Sources: NYC DOB · ECB / OATH · HPD · FDNY · DOF · ACRIS</p>
+            <p className="text-[10px] text-muted-foreground mt-1.5">Prepared from NYC public records. All findings may contain errors, omissions, or delays; verify with the relevant city agencies before relying on them.</p>
           </div>
         </div>
       )}
