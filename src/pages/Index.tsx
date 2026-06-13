@@ -524,7 +524,7 @@ const Index = () => {
                     },
                     {
                       q: "How do payments work?",
-                      a: "During our launch period, every order is invoiced after the report is QA'd and delivered — Net 7, payable by ACH, wire, or card. You only owe us if we deliver. Card-on-file checkout is coming soon.",
+                      a: "During our launch period, every order is invoiced after the report is QA'd and delivered — Net 7, payable by ACH, wire, or card. If we can't deliver a complete report, you don't pay. Card-on-file checkout is coming soon.",
                     },
                     {
                       q: "Can you do rush turnarounds?",
