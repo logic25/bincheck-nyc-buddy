@@ -1,78 +1,87 @@
-## Recommendations (for your "not sure" answers)
 
-**Audience** — Recommend **"Real estate professionals"**: attorneys, investors, brokers, title, developers. Wider than "attorney-ready" but still B2B (matches your buyer; avoids retail-shopper expectations on a $199 product).
+## One consolidated plan
 
-**Disclaimer placement** — Recommend **3 places, each scoped**:
-1. **Landing footer** — one short line: *"Reports are compiled from public NYC agency records. Verify with source agencies before reliance."* (current full paragraph is too heavy for the marketing page).
-2. **`/order` above the pay button** — full paragraph (the legally important moment is right before payment).
-3. **Inside every delivered PDF** — full paragraph in the cover/footer (already there in `DDReportPrintView`).
-
-Confirm or override either of these in the plan.
+Grouped by what the user actually sees vs. what's under the hood. Disclaimer language below is yours, dropped in verbatim.
 
 ---
 
-## Changes
+### A. Landing page (`src/pages/Index.tsx`)
 
-### 1. Pricing — restore original tiers
-From `mem://features/monetization`:
-- **One-Time Report — $199** (flat, no rush fee)
-- **Rush add-on — +$75** (toggle on the order page; not its own tier)
-- **Professional — $599/mo, 5 reports** ($120/report effective)
-- **Enterprise — Custom** (unchanged)
+1. **Remove the "How we compare" section entirely** (badge + H2 + comparison table).
+2. **Pricing — 2 cards + a line, not 3 cards.**
+   - Card 1: **One-Time Report — $199 / property** (+$75 rush toggle).
+   - Card 2: **Professional — $599/mo · 5 reports** ($120/report effective).
+   - Below cards, one line: *"Running more than 5 reports a month? [Contact us →](mailto:hello@binchecknyc.com)"* — kills the Enterprise card and the "10+ reports" claim.
+   - Section subhead → *"Pay per property, or save with a firm plan."*
+   - Trust strip collapsed to: *"Full refund if we can't complete your report."*
+3. **"Flat $199 per property" CTA button — keep, retitle to `Order a Report — $199`.** It's the clearest action on the page. Used in the hero, the pricing card, and the footer CTA.
+4. **FAQ — cut from 6 to 4, 1-2 sentence answers.**
+   - What's in a report? · How fast? · How do payments work? · Can I see a sample?
+5. **Footer disclaimer** → short version (see §D).
 
-Update `src/pages/Index.tsx` pricing cards + the `Order a Report — $499` button in the comparison section + `/order` plan cards + FAQ "Professional plan ($2,499/mo)" mention. Comparison row "Per-report price" → `$199 flat` (theirs `$800–$1,500+` stays).
+### B. Checkout (`src/pages/Order.tsx`)
+- Replace the existing disclaimer block above the pay button with the **full BinCheck-adapted disclaimer** (your text, §D).
+- Keep the SSL/TLS chip beside it.
 
-### 2. Kill the bad lines
-- **Remove** `"Cheaper than 30 minutes of paralegal time. Faster than any manual search."` subhead under "Simple, transparent pricing." Replace with: *"One price. No subscription required. Volume plans for firms running 5+ reports a month."*
-- **Remove** `"If we can't deliver a complete report, you don't pay"` chip from the pricing trust row and from the FAQ "How do payments work?" answer. Reason: with upfront Stripe checkout (next item) it's contradictory.
-- **Rewrite** FAQ "How is this different from running my own ACRIS / BIS / ECB searches?" to drop the paralegal-cost framing — replace with: *"Eight agency portals, one PDF, in 24–48 hours, with analyst-reviewed notes on every line item. We do the pulling, cross-referencing, and formatting so your team can read findings instead of assembling them."*
-- **Rewrite** FAQ "How do payments work?" → *"Checkout takes a card upfront via Stripe. If we can't complete your report for any reason, we refund in full. Invoicing (Net 7, ACH/wire) is available on Professional and Enterprise plans."*
+### C. Auth — email signup must work (`src/pages/Auth.tsx`)
+You said you can't sign up without Gmail. Email/password is supported by Cloud, so this is a UI gap, not a backend one.
+- Audit `Auth.tsx`: confirm both `signInWithPassword` and `signUp({ email, password })` are wired with a visible Email tab.
+- Add a "Sign up with email" flow with: email, password, confirm password, optional name.
+- `emailRedirectTo: window.location.origin` on signUp.
+- Add "Forgot password?" → `resetPasswordForEmail` → existing `/reset-password` page.
+- Keep Google + Apple buttons above the email form, divider, then email form.
+- Enable **leaked-password (HIBP) check** via `configure_auth`.
 
-### 3. Reframe "Attorney-ready"
-- Comparison row `Attorney-ready PDF format` → `Closing-file PDF format`.
-- Hero subhead and any other "attorney-ready" instances → `closing-ready` or `diligence-ready`.
-- Enterprise card subtitle `"For attorneys, title, brokers, and investors"` → keep (already broad).
+### D. Disclaimer — your DataTrace-adapted text, used in 3 places
 
-### 4. Reframe "Why BinCheckNYC" section
-Current heading *"Built for the buy side"* + italic *"what am I actually buying?"* reads cute, not premium. Replace section intro with:
+**Long version (full text, verbatim):**
+> **IMPORTANT NOTICE.** This report was compiled from public records made available by various NYC, state, and federal agencies (DOB, ECB/OATH, HPD, FDNY, DOF, DEP, ACRIS, and related sources). It is provided "AS IS," WITHOUT WARRANTY OF ANY KIND, express or implied, including without limitation any warranty of merchantability, fitness for a particular purpose, or accuracy, completeness, or timeliness. NYC public data is frequently incomplete or lagged; items may exist that are not yet posted, and posted items may be superseded. All information is current only as of the per-source dates stated in the Sources & As-Of section and is subject to continuation prior to any closing or filing decision.
+>
+> This report is provided for informational and preliminary due-diligence purposes only. It is NOT a title search, title report, title insurance, or an insured service, and it is NOT legal advice. It does not guarantee against, and assumes no liability for, any condition of title or compliance. BinCheckNYC, Inc. disclaims any and all liability to any person or entity arising from use of or reliance on this report. This report is prepared exclusively for the named recipient and not for the benefit of any third party. Verify all findings with the issuing agency and qualified counsel before acting.
 
-> **Badge:** How we compare
-> **H2:** Eight agencies. One PDF. 24–48 hours.
-> **Subhead:** Most NYC compliance vendors sell portfolio monitoring to building owners. BinCheckNYC is built for the team running diligence on a property they don't own yet — and needs answers before a closing date.
+**Short version (one-liner for marketing footer + section footers in the PDF):**
+> *Compiled from public NYC, state, and federal records. Provided "as is" — not a title search, insured service, or legal advice. Subject to continuation prior to closing.*
 
-Comparison table itself stays (it's the strongest section on the page).
+**Placements:**
+- Landing footer (`Index.tsx`) → short version.
+- `/order` above pay button → long version.
+- Terms §3 (`Terms.tsx`) → replace current "Independent verification" paragraph with long version. Entity = **BinCheckNYC, Inc.**
+- PDF cover (`DDReportPrintView.tsx`) → long version. Add a new **"Sources & As-Of"** block on the cover listing each agency + the timestamp of its data pull (the long version references it). Section footers → short version.
 
-### 5. Delivery after payment — Both (auto-download + email)
-On Stripe success:
-- The `/order` success page auto-downloads the PDF (blob URL) **and** shows it inline in-app, **and**
-- A `report-ready` transactional email goes out via the existing `send-transactional-email` function with a PDF attachment link.
+### E. Regenerate flow (new — currently undefined)
+What happens when a buyer wants a fresh pull on the same address (week later, day before closing, etc.):
+- **Within 7 days of original delivery → free re-run** (single click "Refresh report" in dashboard; re-pulls all 8 agencies, re-generates PDF, marks new "as-of" timestamps). Cheap for us, huge trust signal.
+- **After 7 days → $49 "continuation"** (same product, full re-pull, new PDF, new disclaimer dates). Mirrors the title-industry "continuation" line item your disclaimer already references.
+- **Subscription tier → unlimited continuations included.**
+- UI: button on every delivered report in `Dashboard.tsx` + `DDReportViewer.tsx`. New `dd_report_continuations` table to track parent_report_id, requested_at, charged_amount.
+- *(Build pricing rules + UI now; Stripe charging for the $49 lights up when Stripe lands.)*
 
-Implementation: invoke `send-transactional-email` with `templateName: "report-ready"` from the report-completion handler (server-side). Add `?download=1` to the success-page report viewer so the existing html2pdf export auto-fires on mount.
-
-*(Server pipeline is a follow-up implementation; this plan only wires the trigger + UI. Stripe is not in scope per the prior plan, but the success-page behavior is added behind a flag so it lights up the moment Stripe lands.)*
-
-### 6. SSL — yes, factually correct, but downgrade the chip
-Lovable Cloud + custom domain serve over HTTPS with TLS 1.2/1.3 (Cloudflare-managed certs). Keeping the "SSL encrypted" chip is honest. **Move it from the pricing row to the `/order` checkout footer** alongside the disclaimer — that's where buyers actually want reassurance. Replace the pricing chips with one line: *"Volume discounts for firms · Custom invoicing on Professional+."*
-
-### 7. Disclaimer placement (see Recommendations)
-- **Landing footer** (`Index.tsx` line 635): collapse to one sentence.
-- **`/order`**: full paragraph above pay button + `SSL encrypted` chip.
-- **PDF**: already correct.
-
-### 8. FAQ aesthetic fix
-Current accordion uses default shadcn styling on a stark white background and feels disconnected from the rest of the navy/2px-divider system. Tighten to match:
-- Wrap each `AccordionItem` in `border-b border-border` (no rounded card), remove default shadcn padding.
-- Question (`AccordionTrigger`): `text-base font-display font-semibold text-foreground py-5`.
-- Answer (`AccordionContent`): `text-sm text-muted-foreground leading-relaxed pb-5 max-w-prose`.
-- Section background: `bg-card/20` (matches the comparison section above) instead of plain white.
-- Section heading: keep *"Questions deal teams ask us"* — that one's good.
+### F. Product hardening pass (for public launch)
+Quick triage — what's needed before you flip on public signups:
+1. **Auth coverage** — email + Google + Apple all functional (see §C).
+2. **Rate limiting** on `/order` submit, lead capture, and report generation (already have `check_rate_limit` RPC — confirm it's wired on the three public endpoints).
+3. **Input validation** — Zod schemas on every public Edge Function input (most have it; spot-check `search-property`, `submit_lead`, `track-cta-click`).
+4. **404 / error boundary** — verify `NotFound.tsx` catches and `ErrorBoundary.tsx` wraps the app shell.
+5. **Robots/sitemap/canonical** — verified present.
+6. **Run `security--run_security_scan`** before publish; resolve any critical findings.
+7. **Blank prod site (binchecknyc.com)** — root cause is the published build is stale relative to preview. Once these changes ship, re-publish; if the white page persists I'll open prod console and dig in.
 
 ---
 
 ## Files touched
-`src/pages/Index.tsx`, `src/pages/Order.tsx`, `src/components/dd-reports/DDReportViewer.tsx` (auto-download flag), `supabase/functions/send-report-email/index.ts` (wire trigger; template already exists).
+- `src/pages/Index.tsx` — remove compare section, restructure pricing, retitle CTA, shrink FAQ, footer disclaimer.
+- `src/pages/Order.tsx` — long disclaimer above pay button.
+- `src/pages/Terms.tsx` — replace §3.
+- `src/pages/Auth.tsx` — email signup + forgot-password flow.
+- `src/pages/Dashboard.tsx`, `src/components/dd-reports/DDReportViewer.tsx` — "Refresh report" button.
+- `src/components/dd-reports/DDReportPrintView.tsx` — long disclaimer on cover, Sources & As-Of block, short disclaimer in section footers.
+- New table: `public.dd_report_continuations` (parent_report_id, requested_at, charged_amount, status) with RLS + GRANTs.
+- `configure_auth` → `password_hibp_enabled: true`.
 
-## Out of scope
-- Stripe checkout wiring itself (separate PR — but copy and UI are written to match what Stripe will land).
-- Touching the PDF disclaimer text (already correct).
-- Building the auto-generate-report-from-address sample pipeline (deferred from prior turn; sample CTA stays as mailto).
+## Out of scope (intentionally deferred)
+- Stripe checkout wiring (separate effort).
+- Auto-generate-from-address sample pipeline.
+- Redesigning the PDF beyond disclaimer + Sources block.
+
+## One open question
+Free re-run window — **7 days OK, or do you want 14?** (Title industry standard is "subject to continuation prior to closing" with no hard window; 7 days is buyer-friendly without inviting abuse.)
