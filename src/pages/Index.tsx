@@ -620,7 +620,7 @@ const Index = () => {
                 <div className="flex items-center justify-center gap-6 mt-8 text-xs text-muted-foreground flex-wrap">
                   <span className="flex items-center gap-1.5"><Mail className="h-3.5 w-3.5" /> Invoice on delivery — Net 7</span>
                   <span className="flex items-center gap-1.5"><Shield className="h-3.5 w-3.5" /> SSL encrypted</span>
-                  <span className="flex items-center gap-1.5"><CheckCircle className="h-3.5 w-3.5" /> You only pay if we deliver</span>
+                  <span className="flex items-center gap-1.5"><CheckCircle className="h-3.5 w-3.5" /> If we can't deliver a complete report, you don't pay</span>
                 </div>
               </div>
             </section>
