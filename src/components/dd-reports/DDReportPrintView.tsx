@@ -718,10 +718,11 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
                   key={a.agency}
                   style={{
                     display: 'inline-block',
-                    fontSize: '11px',
-                    fontWeight: 600,
-                    padding: '4px 12px',
-                    borderRadius: '6px',
+                    fontSize: '10px',
+                    fontWeight: 700,
+                    letterSpacing: '0.06em',
+                    padding: '3px 10px',
+                    borderRadius: '3px',
                     ...(hasData
                       ? { backgroundColor: NAVY, color: '#ffffff' }
                       : isError
