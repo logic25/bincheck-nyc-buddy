@@ -21,6 +21,10 @@ import NotFound from "./pages/NotFound";
 import Unsubscribe from "./pages/Unsubscribe";
 import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
+import DOBViolationSearch from "./pages/marketing/DOBViolationSearch";
+import ECBViolationLookup from "./pages/marketing/ECBViolationLookup";
+import HPDViolations from "./pages/marketing/HPDViolations";
+import NYCPropertyDueDiligence from "./pages/marketing/NYCPropertyDueDiligence";
 
 const queryClient = new QueryClient();
 
@@ -48,6 +52,11 @@ const App = () => (
           <Route path="/unsubscribe" element={<Unsubscribe />} />
           <Route path="/terms" element={<Terms />} />
           <Route path="/privacy" element={<Privacy />} />
+          {/* Marketing / programmatic SEO */}
+          <Route path="/dob-violation-search" element={<DOBViolationSearch />} />
+          <Route path="/ecb-violation-lookup" element={<ECBViolationLookup />} />
+          <Route path="/hpd-violations" element={<HPDViolations />} />
+          <Route path="/nyc-property-due-diligence" element={<NYCPropertyDueDiligence />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
