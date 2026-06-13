@@ -146,115 +146,175 @@ const Index = () => {
         description="Transaction-ready NYC property compliance reports. 8-agency violation search (DOB, ECB, HPD, FDNY, DSNY, DOT, LPC, DOF) with AI line-item notes and human analyst QA. 24–48 hour delivery. $499 flat."
         path="/"
       />
-      {/* Nav */}
-      <header className="border-b border-border/40 sticky top-0 z-50 bg-background/90 backdrop-blur-md">
-        <div className="container flex items-center justify-between h-16">
-          <div className="flex items-center gap-2">
-            <Shield className="h-6 w-6 text-primary" />
-            <span className="font-display text-xl tracking-tight">BinCheck<span className="text-primary">NYC</span></span>
+
+      {/* ─── DARK NAVY HERO ─────────────────────────────────────────────── */}
+      <div className="bg-[#0c1730] text-white">
+        {/* Nav */}
+        <header className="border-b border-white/10">
+          <div className="container flex items-center justify-between h-16">
+            <div className="flex items-center gap-2">
+              <Shield className="h-5 w-5 text-[#e63946]" />
+              <span className="text-lg tracking-tight font-semibold">BinCheck<span className="text-[#e63946]">NYC</span></span>
+            </div>
+            <nav className="flex items-center gap-1 sm:gap-2">
+              {session ? (
+                <>
+                  <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard")} className="text-white/80 hover:text-white hover:bg-white/10">Home</Button>
+                  <Button variant="ghost" size="sm" onClick={() => navigate("/settings")} className="text-white/80 hover:text-white hover:bg-white/10">
+                    <Settings className="h-4 w-4 mr-1" /> Settings
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={async () => { await supabase.auth.signOut(); setSession(null); }} className="text-white/80 hover:text-white hover:bg-white/10">
+                    <LogOut className="h-4 w-4 mr-1" /> Sign Out
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <a href="#coverage" className="hidden sm:inline-block px-3 py-2 text-sm text-white/70 hover:text-white">Coverage</a>
+                  <a href="#sample" className="hidden sm:inline-block px-3 py-2 text-sm text-white/70 hover:text-white">Sample report</a>
+                  <a href="#pricing" className="hidden sm:inline-block px-3 py-2 text-sm text-white/70 hover:text-white">Pricing</a>
+                  <Button variant="ghost" size="sm" onClick={() => navigate("/auth")} className="text-white/70 hover:text-white hover:bg-white/10">Log in</Button>
+                  <Button size="sm" onClick={() => navigate("/order")} className="bg-[#e63946] hover:bg-[#d62b39] text-white font-semibold">
+                    Order a report
+                  </Button>
+                </>
+              )}
+            </nav>
           </div>
-          <nav className="flex items-center gap-2">
-            {session ? (
-              <>
-                <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard")}>Home</Button>
-                <Button variant="ghost" size="sm" onClick={() => navigate("/settings")}>
-                  <Settings className="h-4 w-4 mr-1" /> Settings
-                </Button>
-                <Button variant="ghost" size="sm" onClick={async () => { await supabase.auth.signOut(); setSession(null); }}>
-                  <LogOut className="h-4 w-4 mr-1" /> Sign Out
-                </Button>
-              </>
-            ) : (
-              <>
-                <Button variant="ghost" size="sm" onClick={() => navigate("/auth")} className="text-muted-foreground hover:text-foreground">
-                  Log In
-                </Button>
-                <Button variant="ghost" size="sm" onClick={() => navigate("/order")} className="text-muted-foreground hover:text-foreground">
-                  Pricing
-                </Button>
-                <Button size="sm" onClick={() => navigate("/order")}>
-                  Order a Report <ArrowRight className="h-3.5 w-3.5 ml-1" />
-                </Button>
-              </>
-            )}
-          </nav>
-        </div>
-      </header>
+        </header>
 
-      <main className="flex-1">
-        {/* Hero */}
-        <section className="flex items-center justify-center px-4 pt-20 pb-16">
-          <div className="max-w-3xl w-full text-center space-y-10">
-            {session ? (
-              <div className="space-y-3">
-                <h1 className="font-display text-3xl font-bold tracking-tight">Property Search</h1>
-                <p className="text-muted-foreground">Look up any NYC property by BIN number or address</p>
-              </div>
-            ) : (
-              <div className="space-y-5">
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-border/60 bg-card text-xs text-muted-foreground font-medium mb-2">
-                  <Star className="h-3 w-3 text-primary" /> Trusted by NYC real estate attorneys & investors
+        {/* Hero body */}
+        <section className="container pt-14 pb-20 lg:pt-20 lg:pb-28">
+          <div className="grid grid-cols-1 lg:grid-cols-[1.05fr_1fr] gap-10 lg:gap-16 items-center">
+            {/* Left column — copy + search */}
+            <div>
+              {session ? (
+                <div className="space-y-3 mb-10">
+                  <h1 className="font-serif text-4xl md:text-5xl font-bold tracking-tight leading-[1.1]">Property search</h1>
+                  <p className="text-white/70">Look up any NYC property by BIN number or address.</p>
                 </div>
-                <h1 className="font-display text-5xl md:text-6xl font-extrabold tracking-tight leading-[1.1]">
-                  Due diligence,{" "}
-                  <span className="text-primary">delivered.</span>
-                </h1>
-                <p className="text-lg text-muted-foreground max-w-xl mx-auto leading-relaxed">
-                  Transaction-ready NYC property compliance reports for attorneys, investors, and deal teams. Open violations, stop work orders, and comprehensive analysis across city agencies.
-                </p>
-                <div className="flex items-center justify-center gap-3 flex-wrap">
-                  <Button size="lg" onClick={() => { trackEvent("cta_clicked", { cta: "hero" }); navigate("/order"); }} className="font-semibold">
-                    Order a Report — $499 <ArrowRight className="h-4 w-4 ml-1" />
-                  </Button>
-                  <Button size="lg" variant="outline" onClick={() => navigate("/auth")}>
-                    Sign In
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            {/* Search */}
-            <form onSubmit={handleSearch} className="relative max-w-2xl mx-auto" ref={wrapperRef}>
-              <div className="relative flex items-center bg-card border border-border rounded-lg overflow-visible shadow-sm">
-                <Search className="h-5 w-5 text-muted-foreground ml-4 shrink-0" />
-                <Input
-                  value={query}
-                  onChange={(e) => handleInputChange(e.target.value)}
-                  onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
-                  onKeyDown={handleKeyDown}
-                  placeholder="Quick search: enter BIN number or NYC address..."
-                  className="border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 text-base h-14 pl-3"
-                  autoComplete="off"
-                />
-                <Button type="submit" size="lg" className="m-1.5 shrink-0 font-semibold">
-                  Search <ArrowRight className="h-4 w-4 ml-1" />
-                </Button>
-              </div>
-              {showSuggestions && suggestions.length > 0 && (
-                <div className="absolute left-0 right-0 top-full mt-1 z-50 bg-card border border-border rounded-lg shadow-lg overflow-hidden">
-                  {suggestions.map((s, i) => (
-                    <button
-                      key={i}
-                      type="button"
-                      className={`w-full flex items-center gap-3 px-4 py-3 text-left text-sm transition-colors ${i === highlightedIndex ? "bg-muted" : "hover:bg-muted/50"}`}
-                      onClick={() => selectSuggestion(s.label)}
-                      onMouseEnter={() => setHighlightedIndex(i)}
-                    >
-                      <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
-                      <span className="truncate text-foreground">{s.label}</span>
-                    </button>
-                  ))}
+              ) : (
+                <div className="space-y-7 mb-10">
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-sm border border-emerald-400/40 bg-emerald-400/5 text-[11px] text-emerald-300 font-bold uppercase tracking-[0.14em]">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> 8-agency NYC compliance report
+                  </div>
+                  <h1 className="font-serif text-5xl md:text-6xl lg:text-[64px] font-bold tracking-tight leading-[1.05]">
+                    Every NYC violation<br />tied to a BIN, in<br />
+                    <span className="text-[#e63946] italic">one report.</span>
+                  </h1>
+                  <p className="text-base md:text-lg text-white/70 max-w-xl leading-relaxed">
+                    Open violations, ECB judgments, HPD orders, FDNY findings, OATH tickets, DOB permits, and ACRIS records — pulled from <span className="text-white font-semibold">eight city sources</span>, reviewed by a NYC analyst, delivered as a single PDF.
+                  </p>
                 </div>
               )}
-            </form>
 
+              {/* Search */}
+              <form onSubmit={handleSearch} className="relative max-w-xl" ref={wrapperRef}>
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="px-3 py-1 text-[11px] font-bold uppercase tracking-[0.12em] bg-[#e63946] text-white rounded-sm">Address</span>
+                  <span className="px-3 py-1 text-[11px] font-bold uppercase tracking-[0.12em] bg-white/10 text-white/70 rounded-sm">BIN</span>
+                </div>
+                <div className="relative flex items-center bg-white text-foreground rounded-md overflow-visible shadow-lg">
+                  <Input
+                    value={query}
+                    onChange={(e) => handleInputChange(e.target.value)}
+                    onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
+                    onKeyDown={handleKeyDown}
+                    placeholder="e.g. 123 Main St, New York"
+                    className="border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 text-base h-14 pl-5 text-gray-900 placeholder:text-gray-400"
+                    autoComplete="off"
+                  />
+                  <Button type="submit" size="lg" className="m-1.5 shrink-0 font-semibold bg-[#e63946] hover:bg-[#d62b39] text-white">
+                    Check property <ArrowRight className="h-4 w-4 ml-1" />
+                  </Button>
+                </div>
+                {showSuggestions && suggestions.length > 0 && (
+                  <div className="absolute left-0 right-0 top-full mt-1 z-50 bg-white border border-border rounded-md shadow-xl overflow-hidden">
+                    {suggestions.map((s, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        className={`w-full flex items-center gap-3 px-4 py-3 text-left text-sm transition-colors text-gray-900 ${i === highlightedIndex ? "bg-gray-100" : "hover:bg-gray-50"}`}
+                        onClick={() => selectSuggestion(s.label)}
+                        onMouseEnter={() => setHighlightedIndex(i)}
+                      >
+                        <MapPin className="h-4 w-4 text-gray-400 shrink-0" />
+                        <span className="truncate">{s.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </form>
+
+              {!session && (
+                <p className="text-xs text-white/50 mt-5">
+                  Delivered in 24–48 hours · Flat price per property
+                </p>
+              )}
+            </div>
+
+            {/* Right column — sample compliance report card */}
             {!session && (
-              <p className="text-xs text-muted-foreground">
-                Free quick search. <span className="text-primary cursor-pointer hover:underline" onClick={() => navigate("/order")}>Order a full DD report →</span>
-              </p>
+              <div className="bg-white text-gray-900 rounded-xl shadow-2xl border border-white/20 overflow-hidden">
+                <div className="px-6 pt-6 pb-4 border-b border-gray-200">
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-gray-500">Compliance Report <span className="ml-1.5 px-1.5 py-0.5 text-[9px] bg-gray-100 rounded-sm text-gray-600">SAMPLE</span></p>
+                    <Shield className="h-4 w-4 text-[#0c1730]" />
+                  </div>
+                  <p className="font-serif text-xl font-bold leading-tight">123 Sample Street</p>
+                  <p className="text-[11px] text-gray-500 mt-1 font-mono">BIN 0000000 · Illustrative · not a live record</p>
+                </div>
+                <div className="px-6 py-5 bg-[#fafaf7]">
+                  <div className="rounded-md border border-emerald-600/40 bg-emerald-50/60 p-4 flex items-center justify-between">
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-emerald-800">Compliance Risk Score</p>
+                      <p className="font-serif text-4xl font-bold text-emerald-800 mt-1 leading-none">94<span className="text-base text-emerald-700/70 font-normal">/100</span></p>
+                      <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-emerald-800 mt-1">Low risk</p>
+                    </div>
+                    <div className="flex gap-4 text-center">
+                      {[['DOB', 100], ['HPD', 100], ['OATH', 60]].map(([k, v]) => (
+                        <div key={k as string}>
+                          <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-gray-500">{k}</p>
+                          <p className="font-serif text-xl font-bold text-gray-900 mt-0.5">{v}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                <div className="px-6 pb-6 space-y-1.5">
+                  {[
+                    { tag: 'MONITOR', tagColor: 'border-amber-600 text-amber-700', label: 'FDNY · Fire protection systems', status: 'open' },
+                    { tag: 'MONITOR', tagColor: 'border-amber-600 text-amber-700', label: 'FDNY · Inspection & testing', status: 'open' },
+                    { tag: 'CLEAR', tagColor: 'border-emerald-600 text-emerald-700', label: 'FDNY · Certificates of fitness', status: 'closed' },
+                  ].map((row) => (
+                    <div key={row.label} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
+                      <div className="flex items-center gap-3">
+                        <span className={`px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.1em] border rounded-sm ${row.tagColor}`}>{row.tag}</span>
+                        <span className="text-[12px] text-gray-700">{row.label}</span>
+                      </div>
+                      <span className="text-[11px] text-gray-500 font-mono">{row.status}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
             )}
           </div>
         </section>
+
+        {/* Bottom strip */}
+        {!session && (
+          <div className="border-t border-white/10">
+            <div className="container py-5 flex flex-col sm:flex-row items-center justify-between gap-3">
+              <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-white/60">
+                Eight city data sources · One PDF · Analyst-reviewed
+              </p>
+              <span className="inline-flex items-center px-4 py-2 rounded-full border border-[#e63946]/60 bg-[#e63946]/10 text-[#ff7480] text-xs font-bold uppercase tracking-[0.14em]">
+                Flat $499 per property
+              </span>
+            </div>
+          </div>
+        )}
+      </div>
+
 
         {!session && (
           <>
