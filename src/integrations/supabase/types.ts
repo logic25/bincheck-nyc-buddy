@@ -398,6 +398,8 @@ export type Database = {
           requested_delivery_date: string | null
           rush_requested: boolean | null
           status: string
+          summary_edited_at: string | null
+          summary_edited_by: string | null
           tax_lien_data: Json | null
           updated_at: string
           user_id: string
@@ -435,6 +437,8 @@ export type Database = {
           requested_delivery_date?: string | null
           rush_requested?: boolean | null
           status?: string
+          summary_edited_at?: string | null
+          summary_edited_by?: string | null
           tax_lien_data?: Json | null
           updated_at?: string
           user_id: string
@@ -472,6 +476,8 @@ export type Database = {
           requested_delivery_date?: string | null
           rush_requested?: boolean | null
           status?: string
+          summary_edited_at?: string | null
+          summary_edited_by?: string | null
           tax_lien_data?: Json | null
           updated_at?: string
           user_id?: string
