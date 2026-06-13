@@ -630,7 +630,7 @@ const Index = () => {
       <footer className="border-t border-border/40 py-8">
         <div className="container max-w-4xl text-center text-xs text-muted-foreground space-y-3">
           <p className="leading-relaxed max-w-3xl mx-auto">
-            <span className="font-semibold text-foreground/80">Disclaimer:</span> BinCheckNYC reports are compiled from publicly available government records. Public records may be delayed, incomplete, or not yet reflected in agency databases at the time of search. All findings should be independently verified with the relevant city agencies prior to reliance in any transaction. BinCheckNYC, its officers, employees, and affiliates assume no liability for errors or omissions in underlying government data.
+            Reports are compiled from public NYC agency records. Verify findings with the relevant city agencies before reliance in any transaction.
           </p>
           <div className="border-t border-border/30 pt-3 flex items-center justify-center gap-4 flex-wrap">
             <p>© {new Date().getFullYear()} BinCheckNYC. All rights reserved.</p>
