@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { trackEvent } from "@/lib/analytics";
+import { SubjectAndRequesterBlock, emptySubjectValue, isSubjectBlockValid } from "@/components/dd-reports/SubjectAndRequesterBlock";
 
 interface GeoSuggestion { label: string; }
 
@@ -40,6 +41,7 @@ const Order = () => {
   const [address, setAddress] = useState("");
   const [concern, setConcern] = useState("");
   const [deliveryDate, setDeliveryDate] = useState("");
+  const [subject, setSubject] = useState(emptySubjectValue());
   const [rush, setRush] = useState(false);
   const [suggestions, setSuggestions] = useState<GeoSuggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -135,12 +137,16 @@ const Order = () => {
         requested_delivery_date: deliveryDate || null,
         step_reached: stepReached,
         converted: false,
-      }).select('id').single();
+        subject_type: subject.subject_type,
+        subject_unit: subject.subject_type === 'unit' ? (subject.subject_unit.trim() || null) : null,
+        scope_of_work: subject.scope_of_work.trim() || null,
+        requested_by_role: subject.requested_by_role || null,
+      } as any).select('id').single();
       if (data) setLeadId(data.id);
     } catch { /* silently fail — lead capture is best-effort */ }
   }, [email, firstName, lastName, company, phone, address, concern, rush, deliveryDate, leadId]);
 
-  const step1Valid = address.trim().length > 5;
+  const step1Valid = address.trim().length > 5 && isSubjectBlockValid(subject);
   const step2Valid = firstName.trim() && lastName.trim() && email.trim().includes("@") && company.trim();
 
   // Pricing: One-Time = $499 flat (no rush fee). Pro = $2,499/mo (10 reports).
@@ -187,7 +193,12 @@ const Order = () => {
         status: "generating",
         generation_started_at: new Date().toISOString(),
         order_lead_id: leadId,
-      }).select("id").single();
+        // Subject + requester framing — carries into per-item AI prompts (PR #24).
+        subject_type: subject.subject_type,
+        subject_unit: subject.subject_type === 'unit' ? (subject.subject_unit.trim() || null) : null,
+        scope_of_work: subject.scope_of_work.trim() || null,
+        requested_by_role: subject.requested_by_role || null,
+      } as any).select("id").single();
 
       if (reportError) throw reportError;
 
@@ -375,16 +386,19 @@ const Order = () => {
               <p className="text-xs text-muted-foreground">Enter a complete NYC address including borough</p>
             </div>
 
+            {/* Subject + requester framing — drives per-item AI notes (PR #24) */}
+            <SubjectAndRequesterBlock value={subject} onChange={setSubject} />
+
             <div className="space-y-2">
-              <Label>What should we look for? <span className="text-muted-foreground">(Optional)</span></Label>
+              <Label>Anything else we should flag? <span className="text-muted-foreground">(Optional)</span></Label>
               <Textarea
-                placeholder="e.g. I'm buying Unit 10B and want to ensure no violations or permits affect it, and that future combination work is possible"
+                placeholder="e.g. Closing in 6 weeks, lender requires clean DOB record, prior owner has open ECB at adjacent BBL…"
                 value={concern}
                 onChange={(e) => setConcern(e.target.value)}
                 rows={3}
                 className="resize-none"
               />
-              <p className="text-xs text-muted-foreground">This helps our analysts tailor notes to your specific transaction</p>
+              <p className="text-xs text-muted-foreground">Background context for the analyst review on top of the report scope above.</p>
             </div>
 
             <div className="space-y-2">
@@ -478,7 +492,7 @@ const Order = () => {
                     {[
                       "8-agency violation search (DOB, ECB, HPD, FDNY, DSNY, DOT, LPC, DOF)",
                       "AI analyst notes on every line item",
-                      "Attorney-ready PDF report",
+                      "Transaction-ready PDF for attorneys, title cos, brokers, and investors",
                       "24–48 business-hour delivery",
                       "One-time purchase, no subscription"
                     ].map(f => (
