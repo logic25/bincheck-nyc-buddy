@@ -283,7 +283,9 @@ CREATE INDEX IF NOT EXISTS idx_unsubscribe_tokens_token ON public.email_unsubscr
 --    To revert: DELETE FROM vault.secrets WHERE name = 'email_queue_service_role_key';
 --
 -- 2. CRON JOB (pg_cron)
---    Creates job 'process-email-queue' with a 5-second interval.
+--    Creates job 'process-email-queue'.
+--    Original interval: 5 seconds (set by setup_email_infra).
+--    Current interval: 1 minute (see migration 20260613210000_cron_dialdown.sql).
 --    The job checks:
 --      a) rate-limit cooldown (email_send_state.retry_after_until)
 --      b) whether auth_emails or transactional_emails queues have messages
