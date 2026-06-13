@@ -143,7 +143,7 @@ const Index = () => {
     <div className="min-h-screen flex flex-col bg-background">
       <SEO
         title="BinCheckNYC — NYC property due diligence for closing teams"
-        description="Transaction-ready NYC property compliance reports. 8-agency violation search (DOB, ECB, HPD, FDNY, DSNY, DOT, LPC, DOF) with AI line-item notes and human analyst QA. 24–48 hour delivery. $499 flat."
+        description="Transaction-ready NYC property compliance reports. 8-agency violation search (DOB, ECB, HPD, FDNY, DSNY, DOT, LPC, DOF) with analyst-reviewed line-item notes. 24–48 hour delivery. $499 flat."
         path="/"
       />
 
