@@ -366,26 +366,6 @@ async function fetchPLUTOData(bbl: string): Promise<any> {
   };
 }
 
-// Maps borough code (1-5) to full borough name used by OATH dataset
-const OATH_BOROUGH_NAMES: Record<string, string> = {
-  "1": "MANHATTAN",
-  "2": "BRONX",
-  "3": "BROOKLYN",
-  "4": "QUEENS",
-  "5": "STATEN ISLAND",
-};
-
-// Maps agency code to OATH issuing_agency name
-const OATH_AGENCIES: Array<{ code: string; oathName: string }> = [
-  { code: "FDNY", oathName: "FIRE DEPARTMENT OF NYC" },
-  { code: "DEP",  oathName: "DEPT OF ENVIRONMENT PROT" },
-  { code: "DOT",  oathName: "DEPT OF TRANSPORTATION" },
-  { code: "DSNY", oathName: "DEPT OF SANITATION" },
-  { code: "LPC",  oathName: "LANDMARKS PRESERV COMM" },
-  { code: "DOF",  oathName: "DEPT OF FINANCE" },
-];
-
-const OATH_RESOLVED_TERMS = ["paid", "written off", "dismissed", "defaulted", "satisfied", "complied", "waived"];
 
 async function fetchOATHViolations(bbl: string, agencyCode: string, oathAgencyName: string): Promise<any[]> {
   if (!bbl || bbl.length < 10) return [];
