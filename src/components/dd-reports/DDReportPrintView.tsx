@@ -1279,7 +1279,7 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
         <div style={{ marginTop: '8px', padding: '12px 16px', border: '1px solid #a7f3d0', backgroundColor: '#ecfdf5', borderRadius: '8px', pageBreakInside: 'avoid', marginBottom: '20px' }}>
           <p style={{ fontSize: '12px', fontWeight: 600, color: '#065f46', margin: '0 0 4px' }}>Permit Closeout May Be Required</p>
           <p style={{ fontSize: '11px', color: '#374151', lineHeight: '1.6', margin: 0 }}>
-            {closeoutTaggedCount} application{closeoutTaggedCount !== 1 ? 's' : ''} {closeoutTaggedCount !== 1 ? 'are' : 'is'} still open and may need to be formally closed out with DOB. Open permits can affect property transfers and new filings. Green Light Expediting can manage the closeout process on your behalf.
+            {closeoutTaggedCount} application{closeoutTaggedCount !== 1 ? 's' : ''} {closeoutTaggedCount !== 1 ? 'are' : 'is'} still open and may need to be formally closed out with DOB. Open permits can affect property transfers and new filings.
           </p>
         </div>
       )}
