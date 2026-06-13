@@ -623,23 +623,32 @@ const DDReportViewer = ({ report, onBack, onDelete, onRegenerate, isRegenerating
 
       {/* Report Title Block */}
       <div className="border border-border rounded-xl p-4 sm:p-6 bg-card mb-6">
-        <div className="space-y-2">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
-            <h1 className="text-xl sm:text-2xl font-display font-bold tracking-tight break-words">{report.address}</h1>
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 pb-3 border-b border-border">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">Property Compliance Assessment</p>
+            <h1 style={{ fontFamily: "'Libre Baskerville', Georgia, serif" }} className="text-2xl sm:text-[28px] font-bold tracking-tight break-words mt-2 leading-tight">{report.address}</h1>
+          </div>
+          <div className="text-left sm:text-right text-xs text-muted-foreground space-y-0.5 shrink-0">
+            <p>Report ID: <span className="font-mono font-semibold text-foreground">BC-{report.id.slice(0, 6).toUpperCase()}</span></p>
+            <p>Issued: <span className="font-semibold text-foreground">{format(new Date(report.report_date), 'MMM d, yyyy')}</span></p>
             <Badge
               variant={report.status === 'approved' ? 'default' : report.status === 'pending_review' ? 'secondary' : 'outline'}
-              className={`shrink-0 w-fit ${report.status === 'approved' ? 'bg-emerald-600 text-white' : ''}`}
+              className={`mt-1 ${report.status === 'approved' ? 'bg-emerald-600 text-white' : ''}`}
             >
               {statusLabel}
             </Badge>
           </div>
-          <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-5 text-sm text-muted-foreground">
-            <span className="flex items-center gap-1.5"><User className="w-3.5 h-3.5 shrink-0" /> {report.prepared_for}</span>
-            <span className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5 shrink-0" /> {format(new Date(report.report_date), 'MMMM d, yyyy')}</span>
-            {report.bin && <span className="flex items-center gap-1.5 font-mono text-xs"><Hash className="w-3.5 h-3.5 shrink-0" /> BIN {report.bin}</span>}
-            {report.bbl && <span className="font-mono text-xs">BBL {formatBBL(report.bbl)}</span>}
-          </div>
         </div>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 pt-3 text-[11px] text-muted-foreground">
+          <span className="italic">Confidential — prepared for named recipient only.</span>
+          <span>Data current as of {(report as any).generated_at ? format(new Date((report as any).generated_at), "MMM d, yyyy 'at' h:mm a") : format(new Date(report.report_date), 'MMM d, yyyy')}</span>
+        </div>
+        <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-5 text-sm text-muted-foreground mt-3">
+          <span className="flex items-center gap-1.5"><User className="w-3.5 h-3.5 shrink-0" /> Prepared for {report.prepared_for}</span>
+          {report.bin && <span className="flex items-center gap-1.5 font-mono text-xs"><Hash className="w-3.5 h-3.5 shrink-0" /> BIN {report.bin}</span>}
+          {report.bbl && <span className="font-mono text-xs">BBL {formatBBL(report.bbl)}</span>}
+        </div>
+
 
         {/* Agency Sources Badges */}
         {(() => {
