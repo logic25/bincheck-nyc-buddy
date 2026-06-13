@@ -1549,6 +1549,14 @@ ${learningContext.few_shot_examples.join('\n')}
 `;
     }
 
+    if (learningContext.relevance_examples && learningContext.relevance_examples.length > 0) {
+      fewShotSection += `\n━━━ RELEVANCE / IMPACT CORRECTIONS ━━━
+Analyst-approved corrections to prior per-item unit_relevance and impact_note. Match the framing and specificity below:
+
+${learningContext.relevance_examples.join('\n')}
+`;
+    }
+
     if (learningContext.confidence_flags.length > 0) {
       confidenceSection = `\n━━━ ACCURACY ALERTS ━━━
 ${learningContext.confidence_flags.map(f =>
