@@ -351,7 +351,7 @@ const Index = () => {
                   {[
                     { step: "01", icon: MapPin, title: "Submit Your Property", desc: "Enter the NYC address and tell us what you need — buying a unit, closing a deal, a specific concern." },
                     { step: "02", icon: Clock, title: "We Prepare Your Report", desc: "Our team runs 8-agency searches, AI flags every item, and our analysts review before delivery." },
-                    { step: "03", icon: Download, title: "Download & Close", desc: "Receive your attorney-ready PDF with line-item notes, risk ratings, and a signed-off summary." },
+                    { step: "03", icon: Download, title: "Download & Close", desc: "Receive a transaction-ready PDF with per-item analyst notes, agency sub-scores, and a signed-off conclusion." },
                   ].map((s) => (
                     <div key={s.step} className="text-center space-y-3">
                       <div className="w-12 h-12 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto">
