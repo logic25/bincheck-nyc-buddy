@@ -446,52 +446,9 @@ const Index = () => {
             </section>
 
 
-            {/* Comparison: BinCheck vs other DD providers */}
-            <section className="border-t border-border/40 py-16 px-4 bg-card/20">
-              <div className="container max-w-5xl">
-                <div className="text-center mb-10">
-                  <Badge variant="outline" className="mb-3">How we compare</Badge>
-                  <h2 className="font-display text-2xl md:text-3xl font-bold">Eight agencies. One PDF. 24–48 hours.</h2>
-                  <p className="text-muted-foreground text-sm mt-2 max-w-2xl mx-auto">
-                    Most NYC compliance vendors sell portfolio monitoring to building owners. BinCheckNYC is built for the team running diligence on a property they don't own yet — and needs answers before a closing date.
-                  </p>
-                </div>
+            {/* "How we compare" section removed per user direction. */}
 
-                <div className="rounded-xl border border-border bg-card overflow-hidden">
-                  <div className="grid grid-cols-3 text-sm">
-                    {/* Header row */}
-                    <div className="p-4 border-b border-r border-border bg-muted/40"></div>
-                    <div className="p-4 border-b border-r border-border bg-primary/5 text-center">
-                      <p className="font-display font-bold text-base">BinCheck<span className="text-primary">NYC</span></p>
-                      <p className="text-xs text-muted-foreground mt-1">Buy-side DD</p>
-                    </div>
-                    <div className="p-4 border-b border-border bg-muted/40 text-center">
-                      <p className="font-semibold text-base text-muted-foreground">Other providers</p>
-                      <p className="text-xs text-muted-foreground mt-1">Legacy DD vendors</p>
-                    </div>
 
-                    {[
-                      { row: "Primary use case", us: "Closing-day decisions", them: "Owner portfolio reporting" },
-                      { row: "Turnaround", us: "24–48 hours", them: "3–10 business days" },
-                      { row: "Per-report price", us: "$199 flat", them: "$800–$1,500+" },
-                      { row: "Analyst-reviewed notes per item", us: true, them: false },
-                      { row: "Human QA before delivery", us: true, them: "Sometimes" },
-                      { row: "Action-priority flags", us: "[ACTION REQUIRED] / [MONITOR] / [RESOLVED]", them: "Raw record dump" },
-                      { row: "Closing-file PDF format", us: true, them: "CSV / portal export" },
-                      { row: "Subscription required", us: false, them: "Often" },
-                    ].map((r, i, arr) => (
-                      <CompareRow key={r.row} row={r.row} us={r.us} them={r.them} last={i === arr.length - 1} />
-                    ))}
-                  </div>
-                </div>
-
-                <div className="text-center mt-8">
-                  <Button size="lg" onClick={() => { trackEvent("cta_clicked", { cta: "compare" }); navigate("/order"); }} className="font-semibold">
-                    Order a Report — $199 <ArrowRight className="h-4 w-4 ml-1" />
-                  </Button>
-                </div>
-              </div>
-            </section>
 
             {/* FAQ */}
             <section className="border-t border-border/40 py-16 px-4 bg-card/20">
@@ -503,36 +460,20 @@ const Index = () => {
                 <Accordion type="single" collapsible className="w-full">
                   {[
                     {
-                      q: "Who is this for?",
-                      a: "Real estate professionals running pre-acquisition or pre-closing diligence on NYC property — attorneys, investors, family offices, brokers, title companies, and developers. If you're asking 'what am I buying?', this report is for you.",
+                      q: "What's in a report?",
+                      a: "An 8-agency search (DOB, ECB/OATH, HPD, FDNY, DSNY, DOT, LPC, DOF) cross-referenced and delivered as a single closing-file PDF, with analyst-reviewed notes on every line item.",
                     },
                     {
-                      q: "How is this different from running my own ACRIS / BIS / ECB searches?",
-                      a: "Eight agency portals, one PDF, in 24–48 hours, with analyst-reviewed notes on every line item. We do the pulling, cross-referencing, and formatting so your team can read findings instead of assembling them.",
-                    },
-                    {
-                      q: "What's actually included in the 8-agency search?",
-                      a: "DOB (Department of Buildings) violations and permits, ECB / OATH hearings, HPD (Housing Preservation & Development) violations by class, FDNY records, DSNY (Sanitation), DOT (Transportation), LPC (Landmarks Preservation), and DOF (Finance — tax liens and water charges). Plus analyst-reviewed notes on every line item.",
-                    },
-                    {
-                      q: "How accurate is the data?",
-                      a: "We pull from publicly available NYC government sources and cite the source on every line item so your team can verify directly. Every report is reviewed by a human analyst before delivery. Public records can be delayed or incomplete at the agency level; we flag known data-freshness issues explicitly.",
-                    },
-                    {
-                      q: "What if the report finds something that kills the deal?",
-                      a: "That's the point. Better to find a $40K open ECB judgment in pre-closing diligence than after wire. Our [ACTION REQUIRED] flags are designed to surface deal-killers early so you can negotiate, escrow, or walk.",
+                      q: "How fast?",
+                      a: "Standard turnaround is 24–48 business hours. A rush add-on (+$75) moves your report to the front of the queue — most rush orders deliver same-day.",
                     },
                     {
                       q: "How do payments work?",
-                      a: "Checkout takes a card upfront via Stripe. If we can't complete your report for any reason, we refund in full. Invoicing (Net 7, ACH or wire) is available on Professional and Enterprise plans.",
+                      a: "Card upfront via Stripe at checkout. If we can't complete your report for any reason, we refund in full.",
                     },
                     {
-                      q: "Can you do rush turnarounds?",
-                      a: "Standard turnaround is 24–48 hours. A rush add-on (+$75) moves your report to the front of the queue — most rush orders deliver same-day. Professional plan ($599/mo) gets priority placement on every report. For enterprise SLAs, contact us at hello@binchecknyc.com.",
-                    },
-                    {
-                      q: "Do you white-label for firms?",
-                      a: "Yes — included on the Professional plan. Your firm's logo and footer; our data and analyst signoff. Enterprise plans support fully custom report templates.",
+                      q: "Can I see a sample?",
+                      a: "Yes — email hello@binchecknyc.com with your address and we'll send a redacted sample report back.",
                     },
                   ].map((item, i) => (
                     <AccordionItem key={i} value={`faq-${i}`} className="border-b border-border last:border-b-0">
@@ -553,15 +494,15 @@ const Index = () => {
 
             {/* Pricing */}
             <section id="pricing" className="border-t border-border/40 py-16 px-4">
-              <div className="container max-w-4xl">
+              <div className="container max-w-3xl">
                 <h2 className="font-display text-2xl font-bold text-center mb-3">Simple, transparent pricing</h2>
-                <p className="text-muted-foreground text-center mb-10 text-sm">One price. No subscription required. Volume plans for firms running 5+ reports a month.</p>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <p className="text-muted-foreground text-center mb-10 text-sm">Pay per property, or save with a firm plan.</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* One-Time */}
                   <div className="p-6 rounded-lg border border-border bg-card space-y-5">
                     <div>
                       <p className="text-sm font-medium text-muted-foreground">One-Time Report</p>
-                      <p className="font-display text-4xl font-extrabold mt-1">$199</p>
+                      <p className="font-display text-4xl font-extrabold mt-1">$199<span className="text-base font-normal text-muted-foreground"> / property</span></p>
                       <p className="text-xs text-muted-foreground mt-1">Flat price · Rush +$75</p>
                     </div>
                     <ul className="space-y-2 text-sm">
@@ -572,7 +513,7 @@ const Index = () => {
                         </li>
                       ))}
                     </ul>
-                    <Button className="w-full" onClick={() => { trackEvent("cta_clicked", { cta: "pricing_onetime" }); navigate("/order"); }}>Order a Report</Button>
+                    <Button className="w-full" onClick={() => { trackEvent("cta_clicked", { cta: "pricing_onetime" }); navigate("/order"); }}>Order a Report — $199</Button>
                   </div>
 
                   {/* Professional */}
@@ -595,30 +536,14 @@ const Index = () => {
                     </ul>
                     <Button className="w-full" onClick={() => { trackEvent("cta_clicked", { cta: "pricing_pro" }); navigate("/order?plan=professional"); }}>Get Started</Button>
                   </div>
-
-                  {/* Enterprise */}
-                  <div className="p-6 rounded-lg border border-border bg-card space-y-5">
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">Enterprise</p>
-                      <p className="font-display text-4xl font-extrabold mt-1">Custom</p>
-                      <p className="text-xs text-muted-foreground mt-1">For firms running 10+ reports a month</p>
-                    </div>
-                    <ul className="space-y-2 text-sm">
-                      {["Unlimited reports", "Dedicated account manager", "Custom invoice & billing", "API access (coming soon)", "SLA guarantees"].map(f => (
-                        <li key={f} className="flex items-center gap-2">
-                          <CheckCircle className="h-3.5 w-3.5 text-primary shrink-0" />
-                          <span className="text-muted-foreground">{f}</span>
-                        </li>
-                      ))}
-                    </ul>
-                    <LeadCaptureDialog intent="enterprise">
-                      <Button variant="outline" className="w-full">Contact Us</Button>
-                    </LeadCaptureDialog>
-                  </div>
                 </div>
 
-                <p className="text-center text-xs text-muted-foreground mt-8">
-                  Volume discounts for firms · Custom invoicing on Professional+ · Full refund if we can't complete your report
+                <p className="text-center text-sm text-muted-foreground mt-8">
+                  Running more than 5 reports a month?{" "}
+                  <a href="mailto:hello@binchecknyc.com" className="text-primary font-medium hover:underline">Contact us →</a>
+                </p>
+                <p className="text-center text-xs text-muted-foreground mt-3">
+                  Full refund if we can't complete your report.
                 </p>
               </div>
             </section>
@@ -630,7 +555,7 @@ const Index = () => {
       <footer className="border-t border-border/40 py-8">
         <div className="container max-w-4xl text-center text-xs text-muted-foreground space-y-3">
           <p className="leading-relaxed max-w-3xl mx-auto">
-            Reports are compiled from public NYC agency records. Verify findings with the relevant city agencies before reliance in any transaction.
+            Compiled from public NYC, state, and federal records. Provided "as is" — not a title search, insured service, or legal advice. Subject to continuation prior to closing.
           </p>
           <div className="border-t border-border/30 pt-3 flex items-center justify-center gap-4 flex-wrap">
             <p>© {new Date().getFullYear()} BinCheckNYC. All rights reserved.</p>
