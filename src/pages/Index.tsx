@@ -434,7 +434,7 @@ const Index = () => {
 
                 <div className="flex flex-wrap items-center justify-center gap-3 mt-10">
                   <Button size="lg" onClick={() => { trackEvent("cta_clicked", { cta: "sample_section" }); navigate("/order"); }} className="font-semibold">
-                    Order a Report — $499 <ArrowRight className="h-4 w-4 ml-1" />
+                    Order a Report — $199 <ArrowRight className="h-4 w-4 ml-1" />
                   </Button>
                   <LeadCaptureDialog intent="sample">
                     <Button size="lg" variant="outline" onClick={() => trackEvent("cta_clicked", { cta: "sample" })}>
