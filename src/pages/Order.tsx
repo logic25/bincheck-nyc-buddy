@@ -640,11 +640,10 @@ const Order = () => {
         )}
       </main>
 
-      {/* Footer disclaimer */}
+      {/* Footer — short reminder; full disclaimer lives above the pay button */}
       <footer className="border-t border-border/40 py-6 mt-8">
-        <div className="container max-w-2xl text-center text-xs text-muted-foreground space-y-1">
+        <div className="container max-w-2xl text-center text-xs text-muted-foreground">
           <p>Reports draw from NYC DOB, ECB, HPD, FDNY, DSNY, DOT, LPC, DOF, and DEP public records.</p>
-          <p>Results depend on the completeness of public agency records at time of search. Verify all findings with the relevant city agencies.</p>
         </div>
       </footer>
     </div>
