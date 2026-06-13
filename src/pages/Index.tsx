@@ -508,7 +508,7 @@ const Index = () => {
                     },
                     {
                       q: "How is this different from running my own ACRIS / BIS / ECB searches?",
-                      a: "Manually pulling 8 agency portals on a single property takes a paralegal 3–6 hours. Then someone still has to read the results, flag which items are actionable, and assemble a clean closing-file PDF. BinCheckNYC delivers that final product in 24–48 hours for less than the cost of the paralegal time — with AI line-item analysis and human QA on top.",
+                      a: "Manually pulling 8 agency portals on a single property takes a paralegal 3–6 hours. Then someone still has to read the results, flag which items are actionable, and assemble a clean closing-file PDF. BinCheckNYC delivers that final product in 24–48 hours for less than the cost of the paralegal time — with analyst-reviewed line-item notes on top.",
                     },
                     {
                       q: "What's actually included in the 8-agency search?",
