@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
@@ -22,20 +22,29 @@ const Auth = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [checkingSession, setCheckingSession] = useState(true);
   const navigate = useNavigate();
+  const hasNavigatedRef = useRef(false);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const goToDashboard = () => {
+      if (hasNavigatedRef.current) return;
+      hasNavigatedRef.current = true;
+      navigate("/dashboard", { replace: true });
+    };
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session) {
-        navigate("/dashboard", { replace: true });
+        goToDashboard();
+      } else {
+        setCheckingSession(false);
       }
-      setCheckingSession(false);
     });
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
-        navigate("/dashboard", { replace: true });
+        goToDashboard();
+      } else {
+        setCheckingSession(false);
       }
-      setCheckingSession(false);
     });
 
     return () => subscription.unsubscribe();
@@ -73,7 +82,16 @@ const Auth = () => {
     try {
       if (isLogin) {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
+        if (error) {
+          if (error.message?.toLowerCase().includes("invalid")) {
+            toast.error(
+              "Incorrect email or password. If you originally signed up with Google, use the Google button above — or click Forgot password to set a password for this email.",
+              { duration: 8000 }
+            );
+            return;
+          }
+          throw error;
+        }
         toast.success("Welcome back!");
         navigate("/dashboard");
       } else {
