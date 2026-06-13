@@ -198,11 +198,13 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         few_shot_examples: fewShotExamples,
+        relevance_examples: relevanceExamples,
         knowledge_context: knowledgeContext,
         confidence_flags: confidenceFlags,
         meta: {
           total_approved_edits: edits.length,
           categories_with_examples: fewShotExamples.length,
+          relevance_examples_count: relevanceExamples.length,
           knowledge_entries_used: knowledgeEntries.length,
           flags_count: confidenceFlags.length,
         },
