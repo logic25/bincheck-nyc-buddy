@@ -565,7 +565,7 @@ const Index = () => {
                       <p className="text-xs text-muted-foreground mt-1">Flat price · no rush fee</p>
                     </div>
                     <ul className="space-y-2 text-sm">
-                      {["8-agency violation search", "AI line-item notes", "Attorney-ready PDF", "24–48 hr delivery", "One-time purchase, no subscription"].map(f => (
+                      {["8-agency violation search", "Analyst-reviewed line-item notes", "Attorney-ready PDF", "24–48 hr delivery", "One-time purchase, no subscription"].map(f => (
                         <li key={f} className="flex items-center gap-2">
                           <CheckCircle className="h-3.5 w-3.5 text-primary shrink-0" />
                           <span className="text-muted-foreground">{f}</span>
