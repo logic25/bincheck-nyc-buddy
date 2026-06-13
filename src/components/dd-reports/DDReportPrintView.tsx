@@ -568,7 +568,7 @@ const GLEConclusion = ({
     if (hasVacate) parts.push('an active Vacate Order');
     if (dobViolationCount > 0) parts.push(`${dobViolationCount} DOB violation${dobViolationCount !== 1 ? 's' : ''}`);
     if (ecbViolationCount > 0) parts.push(`${ecbViolationCount} ECB violation${ecbViolationCount !== 1 ? 's' : ''}`);
-    defaultConclusion = `${subject} has ${parts.join(', ')} on record. Please review the above items and recommended actions carefully before proceeding.`;
+    defaultConclusion = `${subject} has ${parts.join(', ')} on record. Per-item notes above identify which items affect the subject and which do not.`;
   }
 
   // Prefer property_status_summary; fall back to a relevant paragraph from aiAnalysis; fall back to default
