@@ -170,12 +170,13 @@ const Index = () => {
                 </>
               ) : (
                 <>
-                  <a href="#coverage" className="hidden sm:inline-block px-3 py-2 text-sm text-white/70 hover:text-white">Coverage</a>
+                  <a href="#coverage" className="hidden sm:inline-block px-3 py-2 text-sm text-white/70 hover:text-white">What's included</a>
                   <a href="#sample" className="hidden sm:inline-block px-3 py-2 text-sm text-white/70 hover:text-white">Sample</a>
+                  <a href="#how-it-works" className="hidden sm:inline-block px-3 py-2 text-sm text-white/70 hover:text-white">How it works</a>
                   <a href="#pricing" className="hidden sm:inline-block px-3 py-2 text-sm text-white/70 hover:text-white">Pricing</a>
-                  <Button variant="ghost" size="sm" onClick={() => navigate("/auth")} className="text-white/70 hover:text-white hover:bg-white/10">Log in</Button>
+                  <Button variant="ghost" size="sm" onClick={() => navigate("/auth")} className="text-white/70 hover:text-white hover:bg-white/10">Sign in</Button>
                   <Button size="sm" onClick={() => navigate("/order")} className="bg-[#e63946] hover:bg-[#d62b39] text-white font-semibold">
-                    Order a report
+                    Order
                   </Button>
                 </>
               )}
@@ -385,7 +386,7 @@ const Index = () => {
             </section>
 
             {/* How It Works */}
-            <section className="border-t border-border/40 py-16 px-4 bg-card/20">
+            <section id="how-it-works" className="border-t border-border/40 py-16 px-4 bg-card/20">
               <div className="container max-w-4xl">
                 <h2 className="font-display text-2xl font-bold text-center mb-10">How it works</h2>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
