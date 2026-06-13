@@ -146,14 +146,22 @@ export function BugReports() {
       return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
     });
 
-  const uploadFiles = async (bugId: string, files: File[]): Promise<Array<{ url: string; name: string; type: string }>> => {
-    const results: Array<{ url: string; name: string; type: string }> = [];
+  // Bug attachments live in a private bucket. We store the storage `path` in
+  // the attachments JSON (signed URLs expire), and mint a 7-day signed URL at
+  // upload time for immediate rendering. Paths are scoped to the uploader's
+  // user id so RLS policies can authorize access.
+  const uploadFiles = async (bugId: string, files: File[]): Promise<Array<{ url: string; path: string; name: string; type: string }>> => {
+    const results: Array<{ url: string; path: string; name: string; type: string }> = [];
+    const uid = currentUser?.id;
+    if (!uid) return results;
     for (const file of files) {
-      const path = `${bugId}/${Date.now()}-${file.name}`;
+      const path = `${uid}/${bugId}/${Date.now()}-${file.name}`;
       const { error } = await supabase.storage.from("bug-attachments").upload(path, file);
       if (!error) {
-        const { data: urlData } = supabase.storage.from("bug-attachments").getPublicUrl(path);
-        results.push({ url: urlData.publicUrl, name: file.name, type: file.type });
+        const { data: signed } = await supabase.storage.from("bug-attachments").createSignedUrl(path, 60 * 60 * 24 * 7);
+        if (signed?.signedUrl) {
+          results.push({ url: signed.signedUrl, path, name: file.name, type: file.type });
+        }
       }
     }
     return results;
@@ -226,11 +234,13 @@ export function BugReports() {
       if (files.length > 0) {
         attachmentData = [];
         for (const file of files) {
-          const path = `${selectedBug.id}/comments/${Date.now()}-${file.name}`;
+          const path = `${currentUser.id}/${selectedBug.id}/comments/${Date.now()}-${file.name}`;
           const { error: uploadErr } = await supabase.storage.from("bug-attachments").upload(path, file);
           if (!uploadErr) {
-            const { data: urlData } = supabase.storage.from("bug-attachments").getPublicUrl(path);
-            attachmentData.push({ url: urlData.publicUrl, name: file.name, type: file.type });
+            const { data: signed } = await supabase.storage.from("bug-attachments").createSignedUrl(path, 60 * 60 * 24 * 7);
+            if (signed?.signedUrl) {
+              attachmentData.push({ url: signed.signedUrl, path, name: file.name, type: file.type } as any);
+            }
           }
         }
       }
@@ -284,11 +294,13 @@ export function BugReports() {
       if (statusCommentFiles.length > 0) {
         attachmentData = [];
         for (const file of statusCommentFiles) {
-          const path = `${selectedBug.id}/comments/${Date.now()}-${file.name}`;
+          const path = `${currentUser!.id}/${selectedBug.id}/comments/${Date.now()}-${file.name}`;
           const { error: uploadErr } = await supabase.storage.from("bug-attachments").upload(path, file);
           if (!uploadErr) {
-            const { data: urlData } = supabase.storage.from("bug-attachments").getPublicUrl(path);
-            attachmentData.push({ url: urlData.publicUrl, name: file.name, type: file.type });
+            const { data: signed } = await supabase.storage.from("bug-attachments").createSignedUrl(path, 60 * 60 * 24 * 7);
+            if (signed?.signedUrl) {
+              attachmentData.push({ url: signed.signedUrl, path, name: file.name, type: file.type } as any);
+            }
           }
         }
       }
