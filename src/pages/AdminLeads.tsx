@@ -178,7 +178,7 @@ const AdminLeads = () => {
         .select('*')
         .order('created_at', { ascending: false })
         .limit(500);
-      if (intakeStatus !== 'all') q = q.eq('status', intakeStatus);
+      if (intakeStatus !== 'all') q = (q as any).eq('status', intakeStatus);
       const { data, error } = await q;
       if (error) throw error;
       return (data ?? []) as OrderLead[];
