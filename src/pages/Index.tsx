@@ -450,10 +450,10 @@ const Index = () => {
             <section className="border-t border-border/40 py-16 px-4 bg-card/20">
               <div className="container max-w-5xl">
                 <div className="text-center mb-10">
-                  <Badge variant="outline" className="mb-3">Why BinCheckNYC</Badge>
-                  <h2 className="font-display text-2xl md:text-3xl font-bold">Built for the buy side</h2>
+                  <Badge variant="outline" className="mb-3">How we compare</Badge>
+                  <h2 className="font-display text-2xl md:text-3xl font-bold">Eight agencies. One PDF. 24–48 hours.</h2>
                   <p className="text-muted-foreground text-sm mt-2 max-w-2xl mx-auto">
-                    Most NYC compliance reports are built for owners managing buildings they already own. BinCheckNYC is built for the deal team asking <span className="italic">"what am I actually buying?"</span>
+                    Most NYC compliance vendors sell portfolio monitoring to building owners. BinCheckNYC is built for the team running diligence on a property they don't own yet — and needs answers before a closing date.
                   </p>
                 </div>
 
