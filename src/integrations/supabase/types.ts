@@ -154,6 +154,45 @@ export type Database = {
           },
         ]
       }
+      audit_log: {
+        Row: {
+          action: string
+          actor_email: string | null
+          actor_id: string | null
+          id: number
+          ip_address: string | null
+          metadata: Json | null
+          occurred_at: string
+          target_id: string | null
+          target_type: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          action: string
+          actor_email?: string | null
+          actor_id?: string | null
+          id?: number
+          ip_address?: string | null
+          metadata?: Json | null
+          occurred_at?: string
+          target_id?: string | null
+          target_type?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          action?: string
+          actor_email?: string | null
+          actor_id?: string | null
+          id?: number
+          ip_address?: string | null
+          metadata?: Json | null
+          occurred_at?: string
+          target_id?: string | null
+          target_type?: string | null
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       bug_comments: {
         Row: {
           attachments: Json | null
@@ -661,6 +700,83 @@ export type Database = {
           },
         ]
       }
+      marketing_leads: {
+        Row: {
+          company: string | null
+          contacted_at: string | null
+          converted_at: string | null
+          converted_to_report_id: string | null
+          created_at: string
+          email: string
+          id: string
+          intent: string | null
+          message: string | null
+          name: string | null
+          notes: string | null
+          property_address: string | null
+          referrer: string | null
+          role: string | null
+          status: string
+          updated_at: string
+          user_agent: string | null
+          utm_campaign: string | null
+          utm_medium: string | null
+          utm_source: string | null
+        }
+        Insert: {
+          company?: string | null
+          contacted_at?: string | null
+          converted_at?: string | null
+          converted_to_report_id?: string | null
+          created_at?: string
+          email: string
+          id?: string
+          intent?: string | null
+          message?: string | null
+          name?: string | null
+          notes?: string | null
+          property_address?: string | null
+          referrer?: string | null
+          role?: string | null
+          status?: string
+          updated_at?: string
+          user_agent?: string | null
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+        }
+        Update: {
+          company?: string | null
+          contacted_at?: string | null
+          converted_at?: string | null
+          converted_to_report_id?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          intent?: string | null
+          message?: string | null
+          name?: string | null
+          notes?: string | null
+          property_address?: string | null
+          referrer?: string | null
+          role?: string | null
+          status?: string
+          updated_at?: string
+          user_agent?: string | null
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_leads_converted_to_report_id_fkey"
+            columns: ["converted_to_report_id"]
+            isOneToOne: false
+            referencedRelation: "dd_reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_leads: {
         Row: {
           address: string | null
@@ -742,6 +858,27 @@ export type Database = {
           phone?: string | null
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      rate_limit_buckets: {
+        Row: {
+          count: number
+          created_at: string
+          key: string
+          window_start_minute: string
+        }
+        Insert: {
+          count?: number
+          created_at?: string
+          key: string
+          window_start_minute: string
+        }
+        Update: {
+          count?: number
+          created_at?: string
+          key?: string
+          window_start_minute?: string
         }
         Relationships: []
       }
@@ -929,6 +1066,11 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_rate_limit: {
+        Args: { _key: string; _max_in_window: number; _window_minutes?: number }
+        Returns: Json
+      }
+      cleanup_rate_limit_buckets: { Args: never; Returns: number }
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
@@ -952,6 +1094,15 @@ export type Database = {
         }
         Returns: boolean
       }
+      log_audit: {
+        Args: {
+          _action: string
+          _metadata?: Json
+          _target_id?: string
+          _target_type?: string
+        }
+        Returns: number
+      }
       move_to_dlq: {
         Args: {
           dlq_name: string
@@ -968,6 +1119,23 @@ export type Database = {
           msg_id: number
           read_ct: number
         }[]
+      }
+      submit_lead: {
+        Args: {
+          _company?: string
+          _email: string
+          _intent?: string
+          _message?: string
+          _name?: string
+          _property_address?: string
+          _referrer?: string
+          _role?: string
+          _user_agent?: string
+          _utm_campaign?: string
+          _utm_medium?: string
+          _utm_source?: string
+        }
+        Returns: Json
       }
     }
     Enums: {
