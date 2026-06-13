@@ -352,7 +352,7 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
       <div className="mb-6" style={{ pageBreakInside: 'avoid' }}>
         <div className="flex items-center justify-between mb-2">
           <h4 style={{ fontSize: '12px', fontWeight: 700, color: NAVY }}>{agencyName} Violations</h4>
-          <span style={{ fontSize: '10px', fontWeight: 500, color: '#6b7280', backgroundColor: CARD_BG, padding: '2px 8px', borderRadius: '6px' }}>{agencyViolations.length} items</span>
+          <span style={{ fontSize: '10px', fontWeight: 500, color: '#6b7280', backgroundColor: CARD_BG, padding: '2px 8px', borderRadius: '3px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{agencyViolations.length} items</span>
         </div>
         <table className="w-full border-collapse">
           <thead>
@@ -405,7 +405,7 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
       <div className="mb-6" style={{ pageBreakInside: 'avoid' }}>
         <div className="flex items-center justify-between mb-2">
           <h4 style={{ fontSize: '12px', fontWeight: 700, color: NAVY }}>{title}</h4>
-          <span style={{ fontSize: '10px', fontWeight: 500, color: '#6b7280', backgroundColor: CARD_BG, padding: '2px 8px', borderRadius: '6px' }}>{apps.length} items</span>
+          <span style={{ fontSize: '10px', fontWeight: 500, color: '#6b7280', backgroundColor: CARD_BG, padding: '2px 8px', borderRadius: '3px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{apps.length} items</span>
         </div>
         <table className="w-full border-collapse">
           <thead>
