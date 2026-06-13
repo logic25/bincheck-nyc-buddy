@@ -149,9 +149,9 @@ const Order = () => {
   const step1Valid = address.trim().length > 5 && isSubjectBlockValid(subject);
   const step2Valid = firstName.trim() && lastName.trim() && email.trim().includes("@") && company.trim();
 
-  // Pricing: One-Time = $499 flat (no rush fee). Pro = $2,499/mo (10 reports).
-  const totalPrice = plan === "professional" ? 2499 : 499;
-  const priceLabel = plan === "professional" ? "$2,499/mo" : "$499";
+  // Pricing: One-Time = $199 flat + $75 rush add-on. Pro = $599/mo (5 reports).
+  const totalPrice = plan === "professional" ? 599 : 199 + (rush ? 75 : 0);
+  const priceLabel = plan === "professional" ? "$599/mo" : `$${totalPrice}`;
 
   const handleContinueToPayment = () => {
     saveLead(3);
@@ -283,7 +283,7 @@ const Order = () => {
                 The completed report and your invoice will go to <span className="font-semibold text-foreground">{email}</span>.
               </p>
               <p className="text-xs text-muted-foreground pt-1">
-                You’ll receive a Stripe invoice for <span className="font-medium text-foreground">{priceLabel}</span> on delivery (Net 7). If we can't deliver a complete report, you don't pay.
+                You'll receive a Stripe invoice for <span className="font-medium text-foreground">{priceLabel}</span> on delivery (Net 7). Full refund if we can't complete your report.
               </p>
             </div>
             {(deliveryDate || rush) && (
@@ -493,8 +493,8 @@ const Order = () => {
                   <div className="flex items-start justify-between">
                     <div>
                       <p className="font-semibold">One-Time Report</p>
-                      <p className="font-serif text-3xl font-bold mt-1">$499</p>
-                      <p className="text-xs text-muted-foreground">Flat price — no rush fee</p>
+                      <p className="font-serif text-3xl font-bold mt-1">$199</p>
+                      <p className="text-xs text-muted-foreground">Flat price · Rush +$75</p>
                     </div>
                     <div className={cn("w-5 h-5 rounded-full border-2 mt-1 flex items-center justify-center transition-colors",
                       plan === "one-time" ? "border-[#0c1730] bg-[#0c1730]" : "border-muted-foreground")}>
@@ -505,7 +505,7 @@ const Order = () => {
                     {[
                       "8-agency violation search (DOB, ECB, HPD, FDNY, DSNY, DOT, LPC, DOF)",
                       "Analyst-reviewed notes on every line item",
-                      "Transaction-ready PDF for attorneys, title cos, brokers, and investors",
+                      "Closing-file PDF for attorneys, title cos, brokers, and investors",
                       "24–48 business-hour delivery",
                       "One-time purchase, no subscription"
                     ].map(f => (
@@ -531,8 +531,8 @@ const Order = () => {
                   <div className="flex items-start justify-between">
                     <div>
                       <p className="font-semibold">Professional</p>
-                      <p className="font-serif text-3xl font-bold mt-1">$2,499<span className="text-base font-normal text-muted-foreground">/mo</span></p>
-                      <p className="text-xs text-muted-foreground">10 reports · $249/report effective</p>
+                      <p className="font-serif text-3xl font-bold mt-1">$599<span className="text-base font-normal text-muted-foreground">/mo</span></p>
+                      <p className="text-xs text-muted-foreground">5 reports · $120/report effective</p>
                     </div>
                     <div className={cn("w-5 h-5 rounded-full border-2 mt-1 flex items-center justify-center transition-colors",
                       plan === "professional" ? "border-[#0c1730] bg-[#0c1730]" : "border-muted-foreground")}>
@@ -588,7 +588,7 @@ const Order = () => {
                     Stripe invoice to <span className="font-medium text-foreground">{email || "your email"}</span>{company ? <> for <span className="font-medium text-foreground">{company}</span></> : null}.
                   </p>
                   <p className="text-muted-foreground">
-                    Pay by card, ACH, or wire — Net 7. If we can't deliver a complete report, you don't pay.
+                    Pay by card, ACH, or wire — Net 7. Full refund if we can't complete your report.
                   </p>
                 </div>
 
@@ -611,6 +611,16 @@ const Order = () => {
               </CardContent>
             </Card>
 
+            {/* Full disclaimer + SSL chip — appears right above the pay button */}
+            <div className="rounded-md border border-border bg-muted/30 px-4 py-3 text-xs text-muted-foreground space-y-2">
+              <p className="leading-relaxed">
+                <span className="font-semibold text-foreground/80">Disclaimer:</span> BinCheckNYC reports are compiled from publicly available government records. Public records may be delayed, incomplete, or not yet reflected in agency databases at the time of search. All findings should be independently verified with the relevant city agencies prior to reliance in any transaction. BinCheckNYC, its officers, employees, and affiliates assume no liability for errors or omissions in underlying government data.
+              </p>
+              <div className="flex items-center gap-1.5 text-[11px]">
+                <Shield className="h-3 w-3" /> SSL encrypted · Data transmitted over TLS 1.2+
+              </div>
+            </div>
+
             <div className="space-y-3">
               <Button className="w-full" size="lg" onClick={handleSubmitOrder} disabled={isProcessing || !orderReady}>
                 {isProcessing ? (
@@ -630,11 +640,10 @@ const Order = () => {
         )}
       </main>
 
-      {/* Footer disclaimer */}
+      {/* Footer — short reminder; full disclaimer lives above the pay button */}
       <footer className="border-t border-border/40 py-6 mt-8">
-        <div className="container max-w-2xl text-center text-xs text-muted-foreground space-y-1">
+        <div className="container max-w-2xl text-center text-xs text-muted-foreground">
           <p>Reports draw from NYC DOB, ECB, HPD, FDNY, DSNY, DOT, LPC, DOF, and DEP public records.</p>
-          <p>Results depend on the completeness of public agency records at time of search. Verify all findings with the relevant city agencies.</p>
         </div>
       </footer>
     </div>

@@ -143,7 +143,7 @@ const Index = () => {
     <div className="min-h-screen flex flex-col bg-background">
       <SEO
         title="BinCheckNYC — NYC property due diligence for closing teams"
-        description="Transaction-ready NYC property compliance reports. 8-agency violation search (DOB, ECB, HPD, FDNY, DSNY, DOT, LPC, DOF) with analyst-reviewed line-item notes. 24–48 hour delivery. $499 flat."
+        description="Transaction-ready NYC property compliance reports. 8-agency violation search (DOB, ECB, HPD, FDNY, DSNY, DOT, LPC, DOF) with analyst-reviewed line-item notes. 24–48 hour delivery. $199 flat."
         path="/"
       />
 
@@ -348,7 +348,7 @@ const Index = () => {
                 Eight city data sources · One PDF · Analyst-reviewed
               </p>
               <span className="inline-flex items-center px-4 py-2 rounded-full border border-[#e63946]/60 bg-[#e63946]/10 text-[#ff7480] text-xs font-bold uppercase tracking-[0.14em]">
-                Flat $499 per property
+                Flat $199 per property
               </span>
             </div>
           </div>
@@ -422,7 +422,7 @@ const Index = () => {
                     { icon: Building2, title: "8 city agencies", desc: "DOB, ECB, HPD, FDNY, DSNY, DOT, LPC, DOF — every record we can legally pull" },
                     { icon: ClipboardCheck, title: "Analyst-reviewed notes", desc: "Per-item factual notes tagged [ACTION REQUIRED], [MONITOR], or [RESOLVED]" },
                     { icon: Eye, title: "Human QA before delivery", desc: "Every report reviewed by an analyst before delivery — not auto-shipped" },
-                    { icon: Download, title: "Attorney-ready PDF", desc: "Formatted and citation-ready for closing files and lender packets" },
+                    { icon: Download, title: "Closing-file PDF", desc: "Formatted and citation-ready for closing files, lender packets, and IC memos" },
                   ].map((f) => (
                     <div key={f.title} className="p-5 rounded-lg bg-card/50 border border-border/40 space-y-2">
                       <f.icon className="h-4 w-4 text-primary" />
@@ -434,7 +434,7 @@ const Index = () => {
 
                 <div className="flex flex-wrap items-center justify-center gap-3 mt-10">
                   <Button size="lg" onClick={() => { trackEvent("cta_clicked", { cta: "sample_section" }); navigate("/order"); }} className="font-semibold">
-                    Order a Report — $499 <ArrowRight className="h-4 w-4 ml-1" />
+                    Order a Report — $199 <ArrowRight className="h-4 w-4 ml-1" />
                   </Button>
                   <LeadCaptureDialog intent="sample">
                     <Button size="lg" variant="outline" onClick={() => trackEvent("cta_clicked", { cta: "sample" })}>
@@ -450,10 +450,10 @@ const Index = () => {
             <section className="border-t border-border/40 py-16 px-4 bg-card/20">
               <div className="container max-w-5xl">
                 <div className="text-center mb-10">
-                  <Badge variant="outline" className="mb-3">Why BinCheckNYC</Badge>
-                  <h2 className="font-display text-2xl md:text-3xl font-bold">Built for the buy side</h2>
+                  <Badge variant="outline" className="mb-3">How we compare</Badge>
+                  <h2 className="font-display text-2xl md:text-3xl font-bold">Eight agencies. One PDF. 24–48 hours.</h2>
                   <p className="text-muted-foreground text-sm mt-2 max-w-2xl mx-auto">
-                    Most NYC compliance reports are built for owners managing buildings they already own. BinCheckNYC is built for the deal team asking <span className="italic">"what am I actually buying?"</span>
+                    Most NYC compliance vendors sell portfolio monitoring to building owners. BinCheckNYC is built for the team running diligence on a property they don't own yet — and needs answers before a closing date.
                   </p>
                 </div>
 
@@ -473,11 +473,11 @@ const Index = () => {
                     {[
                       { row: "Primary use case", us: "Closing-day decisions", them: "Owner portfolio reporting" },
                       { row: "Turnaround", us: "24–48 hours", them: "3–10 business days" },
-                      { row: "Per-report price", us: "$499 flat", them: "$800–$1,500+" },
+                      { row: "Per-report price", us: "$199 flat", them: "$800–$1,500+" },
                       { row: "Analyst-reviewed notes per item", us: true, them: false },
                       { row: "Human QA before delivery", us: true, them: "Sometimes" },
                       { row: "Action-priority flags", us: "[ACTION REQUIRED] / [MONITOR] / [RESOLVED]", them: "Raw record dump" },
-                      { row: "Attorney-ready PDF format", us: true, them: "CSV / portal export" },
+                      { row: "Closing-file PDF format", us: true, them: "CSV / portal export" },
                       { row: "Subscription required", us: false, them: "Often" },
                     ].map((r, i, arr) => (
                       <CompareRow key={r.row} row={r.row} us={r.us} them={r.them} last={i === arr.length - 1} />
@@ -487,14 +487,14 @@ const Index = () => {
 
                 <div className="text-center mt-8">
                   <Button size="lg" onClick={() => { trackEvent("cta_clicked", { cta: "compare" }); navigate("/order"); }} className="font-semibold">
-                    Order a Report — $499 <ArrowRight className="h-4 w-4 ml-1" />
+                    Order a Report — $199 <ArrowRight className="h-4 w-4 ml-1" />
                   </Button>
                 </div>
               </div>
             </section>
 
             {/* FAQ */}
-            <section className="border-t border-border/40 py-16 px-4">
+            <section className="border-t border-border/40 py-16 px-4 bg-card/20">
               <div className="container max-w-3xl">
                 <div className="text-center mb-10">
                   <Badge variant="outline" className="mb-3">FAQ</Badge>
@@ -504,11 +504,11 @@ const Index = () => {
                   {[
                     {
                       q: "Who is this for?",
-                      a: "Real estate attorneys closing NYC transactions, buy-side investors and family offices conducting pre-acquisition diligence, commercial brokers preparing offer packages, and title companies confirming agency exposure. If you're asking 'what am I buying?', this report is for you.",
+                      a: "Real estate professionals running pre-acquisition or pre-closing diligence on NYC property — attorneys, investors, family offices, brokers, title companies, and developers. If you're asking 'what am I buying?', this report is for you.",
                     },
                     {
                       q: "How is this different from running my own ACRIS / BIS / ECB searches?",
-                      a: "Manually pulling 8 agency portals on a single property takes a paralegal 3–6 hours. Then someone still has to read the results, flag which items are actionable, and assemble a clean closing-file PDF. BinCheckNYC delivers that final product in 24–48 hours for less than the cost of the paralegal time — with analyst-reviewed line-item notes on top.",
+                      a: "Eight agency portals, one PDF, in 24–48 hours, with analyst-reviewed notes on every line item. We do the pulling, cross-referencing, and formatting so your team can read findings instead of assembling them.",
                     },
                     {
                       q: "What's actually included in the 8-agency search?",
@@ -516,7 +516,7 @@ const Index = () => {
                     },
                     {
                       q: "How accurate is the data?",
-                      a: "We pull from publicly available NYC government sources. Public records can be delayed or incomplete at the agency level — we cite our sources on every line item so your attorney can verify directly. Every report is reviewed by a human analyst before delivery, and we flag known data-freshness issues explicitly.",
+                      a: "We pull from publicly available NYC government sources and cite the source on every line item so your team can verify directly. Every report is reviewed by a human analyst before delivery. Public records can be delayed or incomplete at the agency level; we flag known data-freshness issues explicitly.",
                     },
                     {
                       q: "What if the report finds something that kills the deal?",
@@ -524,20 +524,20 @@ const Index = () => {
                     },
                     {
                       q: "How do payments work?",
-                      a: "During our launch period, every order is invoiced after the report is QA'd and delivered — Net 7, payable by ACH, wire, or card. If we can't deliver a complete report, you don't pay. Card-on-file checkout is coming soon.",
+                      a: "Checkout takes a card upfront via Stripe. If we can't complete your report for any reason, we refund in full. Invoicing (Net 7, ACH or wire) is available on Professional and Enterprise plans.",
                     },
                     {
                       q: "Can you do rush turnarounds?",
-                      a: "Standard turnaround is 24–48 hours. Professional plan ($2,499/mo) gets priority queue placement — most reports same-day. For enterprise SLAs, contact us directly at hello@binchecknyc.com.",
+                      a: "Standard turnaround is 24–48 hours. A rush add-on (+$75) moves your report to the front of the queue — most rush orders deliver same-day. Professional plan ($599/mo) gets priority placement on every report. For enterprise SLAs, contact us at hello@binchecknyc.com.",
                     },
                     {
-                      q: "Do you white-label for law firms?",
+                      q: "Do you white-label for firms?",
                       a: "Yes — included on the Professional plan. Your firm's logo and footer; our data and analyst signoff. Enterprise plans support fully custom report templates.",
                     },
                   ].map((item, i) => (
-                    <AccordionItem key={i} value={`faq-${i}`}>
-                      <AccordionTrigger className="text-left text-sm font-semibold hover:no-underline">{item.q}</AccordionTrigger>
-                      <AccordionContent className="text-sm text-muted-foreground leading-relaxed">{item.a}</AccordionContent>
+                    <AccordionItem key={i} value={`faq-${i}`} className="border-b border-border last:border-b-0">
+                      <AccordionTrigger className="text-left text-base font-display font-semibold text-foreground hover:no-underline py-5">{item.q}</AccordionTrigger>
+                      <AccordionContent className="text-sm text-muted-foreground leading-relaxed pb-5 max-w-prose">{item.a}</AccordionContent>
                     </AccordionItem>
                   ))}
                 </Accordion>
@@ -552,20 +552,20 @@ const Index = () => {
             </section>
 
             {/* Pricing */}
-            <section className="border-t border-border/40 py-16 px-4">
+            <section id="pricing" className="border-t border-border/40 py-16 px-4">
               <div className="container max-w-4xl">
                 <h2 className="font-display text-2xl font-bold text-center mb-3">Simple, transparent pricing</h2>
-                <p className="text-muted-foreground text-center mb-10 text-sm">Cheaper than 30 minutes of paralegal time. Faster than any manual search.</p>
+                <p className="text-muted-foreground text-center mb-10 text-sm">One price. No subscription required. Volume plans for firms running 5+ reports a month.</p>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   {/* One-Time */}
                   <div className="p-6 rounded-lg border border-border bg-card space-y-5">
                     <div>
                       <p className="text-sm font-medium text-muted-foreground">One-Time Report</p>
-                      <p className="font-display text-4xl font-extrabold mt-1">$499</p>
-                      <p className="text-xs text-muted-foreground mt-1">Flat price · no rush fee</p>
+                      <p className="font-display text-4xl font-extrabold mt-1">$199</p>
+                      <p className="text-xs text-muted-foreground mt-1">Flat price · Rush +$75</p>
                     </div>
                     <ul className="space-y-2 text-sm">
-                      {["8-agency violation search", "Analyst-reviewed line-item notes", "Attorney-ready PDF", "24–48 hr delivery", "One-time purchase, no subscription"].map(f => (
+                      {["8-agency violation search", "Analyst-reviewed line-item notes", "Closing-file PDF", "24–48 hr delivery", "One-time purchase, no subscription"].map(f => (
                         <li key={f} className="flex items-center gap-2">
                           <CheckCircle className="h-3.5 w-3.5 text-primary shrink-0" />
                           <span className="text-muted-foreground">{f}</span>
@@ -582,11 +582,11 @@ const Index = () => {
                     </div>
                     <div>
                       <p className="text-sm font-medium text-muted-foreground">Professional</p>
-                      <p className="font-display text-4xl font-extrabold mt-1">$2,499<span className="text-lg font-normal text-muted-foreground">/mo</span></p>
-                      <p className="text-xs text-muted-foreground mt-1">10 reports · $249/report effective</p>
+                      <p className="font-display text-4xl font-extrabold mt-1">$599<span className="text-lg font-normal text-muted-foreground">/mo</span></p>
+                      <p className="text-xs text-muted-foreground mt-1">5 reports · $120/report effective</p>
                     </div>
                     <ul className="space-y-2 text-sm">
-                      {["8-agency violation search", "Analyst-reviewed line-item notes", "Attorney-ready PDF", "Priority processing queue", "Same-day delivery on most reports", "White-label PDF option", "Rollover unused reports", "Dedicated support"].map(f => (
+                      {["8-agency violation search", "Analyst-reviewed line-item notes", "Closing-file PDF", "Priority processing queue", "Same-day delivery on most reports", "White-label PDF option", "Rollover unused reports", "Dedicated support"].map(f => (
                         <li key={f} className="flex items-center gap-2">
                           <CheckCircle className="h-3.5 w-3.5 text-primary shrink-0" />
                           <span className="text-muted-foreground">{f}</span>
@@ -601,7 +601,7 @@ const Index = () => {
                     <div>
                       <p className="text-sm font-medium text-muted-foreground">Enterprise</p>
                       <p className="font-display text-4xl font-extrabold mt-1">Custom</p>
-                      <p className="text-xs text-muted-foreground mt-1">For attorneys, title, brokers, and investors</p>
+                      <p className="text-xs text-muted-foreground mt-1">For firms running 10+ reports a month</p>
                     </div>
                     <ul className="space-y-2 text-sm">
                       {["Unlimited reports", "Dedicated account manager", "Custom invoice & billing", "API access (coming soon)", "SLA guarantees"].map(f => (
@@ -617,11 +617,9 @@ const Index = () => {
                   </div>
                 </div>
 
-                <div className="flex items-center justify-center gap-6 mt-8 text-xs text-muted-foreground flex-wrap">
-                  <span className="flex items-center gap-1.5"><Mail className="h-3.5 w-3.5" /> Invoice on delivery — Net 7</span>
-                  <span className="flex items-center gap-1.5"><Shield className="h-3.5 w-3.5" /> SSL encrypted</span>
-                  <span className="flex items-center gap-1.5"><CheckCircle className="h-3.5 w-3.5" /> If we can't deliver a complete report, you don't pay</span>
-                </div>
+                <p className="text-center text-xs text-muted-foreground mt-8">
+                  Volume discounts for firms · Custom invoicing on Professional+ · Full refund if we can't complete your report
+                </p>
               </div>
             </section>
           </>
@@ -632,7 +630,7 @@ const Index = () => {
       <footer className="border-t border-border/40 py-8">
         <div className="container max-w-4xl text-center text-xs text-muted-foreground space-y-3">
           <p className="leading-relaxed max-w-3xl mx-auto">
-            <span className="font-semibold text-foreground/80">Disclaimer:</span> BinCheckNYC reports are compiled from publicly available government records. Public records may be delayed, incomplete, or not yet reflected in agency databases at the time of search. All findings should be independently verified with the relevant city agencies prior to reliance in any transaction. BinCheckNYC, its officers, employees, and affiliates assume no liability for errors or omissions in underlying government data.
+            Reports are compiled from public NYC agency records. Verify findings with the relevant city agencies before reliance in any transaction.
           </p>
           <div className="border-t border-border/30 pt-3 flex items-center justify-center gap-4 flex-wrap">
             <p>© {new Date().getFullYear()} BinCheckNYC. All rights reserved.</p>
