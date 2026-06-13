@@ -124,9 +124,19 @@ const Order = () => {
   // Save lead when user fills contact step and moves to step 3
   const saveLead = useCallback(async (stepReached: number) => {
     if (!email.trim().includes("@")) return;
+    // Silently drop bot submissions.
+    if (hp.trim().length > 0) return;
     // If lead already saved, skip insert
     if (leadId) return;
     try {
+      // Rate limit by email — 5 lead inserts / hour. Fails open on RPC error.
+      const { data: rl } = await supabase.rpc("check_rate_limit", {
+        _key: `order_lead:${email.trim().toLowerCase()}`,
+        _max_in_window: 5,
+        _window_minutes: 60,
+      });
+      if (rl && typeof rl === "object" && (rl as any).allowed === false) return;
+
       const { data } = await supabase.from("order_leads").insert({
         email: email.trim(),
         first_name: firstName.trim() || null,
@@ -146,7 +156,7 @@ const Order = () => {
       } as any).select('id').single();
       if (data) setLeadId(data.id);
     } catch { /* silently fail — lead capture is best-effort */ }
-  }, [email, firstName, lastName, company, phone, address, concern, rush, deliveryDate, leadId]);
+  }, [email, firstName, lastName, company, phone, address, concern, rush, deliveryDate, leadId, hp, subject]);
 
   const step1Valid = address.trim().length > 5 && isSubjectBlockValid(subject);
   const step2Valid = firstName.trim() && lastName.trim() && email.trim().includes("@") && company.trim();
