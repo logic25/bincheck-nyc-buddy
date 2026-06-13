@@ -471,7 +471,7 @@ const Index = () => {
                     </div>
 
                     {[
-                      { row: "Primary use case", us: "Closing-day decisions", them: "Ongoing portfolio monitoring" },
+                      { row: "Primary use case", us: "Closing-day decisions", them: "Owner portfolio reporting" },
                       { row: "Turnaround", us: "24–48 hours", them: "3–10 business days" },
                       { row: "Per-report price", us: "$499 flat", them: "$800–$1,500+" },
                       { row: "AI analyst notes", us: true, them: false },
