@@ -494,7 +494,7 @@ const Index = () => {
             </section>
 
             {/* FAQ */}
-            <section className="border-t border-border/40 py-16 px-4">
+            <section className="border-t border-border/40 py-16 px-4 bg-card/20">
               <div className="container max-w-3xl">
                 <div className="text-center mb-10">
                   <Badge variant="outline" className="mb-3">FAQ</Badge>
@@ -504,11 +504,11 @@ const Index = () => {
                   {[
                     {
                       q: "Who is this for?",
-                      a: "Real estate attorneys closing NYC transactions, buy-side investors and family offices conducting pre-acquisition diligence, commercial brokers preparing offer packages, and title companies confirming agency exposure. If you're asking 'what am I buying?', this report is for you.",
+                      a: "Real estate professionals running pre-acquisition or pre-closing diligence on NYC property — attorneys, investors, family offices, brokers, title companies, and developers. If you're asking 'what am I buying?', this report is for you.",
                     },
                     {
                       q: "How is this different from running my own ACRIS / BIS / ECB searches?",
-                      a: "Manually pulling 8 agency portals on a single property takes a paralegal 3–6 hours. Then someone still has to read the results, flag which items are actionable, and assemble a clean closing-file PDF. BinCheckNYC delivers that final product in 24–48 hours for less than the cost of the paralegal time — with analyst-reviewed line-item notes on top.",
+                      a: "Eight agency portals, one PDF, in 24–48 hours, with analyst-reviewed notes on every line item. We do the pulling, cross-referencing, and formatting so your team can read findings instead of assembling them.",
                     },
                     {
                       q: "What's actually included in the 8-agency search?",
@@ -516,7 +516,7 @@ const Index = () => {
                     },
                     {
                       q: "How accurate is the data?",
-                      a: "We pull from publicly available NYC government sources. Public records can be delayed or incomplete at the agency level — we cite our sources on every line item so your attorney can verify directly. Every report is reviewed by a human analyst before delivery, and we flag known data-freshness issues explicitly.",
+                      a: "We pull from publicly available NYC government sources and cite the source on every line item so your team can verify directly. Every report is reviewed by a human analyst before delivery. Public records can be delayed or incomplete at the agency level; we flag known data-freshness issues explicitly.",
                     },
                     {
                       q: "What if the report finds something that kills the deal?",
@@ -524,20 +524,20 @@ const Index = () => {
                     },
                     {
                       q: "How do payments work?",
-                      a: "During our launch period, every order is invoiced after the report is QA'd and delivered — Net 7, payable by ACH, wire, or card. If we can't deliver a complete report, you don't pay. Card-on-file checkout is coming soon.",
+                      a: "Checkout takes a card upfront via Stripe. If we can't complete your report for any reason, we refund in full. Invoicing (Net 7, ACH or wire) is available on Professional and Enterprise plans.",
                     },
                     {
                       q: "Can you do rush turnarounds?",
-                      a: "Standard turnaround is 24–48 hours. Professional plan ($2,499/mo) gets priority queue placement — most reports same-day. For enterprise SLAs, contact us directly at hello@binchecknyc.com.",
+                      a: "Standard turnaround is 24–48 hours. A rush add-on (+$75) moves your report to the front of the queue — most rush orders deliver same-day. Professional plan ($599/mo) gets priority placement on every report. For enterprise SLAs, contact us at hello@binchecknyc.com.",
                     },
                     {
-                      q: "Do you white-label for law firms?",
+                      q: "Do you white-label for firms?",
                       a: "Yes — included on the Professional plan. Your firm's logo and footer; our data and analyst signoff. Enterprise plans support fully custom report templates.",
                     },
                   ].map((item, i) => (
-                    <AccordionItem key={i} value={`faq-${i}`}>
-                      <AccordionTrigger className="text-left text-sm font-semibold hover:no-underline">{item.q}</AccordionTrigger>
-                      <AccordionContent className="text-sm text-muted-foreground leading-relaxed">{item.a}</AccordionContent>
+                    <AccordionItem key={i} value={`faq-${i}`} className="border-b border-border last:border-b-0">
+                      <AccordionTrigger className="text-left text-base font-display font-semibold text-foreground hover:no-underline py-5">{item.q}</AccordionTrigger>
+                      <AccordionContent className="text-sm text-muted-foreground leading-relaxed pb-5 max-w-prose">{item.a}</AccordionContent>
                     </AccordionItem>
                   ))}
                 </Accordion>
