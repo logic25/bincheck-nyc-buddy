@@ -312,28 +312,37 @@ const Order = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <header className="border-b border-border/40 bg-background/90 backdrop-blur-md sticky top-0 z-50">
+      {/* Dark navy header band — mirrors landing */}
+      <header className="bg-[#0c1730] text-white border-b border-white/10">
         <div className="container flex items-center justify-between h-16">
           <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate("/")}>
-            <Shield className="h-6 w-6 text-primary" />
-            <span className="font-display text-xl tracking-tight">BinCheck<span className="text-primary">NYC</span></span>
+            <Shield className="h-5 w-5 text-[#e63946]" />
+            <span className="text-lg tracking-tight font-semibold">BinCheck<span className="text-[#e63946]">NYC</span></span>
           </div>
-          <Button variant="ghost" size="sm" onClick={() => navigate("/")}>
+          <Button variant="ghost" size="sm" onClick={() => navigate("/")} className="text-white/80 hover:text-white hover:bg-white/10">
             <ArrowLeft className="h-4 w-4 mr-1" /> Back
           </Button>
         </div>
       </header>
 
       <main className="flex-1 container max-w-2xl py-10 px-4 space-y-8">
-        {/* Step indicator */}
+        {/* Page title — serif with red accent */}
+        <div className="space-y-1">
+          <h1 className="font-serif text-3xl md:text-4xl font-bold tracking-tight">
+            Order a <span className="text-[#e63946] italic">report</span>
+          </h1>
+          <p className="text-muted-foreground text-sm">Three quick steps. We start the moment you submit.</p>
+        </div>
+
+        {/* Step indicator — numbered chips, black border on active */}
         <div className="flex items-center gap-2">
           {[1, 2, 3].map((s) => (
             <div key={s} className="flex items-center gap-2">
               <div className={cn(
-                "w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-colors",
-                s < step ? "bg-primary text-primary-foreground" :
-                s === step ? "bg-primary text-primary-foreground ring-2 ring-primary/30" :
-                "bg-muted text-muted-foreground"
+                "w-8 h-8 rounded-sm flex items-center justify-center text-xs font-bold transition-colors border-2",
+                s < step ? "bg-[#0c1730] text-white border-[#0c1730]" :
+                s === step ? "bg-white text-[#0c1730] border-[#0c1730]" :
+                "bg-muted text-muted-foreground border-border"
               )}>
                 {s < step ? <CheckCircle className="h-4 w-4" /> : s}
               </div>
