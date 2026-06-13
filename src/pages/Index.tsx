@@ -348,7 +348,7 @@ const Index = () => {
                 Eight city data sources · One PDF · Analyst-reviewed
               </p>
               <span className="inline-flex items-center px-4 py-2 rounded-full border border-[#e63946]/60 bg-[#e63946]/10 text-[#ff7480] text-xs font-bold uppercase tracking-[0.14em]">
-                Flat $499 per property
+                Flat $199 per property
               </span>
             </div>
           </div>
