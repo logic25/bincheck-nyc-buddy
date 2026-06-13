@@ -9,6 +9,14 @@ import {
   extractActiveOrders,
   type ComplianceSnapshotData,
 } from "../_shared/snapshot.ts";
+import { COMPLAINT_CATEGORIES } from "./constants/violationCodes.ts";
+import {
+  BOROUGH_CODES,
+  OATH_BOROUGH_NAMES,
+  OATH_AGENCIES,
+  OATH_RESOLVED_TERMS,
+  CLOSED_STATUSES,
+} from "./constants/statusTerms.ts";
 
 // ━━━ NYC API RESPONSE VALIDATION SCHEMAS ━━━
 // Validates the shape of external API responses to prevent corrupted data in reports
