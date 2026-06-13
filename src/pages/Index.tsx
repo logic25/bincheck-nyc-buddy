@@ -373,7 +373,7 @@ const Index = () => {
                   <Badge variant="outline" className="mb-3">The deliverable</Badge>
                   <h2 className="font-display text-2xl md:text-3xl font-bold">What's actually in your report</h2>
                   <p className="text-muted-foreground text-sm mt-2 max-w-2xl mx-auto">
-                    Every BinCheckNYC report is an attorney-ready PDF with line-item analyst notes — not a CSV dump or a raw violation list.
+                    Every BinCheckNYC report is a transaction-ready PDF with per-item analyst notes scoped to your subject unit or whole building — not a CSV dump or a raw violation list.
                   </p>
                 </div>
 
