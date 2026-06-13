@@ -9,6 +9,7 @@ import SEO from "@/components/SEO";
 import LeadCaptureDialog from "@/components/marketing/LeadCaptureDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
+import { trackEvent } from "@/lib/analytics";
 
 interface GeoSuggestion {
   label: string;
@@ -202,7 +203,7 @@ const Index = () => {
                   Transaction-ready NYC property compliance reports for attorneys, investors, and deal teams. Open violations, stop work orders, and comprehensive analysis across city agencies.
                 </p>
                 <div className="flex items-center justify-center gap-3 flex-wrap">
-                  <Button size="lg" onClick={() => navigate("/order")} className="font-semibold">
+                  <Button size="lg" onClick={() => { trackEvent("cta_clicked", { cta: "hero" }); navigate("/order"); }} className="font-semibold">
                     Order a Report — $499 <ArrowRight className="h-4 w-4 ml-1" />
                   </Button>
                   <Button size="lg" variant="outline" onClick={() => navigate("/auth")}>
@@ -364,11 +365,11 @@ const Index = () => {
                 </div>
 
                 <div className="flex flex-wrap items-center justify-center gap-3 mt-6">
-                  <Button size="lg" onClick={() => navigate("/order")} className="font-semibold">
+                  <Button size="lg" onClick={() => { trackEvent("cta_clicked", { cta: "sample_section" }); navigate("/order"); }} className="font-semibold">
                     Order a Report — $499 <ArrowRight className="h-4 w-4 ml-1" />
                   </Button>
                   <LeadCaptureDialog intent="sample">
-                    <Button size="lg" variant="outline">
+                    <Button size="lg" variant="outline" onClick={() => trackEvent("cta_clicked", { cta: "sample" })}>
                       <FileText className="h-4 w-4 mr-2" /> Get a free sample
                     </Button>
                   </LeadCaptureDialog>
@@ -431,7 +432,7 @@ const Index = () => {
                 </div>
 
                 <div className="text-center mt-8">
-                  <Button size="lg" onClick={() => navigate("/order")} className="font-semibold">
+                  <Button size="lg" onClick={() => { trackEvent("cta_clicked", { cta: "compare" }); navigate("/order"); }} className="font-semibold">
                     Order a Report — $499 <ArrowRight className="h-4 w-4 ml-1" />
                   </Button>
                 </div>
@@ -517,7 +518,7 @@ const Index = () => {
                         </li>
                       ))}
                     </ul>
-                    <Button className="w-full" onClick={() => navigate("/order")}>Order a Report</Button>
+                    <Button className="w-full" onClick={() => { trackEvent("cta_clicked", { cta: "pricing_onetime" }); navigate("/order"); }}>Order a Report</Button>
                   </div>
 
                   {/* Professional */}
@@ -538,7 +539,7 @@ const Index = () => {
                         </li>
                       ))}
                     </ul>
-                    <Button className="w-full" onClick={() => navigate("/order?plan=professional")}>Get Started</Button>
+                    <Button className="w-full" onClick={() => { trackEvent("cta_clicked", { cta: "pricing_pro" }); navigate("/order?plan=professional"); }}>Get Started</Button>
                   </div>
 
                   {/* Enterprise */}
