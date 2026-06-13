@@ -406,81 +406,23 @@ const Index = () => {
               </div>
             </section>
 
-            {/* What's actually in the report */}
-            <section className="border-t border-border/40 py-16 px-4">
-              <div className="container max-w-5xl">
-                <div className="text-center mb-10">
+            {/* What's actually in the report — analyst signoff strip + inline sample CTA */}
+            <section id="sample" className="border-t border-border/40 py-16 px-4">
+              <div className="container max-w-4xl">
+                <div className="text-center mb-8">
                   <Badge variant="outline" className="mb-3">The deliverable</Badge>
-                  <h2 className="font-display text-2xl md:text-3xl font-bold">What's actually in your report</h2>
+                  <h2 className="font-display text-2xl md:text-3xl font-bold">A transaction-ready PDF, not a CSV dump</h2>
                   <p className="text-muted-foreground text-sm mt-2 max-w-2xl mx-auto">
-                    Every BinCheckNYC report is a transaction-ready PDF with per-item analyst notes scoped to your subject unit or whole building — not a CSV dump or a raw violation list.
+                    Every BinCheckNYC report is grouped by what affects your subject unit versus the rest of the building, with per-item factual notes scoped to your transaction — drafted by AI, signed off by a human analyst before delivery.
                   </p>
-                </div>
-
-                {/* Sample report mockup card */}
-                <div className="rounded-xl border border-border bg-card overflow-hidden shadow-sm">
-                  <div className="border-b border-border bg-muted/40 px-5 py-3 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <FileText className="h-4 w-4 text-primary" />
-                      <span className="text-sm font-semibold">Sample: 123 W 42nd St — Manhattan, NY</span>
-                    </div>
-                    <Badge variant="outline" className="text-xs">Sample preview</Badge>
-                  </div>
-                  <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="space-y-2">
-                      <p className="text-xs uppercase tracking-wide text-muted-foreground font-semibold">Risk Score</p>
-                      <p className="font-display text-4xl font-extrabold text-amber-600">62<span className="text-base font-normal text-muted-foreground">/100</span></p>
-                      <p className="text-xs text-muted-foreground">Moderate — active items require action before closing</p>
-                    </div>
-                    <div className="space-y-2">
-                      <p className="text-xs uppercase tracking-wide text-muted-foreground font-semibold">Open Items</p>
-                      <div className="space-y-1.5 text-sm">
-                        <div className="flex items-center justify-between"><span>DOB violations</span><span className="font-semibold">4</span></div>
-                        <div className="flex items-center justify-between"><span>ECB / OATH fines</span><span className="font-semibold">2</span></div>
-                        <div className="flex items-center justify-between"><span>HPD violations</span><span className="font-semibold">1</span></div>
-                        <div className="flex items-center justify-between"><span>Open permits</span><span className="font-semibold">3</span></div>
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <p className="text-xs uppercase tracking-wide text-muted-foreground font-semibold">Outstanding Penalties</p>
-                      <p className="font-display text-3xl font-extrabold">$14,250</p>
-                      <p className="text-xs text-muted-foreground">Plus 2 default judgments under review</p>
-                    </div>
-                  </div>
-                  <div className="border-t border-border bg-muted/20 px-6 py-5 space-y-3">
-                    <p className="text-xs uppercase tracking-wide text-muted-foreground font-semibold">Sample analyst note</p>
-                    <div className="rounded-md border border-amber-500/30 bg-amber-500/5 p-4">
-                      <div className="flex items-start gap-2">
-                        <span className="inline-flex items-center text-xs font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded shrink-0 mt-0.5">[ACTION REQUIRED]</span>
-                      </div>
-                      <p className="text-sm mt-2 leading-relaxed">
-                        ECB violation #34958721 (Class 1, hazardous) issued 2024-09-14 for unpermitted facade work. Default judgment entered — lien attachable. <span className="font-semibold">Recommend curing before title transfer or escrowing $8,500 + interest.</span>
-                      </p>
-                    </div>
-                  </div>
-                  <div className="border-t border-border px-6 py-4 flex items-center justify-between text-xs text-muted-foreground">
-                    <span className="flex items-center gap-1.5"><ClipboardCheck className="h-3.5 w-3.5" /> Signed off by our analyst team before delivery</span>
-                    <span>Sample data — not a real property</span>
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap items-center justify-center gap-3 mt-6">
-                  <Button size="lg" onClick={() => { trackEvent("cta_clicked", { cta: "sample_section" }); navigate("/order"); }} className="font-semibold">
-                    Order a Report — $499 <ArrowRight className="h-4 w-4 ml-1" />
-                  </Button>
-                  <LeadCaptureDialog intent="sample">
-                    <Button size="lg" variant="outline" onClick={() => trackEvent("cta_clicked", { cta: "sample" })}>
-                      <FileText className="h-4 w-4 mr-2" /> Get a free sample
-                    </Button>
-                  </LeadCaptureDialog>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-8">
                   {[
                     { icon: Building2, title: "8 city agencies", desc: "DOB, ECB, HPD, FDNY, DSNY, DOT, LPC, DOF — every record we can legally pull" },
-                    { icon: Brain, title: "AI line-item analysis", desc: "Gemini-powered notes prefixed [ACTION REQUIRED], [MONITOR], or [RESOLVED]" },
-                    { icon: Eye, title: "Analyst QA", desc: "Every report reviewed by a human before delivery — not auto-shipped" },
-                    { icon: Download, title: "Attorney-ready PDF", desc: "Branded, formatted, citation-ready for closing files and lender packets" },
+                    { icon: ClipboardCheck, title: "Analyst-reviewed notes", desc: "Per-item factual notes tagged [ACTION REQUIRED], [MONITOR], or [RESOLVED]" },
+                    { icon: Eye, title: "Human QA before delivery", desc: "Every report reviewed by an analyst before delivery — not auto-shipped" },
+                    { icon: Download, title: "Attorney-ready PDF", desc: "Formatted and citation-ready for closing files and lender packets" },
                   ].map((f) => (
                     <div key={f.title} className="p-5 rounded-lg bg-card/50 border border-border/40 space-y-2">
                       <f.icon className="h-4 w-4 text-primary" />
@@ -489,8 +431,20 @@ const Index = () => {
                     </div>
                   ))}
                 </div>
+
+                <div className="flex flex-wrap items-center justify-center gap-3 mt-10">
+                  <Button size="lg" onClick={() => { trackEvent("cta_clicked", { cta: "sample_section" }); navigate("/order"); }} className="font-semibold">
+                    Order a Report — $499 <ArrowRight className="h-4 w-4 ml-1" />
+                  </Button>
+                  <LeadCaptureDialog intent="sample">
+                    <Button size="lg" variant="outline" onClick={() => trackEvent("cta_clicked", { cta: "sample" })}>
+                      <FileText className="h-4 w-4 mr-2" /> See a sample report
+                    </Button>
+                  </LeadCaptureDialog>
+                </div>
               </div>
             </section>
+
 
             {/* Comparison: BinCheck vs other DD providers */}
             <section className="border-t border-border/40 py-16 px-4 bg-card/20">
