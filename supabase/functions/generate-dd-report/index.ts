@@ -3,6 +3,12 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 import { checkRateLimit } from "../_shared/rate-limit.ts";
+import {
+  hashSnapshotData,
+  buildSourceProvenance,
+  extractActiveOrders,
+  type ComplianceSnapshotData,
+} from "../_shared/snapshot.ts";
 
 // ━━━ NYC API RESPONSE VALIDATION SCHEMAS ━━━
 // Validates the shape of external API responses to prevent corrupted data in reports
@@ -2929,6 +2935,90 @@ serve(async (req) => {
     } catch (seedException) {
       // Never let the document-seeding step fail the whole report.
       console.warn('Document seeding skipped due to error:', seedException);
+    }
+
+    // ── Phase 0: Compliance Plant snapshot (best-effort, non-fatal) ─────────
+    // Writes a canonical, hashed snapshot of the report's compliance data to
+    // compliance_snapshots so CitiSignal (Phase 1) can diff against it later.
+    // MUST never fail the parent report generation — wrap in try/catch.
+    try {
+      if (bin && bbl) {
+        const snapshotData: ComplianceSnapshotData = {
+          violations: violations.filter((v: any) => v.agency === 'DOB'),
+          ecb: violations.filter((v: any) => v.agency === 'ECB'),
+          hpd_violations: violations.filter((v: any) => v.agency === 'HPD'),
+          fdny_violations: violations.filter((v: any) => v.agency === 'FDNY'),
+          permits_open: applications.filter((a: any) => a.source === 'BIS'),
+          permits_dob_now: applications.filter((a: any) => a.source === 'DOB_NOW'),
+          tax_status: {
+            balance: (dofCharges as any)?.totals?.amount_due ?? undefined,
+            delinquent: ((dofCharges as any)?.totals?.amount_due ?? 0) > 0,
+          },
+          water_status: {
+            balance: (depCharges as any)?.totals?.amount_due
+              ?? (dofCharges as any)?.totals?.water_sewer_amount
+              ?? undefined,
+          },
+          active_orders: extractActiveOrders(violations as Array<Record<string, unknown>>),
+          landmarked: !!(building as any)?.is_landmark,
+          sidewalk_violations: Array.isArray(sidewalkViolations)
+            ? sidewalkViolations
+            : ((sidewalkViolations as any)?.records ?? []),
+        };
+
+        const dataHash = await hashSnapshotData(snapshotData);
+        const fetchedAt = new Date().toISOString();
+        const useLiveBIS = Deno.env.get("USE_LIVE_BIS") === "true";
+        const useLiveDOF = Deno.env.get("USE_LIVE_DOF") === "true";
+
+        const sources = buildSourceProvenance({
+          useLiveBIS,
+          useLiveDOF,
+          useLiveDEP,
+          dofFellBackToSocrata: useLiveDOF && dofSource !== "ptaps_live",
+          depFellBackToSocrata: useLiveDEP && depSource !== "cis_live",
+          bisFellBackToSocrata: false,
+          fetchedAt,
+          counts: {
+            dob_violations: snapshotData.violations.length,
+            ecb_violations: snapshotData.ecb.length,
+            hpd_violations: snapshotData.hpd_violations.length,
+            fdny_violations: snapshotData.fdny_violations.length,
+            bis_jobs: snapshotData.permits_open.length,
+            dob_now_build: snapshotData.permits_dob_now.length,
+            sidewalk_violations: snapshotData.sidewalk_violations.length,
+          },
+          balances: {
+            dof_tax_balance: snapshotData.tax_status.balance,
+            dep_water_balance: snapshotData.water_status.balance,
+          },
+        });
+
+        const { error: snapErr } = await supabase.from('compliance_snapshots').insert({
+          bin: String(bin),
+          bbl: String(bbl),
+          address: resolvedAddress || (building as any)?.address || '',
+          borough: (building as any)?.borough ?? null,
+          report_id: reportId,
+          subject_type: (reportRow as any)?.subject_type ?? null,
+          subject_unit: (reportRow as any)?.subject_unit ?? null,
+          scope_of_work: (reportRow as any)?.scope_of_work ?? null,
+          sources,
+          data: snapshotData,
+          data_hash: dataHash,
+          as_of: fetchedAt,
+        });
+
+        if (snapErr) {
+          // Most likely the migration hasn't been applied yet — log and continue.
+          console.warn('[plant] compliance_snapshots write skipped:', snapErr.message ?? snapErr);
+        } else {
+          console.log(`[plant] snapshot written: bin=${bin} hash=${dataHash.slice(0, 12)}`);
+        }
+      }
+    } catch (snapException) {
+      // Never let plant writes fail the report.
+      console.warn('[plant] snapshot exception (non-fatal):', snapException);
     }
 
     // Log AI usage (best-effort)
