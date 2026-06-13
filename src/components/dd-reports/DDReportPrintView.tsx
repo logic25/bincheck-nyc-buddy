@@ -496,46 +496,64 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
   // ═══════════════════════════════════════════════════════════════════════════
   return (
     <div className="print-container bg-white text-black max-w-4xl mx-auto" style={{ fontFamily: "'Inter', 'Helvetica Neue', Arial, sans-serif", fontSize: '12px', lineHeight: '1.5', color: '#111827', padding: '32px' }}>
+      <style>{`
+        @page { margin: 0.6in 0.5in 0.8in; }
+        @media print {
+          @page {
+            @bottom-left { content: "BinCheckNYC · Report ${reportId}"; font-family: Inter, sans-serif; font-size: 9px; color: #6b7280; }
+            @bottom-right { content: "Page " counter(page) " of " counter(pages); font-family: Inter, sans-serif; font-size: 9px; color: #6b7280; }
+          }
+          .print-footer { display: none !important; }
+        }
+        .print-footer { position: fixed; bottom: 8px; left: 0; right: 0; padding: 6px 32px 0; border-top: 1px solid ${BORDER}; font-size: 9px; color: ${MUTED}; display: flex; justify-content: space-between; background: #ffffff; }
+      `}</style>
 
       {/* ═══════════════════════════════════════════════════════════════════════
           PAGE 1: EXECUTIVE DASHBOARD
           ═══════════════════════════════════════════════════════════════════ */}
 
       {/* Header */}
-      <div style={{ borderBottom: `2px solid ${NAVY}`, paddingBottom: '12px', marginBottom: '24px' }}>
+      <div style={{ borderBottom: `2px solid ${NAVY}`, paddingBottom: '14px', marginBottom: '20px' }}>
         <div className="flex items-end justify-between">
           <div>
-            <h1 style={{ fontSize: '24px', fontWeight: 700, color: NAVY, letterSpacing: '-0.01em', margin: 0 }}>BinCheckNYC Report</h1>
-            <p style={{ fontSize: '11px', color: '#6b7280', marginTop: '2px', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.12em' }}>Property Compliance Assessment</p>
+            <h1 style={{ fontFamily: SERIF, fontSize: '28px', fontWeight: 400, color: '#111827', letterSpacing: '-0.005em', margin: 0, lineHeight: 1.1 }}>BinCheckNYC Report</h1>
+            <p style={{ fontSize: '11px', color: MUTED, marginTop: '6px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.18em' }}>Property Compliance Assessment</p>
           </div>
-          <div style={{ textAlign: 'right', fontSize: '11px', color: '#6b7280' }}>
-            <p style={{ margin: 0 }}>Report ID: <span className="font-mono" style={{ fontWeight: 600 }}>{reportId}</span></p>
-            <p style={{ margin: 0 }}>{format(new Date(report.report_date), 'MMMM d, yyyy')}</p>
+          <div style={{ textAlign: 'right', fontSize: '11px', color: MUTED }}>
+            <p style={{ margin: 0 }}>Report ID: <span className="font-mono" style={{ fontWeight: 600, color: '#111827' }}>{reportId}</span></p>
+            <p style={{ margin: '2px 0 0' }}>Issued: {format(new Date(report.report_date), 'MMM d, yyyy')}</p>
           </div>
         </div>
 
+        {/* Confidentiality + data currency line */}
+        <div style={{ marginTop: '10px', display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: MUTED }}>
+          <span style={{ fontStyle: 'italic' }}>Confidential — prepared for named recipient only.</span>
+          <span>Data current as of {report.generated_at ? format(new Date(report.generated_at), "MMM d, yyyy 'at' h:mm a") : format(new Date(report.report_date), 'MMM d, yyyy')}</span>
+        </div>
+
         {/* Subject Property + Prepared By */}
-        <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          <div>
-            <p style={{ fontSize: '18px', fontWeight: 700, color: '#111827', margin: 0 }}>{report.address}</p>
-            <p style={{ fontSize: '11px', color: '#6b7280', margin: '2px 0 0' }}>
-              BIN: <span className="font-mono" style={{ fontWeight: 600 }}>{report.bin || '—'}</span>
-              <span style={{ margin: '0 8px', color: '#d1d5db' }}>|</span>
-              BBL: <span className="font-mono" style={{ fontWeight: 600 }}>{formatBBL(report.bbl)}</span>
+        <div style={{ marginTop: '18px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '24px' }}>
+          <div style={{ flex: 1 }}>
+            <p style={{ fontFamily: SERIF, fontSize: '24px', fontWeight: 700, color: '#111827', margin: 0, lineHeight: 1.2 }}>{report.address}</p>
+            <p style={{ fontSize: '11px', color: MUTED, margin: '6px 0 0' }}>
+              BIN: <span className="font-mono" style={{ fontWeight: 600, color: '#111827' }}>{report.bin || '—'}</span>
+              <span style={{ margin: '0 10px', color: '#d1d5db' }}>|</span>
+              BBL: <span className="font-mono" style={{ fontWeight: 600, color: '#111827' }}>{formatBBL(report.bbl)}</span>
             </p>
           </div>
-          <div style={{ textAlign: 'right' }}>
-            <p style={{ fontSize: '10px', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.1em', margin: 0 }}>Prepared for</p>
-            <p style={{ fontSize: '12px', fontWeight: 600, margin: '1px 0 0' }}>{report.prepared_for}</p>
+          <div style={{ textAlign: 'right', minWidth: '260px' }}>
+            <p style={{ fontSize: '9px', color: MUTED, textTransform: 'uppercase', letterSpacing: '0.16em', margin: 0, fontWeight: 600 }}>Prepared for</p>
+            <p style={{ fontSize: '12px', fontWeight: 600, margin: '2px 0 0' }}>{report.prepared_for}</p>
             {preparedByLine && (
               <>
-                <p style={{ fontSize: '10px', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.1em', margin: '6px 0 0' }}>Prepared by</p>
-                <p style={{ fontSize: '12px', fontWeight: 600, margin: '1px 0 0' }}>{preparedByLine}</p>
+                <p style={{ fontSize: '9px', color: MUTED, textTransform: 'uppercase', letterSpacing: '0.16em', margin: '10px 0 0', fontWeight: 600 }}>Prepared by</p>
+                <p style={{ fontSize: '12px', fontWeight: 600, margin: '2px 0 0' }}>{preparedByLine}</p>
               </>
             )}
           </div>
         </div>
       </div>
+
 
       {/* Property Status Banners — Vacate / SWO / Unsafe / Closure / Emergency / Compromised / Vacant */}
       {(propertyFlags.vacate_order || propertyFlags.stop_work_order || propertyFlags.unsafe_building || propertyFlags.closure_order || propertyFlags.emergency_declaration || propertyFlags.compromised_structure || propertyFlags.vacant_structure) && (
