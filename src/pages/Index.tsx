@@ -1,14 +1,47 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Building2, Shield, FileText, ArrowRight, AlertTriangle, MapPin, LogOut, Settings, CheckCircle, Clock, Download, Zap, Star, Lock } from "lucide-react";
+import { Search, Building2, Shield, FileText, ArrowRight, AlertTriangle, MapPin, LogOut, Settings, CheckCircle, Clock, Download, Zap, Star, X, Eye, Brain, ClipboardCheck, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
 
 interface GeoSuggestion {
   label: string;
   borough: string;
+}
+
+/**
+ * Comparison-table row used in the "Built for the buy side" section.
+ * Accepts either a boolean (renders check/X icons) or a string label.
+ */
+type CompareCellValue = boolean | string;
+
+function CompareCell({ value, highlight = false }: { value: CompareCellValue; highlight?: boolean }) {
+  if (value === true) {
+    return <CheckCircle className={`h-4 w-4 mx-auto ${highlight ? "text-primary" : "text-emerald-600"}`} />;
+  }
+  if (value === false) {
+    return <X className="h-4 w-4 mx-auto text-muted-foreground/60" />;
+  }
+  return <span className={`text-xs ${highlight ? "font-semibold" : "text-muted-foreground"}`}>{value}</span>;
+}
+
+function CompareRow({ row, us, them, last }: { row: string; us: CompareCellValue; them: CompareCellValue; last: boolean }) {
+  const border = last ? "" : "border-b";
+  return (
+    <>
+      <div className={`p-4 ${border} border-r border-border text-sm font-medium`}>{row}</div>
+      <div className={`p-4 ${border} border-r border-border bg-primary/5 text-center`}>
+        <CompareCell value={us} highlight />
+      </div>
+      <div className={`p-4 ${border} border-border text-center`}>
+        <CompareCell value={them} />
+      </div>
+    </>
+  );
 }
 
 const Index = () => {
@@ -265,6 +298,186 @@ const Index = () => {
               </div>
             </section>
 
+            {/* What's actually in the report */}
+            <section className="border-t border-border/40 py-16 px-4">
+              <div className="container max-w-5xl">
+                <div className="text-center mb-10">
+                  <Badge variant="outline" className="mb-3">The deliverable</Badge>
+                  <h2 className="font-display text-2xl md:text-3xl font-bold">What's actually in your report</h2>
+                  <p className="text-muted-foreground text-sm mt-2 max-w-2xl mx-auto">
+                    Every BinCheckNYC report is an attorney-ready PDF with line-item analyst notes — not a CSV dump or a raw violation list.
+                  </p>
+                </div>
+
+                {/* Sample report mockup card */}
+                <div className="rounded-xl border border-border bg-card overflow-hidden shadow-sm">
+                  <div className="border-b border-border bg-muted/40 px-5 py-3 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <FileText className="h-4 w-4 text-primary" />
+                      <span className="text-sm font-semibold">Sample: 123 W 42nd St — Manhattan, NY</span>
+                    </div>
+                    <Badge variant="outline" className="text-xs">Sample preview</Badge>
+                  </div>
+                  <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="space-y-2">
+                      <p className="text-xs uppercase tracking-wide text-muted-foreground font-semibold">Risk Score</p>
+                      <p className="font-display text-4xl font-extrabold text-amber-600">62<span className="text-base font-normal text-muted-foreground">/100</span></p>
+                      <p className="text-xs text-muted-foreground">Moderate — active items require action before closing</p>
+                    </div>
+                    <div className="space-y-2">
+                      <p className="text-xs uppercase tracking-wide text-muted-foreground font-semibold">Open Items</p>
+                      <div className="space-y-1.5 text-sm">
+                        <div className="flex items-center justify-between"><span>DOB violations</span><span className="font-semibold">4</span></div>
+                        <div className="flex items-center justify-between"><span>ECB / OATH fines</span><span className="font-semibold">2</span></div>
+                        <div className="flex items-center justify-between"><span>HPD violations</span><span className="font-semibold">1</span></div>
+                        <div className="flex items-center justify-between"><span>Open permits</span><span className="font-semibold">3</span></div>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <p className="text-xs uppercase tracking-wide text-muted-foreground font-semibold">Outstanding Penalties</p>
+                      <p className="font-display text-3xl font-extrabold">$14,250</p>
+                      <p className="text-xs text-muted-foreground">Plus 2 default judgments under review</p>
+                    </div>
+                  </div>
+                  <div className="border-t border-border bg-muted/20 px-6 py-5 space-y-3">
+                    <p className="text-xs uppercase tracking-wide text-muted-foreground font-semibold">Sample analyst note</p>
+                    <div className="rounded-md border border-amber-500/30 bg-amber-500/5 p-4">
+                      <div className="flex items-start gap-2">
+                        <span className="inline-flex items-center text-xs font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded shrink-0 mt-0.5">[ACTION REQUIRED]</span>
+                      </div>
+                      <p className="text-sm mt-2 leading-relaxed">
+                        ECB violation #34958721 (Class 1, hazardous) issued 2024-09-14 for unpermitted facade work. Default judgment entered — lien attachable. <span className="font-semibold">Recommend curing before title transfer or escrowing $8,500 + interest.</span>
+                      </p>
+                    </div>
+                  </div>
+                  <div className="border-t border-border px-6 py-4 flex items-center justify-between text-xs text-muted-foreground">
+                    <span className="flex items-center gap-1.5"><ClipboardCheck className="h-3.5 w-3.5" /> Signed off by our analyst team before delivery</span>
+                    <span>Sample data — not a real property</span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-8">
+                  {[
+                    { icon: Building2, title: "8 city agencies", desc: "DOB, ECB, HPD, FDNY, DSNY, DOT, LPC, DOF — every record we can legally pull" },
+                    { icon: Brain, title: "AI line-item analysis", desc: "Gemini-powered notes prefixed [ACTION REQUIRED], [MONITOR], or [RESOLVED]" },
+                    { icon: Eye, title: "Analyst QA", desc: "Every report reviewed by a human before delivery — not auto-shipped" },
+                    { icon: Download, title: "Attorney-ready PDF", desc: "Branded, formatted, citation-ready for closing files and lender packets" },
+                  ].map((f) => (
+                    <div key={f.title} className="p-5 rounded-lg bg-card/50 border border-border/40 space-y-2">
+                      <f.icon className="h-4 w-4 text-primary" />
+                      <p className="font-semibold text-sm">{f.title}</p>
+                      <p className="text-xs text-muted-foreground leading-relaxed">{f.desc}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </section>
+
+            {/* Comparison: BinCheck vs other DD providers */}
+            <section className="border-t border-border/40 py-16 px-4 bg-card/20">
+              <div className="container max-w-5xl">
+                <div className="text-center mb-10">
+                  <Badge variant="outline" className="mb-3">Why BinCheckNYC</Badge>
+                  <h2 className="font-display text-2xl md:text-3xl font-bold">Built for the buy side</h2>
+                  <p className="text-muted-foreground text-sm mt-2 max-w-2xl mx-auto">
+                    Most NYC compliance reports are built for owners monitoring buildings they already own. BinCheckNYC is built for the deal team asking <span className="italic">"what am I actually buying?"</span>
+                  </p>
+                </div>
+
+                <div className="rounded-xl border border-border bg-card overflow-hidden">
+                  <div className="grid grid-cols-3 text-sm">
+                    {/* Header row */}
+                    <div className="p-4 border-b border-r border-border bg-muted/40"></div>
+                    <div className="p-4 border-b border-r border-border bg-primary/5 text-center">
+                      <p className="font-display font-bold text-base">BinCheck<span className="text-primary">NYC</span></p>
+                      <p className="text-xs text-muted-foreground mt-1">Buy-side DD</p>
+                    </div>
+                    <div className="p-4 border-b border-border bg-muted/40 text-center">
+                      <p className="font-semibold text-base text-muted-foreground">Other providers</p>
+                      <p className="text-xs text-muted-foreground mt-1">Legacy DD vendors</p>
+                    </div>
+
+                    {[
+                      { row: "Primary use case", us: "Closing-day decisions", them: "Ongoing portfolio monitoring" },
+                      { row: "Turnaround", us: "24–48 hours", them: "3–10 business days" },
+                      { row: "Per-report price", us: "$499 flat", them: "$800–$1,500+" },
+                      { row: "AI analyst notes", us: true, them: false },
+                      { row: "Human QA before delivery", us: true, them: "Sometimes" },
+                      { row: "Action-priority flags", us: "[ACTION REQUIRED] / [MONITOR] / [RESOLVED]", them: "Raw record dump" },
+                      { row: "Attorney-ready PDF format", us: true, them: "CSV / portal export" },
+                      { row: "Subscription required", us: false, them: "Often" },
+                    ].map((r, i, arr) => (
+                      <CompareRow key={r.row} row={r.row} us={r.us} them={r.them} last={i === arr.length - 1} />
+                    ))}
+                  </div>
+                </div>
+
+                <div className="text-center mt-8">
+                  <Button size="lg" onClick={() => navigate("/order")} className="font-semibold">
+                    Order a Report — $499 <ArrowRight className="h-4 w-4 ml-1" />
+                  </Button>
+                </div>
+              </div>
+            </section>
+
+            {/* FAQ */}
+            <section className="border-t border-border/40 py-16 px-4">
+              <div className="container max-w-3xl">
+                <div className="text-center mb-10">
+                  <Badge variant="outline" className="mb-3">FAQ</Badge>
+                  <h2 className="font-display text-2xl md:text-3xl font-bold">Questions deal teams ask us</h2>
+                </div>
+                <Accordion type="single" collapsible className="w-full">
+                  {[
+                    {
+                      q: "Who is this for?",
+                      a: "Real estate attorneys closing NYC transactions, buy-side investors and family offices conducting pre-acquisition diligence, commercial brokers preparing offer packages, and title companies confirming agency exposure. If you're asking 'what am I buying?', this report is for you.",
+                    },
+                    {
+                      q: "How is this different from running my own ACRIS / BIS / ECB searches?",
+                      a: "Manually pulling 8 agency portals on a single property takes a paralegal 3–6 hours. Then someone still has to read the results, flag which items are actionable, and assemble a clean closing-file PDF. BinCheckNYC delivers that final product in 24–48 hours for less than the cost of the paralegal time — with AI line-item analysis and human QA on top.",
+                    },
+                    {
+                      q: "What's actually included in the 8-agency search?",
+                      a: "DOB (Department of Buildings) violations and permits, ECB / OATH hearings, HPD (Housing Preservation & Development) violations by class, FDNY records, DSNY (Sanitation), DOT (Transportation), LPC (Landmarks Preservation), and DOF (Finance — tax liens and water charges). Plus AI-powered analyst notes on every line item.",
+                    },
+                    {
+                      q: "How accurate is the data?",
+                      a: "We pull from publicly available NYC government sources. Public records can be delayed or incomplete at the agency level — we cite our sources on every line item so your attorney can verify directly. Every report is reviewed by a human analyst before delivery, and we flag known data-freshness issues explicitly.",
+                    },
+                    {
+                      q: "What if the report finds something that kills the deal?",
+                      a: "That's the point. Better to find a $40K open ECB judgment in pre-closing diligence than after wire. Our [ACTION REQUIRED] flags are designed to surface deal-killers early so you can negotiate, escrow, or walk.",
+                    },
+                    {
+                      q: "How do payments work?",
+                      a: "During our launch period, every order is invoiced after the report is QA'd and delivered — Net 7, payable by ACH, wire, or card. You only owe us if we deliver. Card-on-file checkout is coming soon.",
+                    },
+                    {
+                      q: "Can you do rush turnarounds?",
+                      a: "Standard turnaround is 24–48 hours. Professional plan ($2,499/mo) gets priority queue placement — most reports same-day. For enterprise SLAs, contact us directly at hello@binchecknyc.com.",
+                    },
+                    {
+                      q: "Do you white-label for law firms?",
+                      a: "Yes — included on the Professional plan. Your firm's logo and footer; our data and analyst signoff. Enterprise plans support fully custom report templates.",
+                    },
+                  ].map((item, i) => (
+                    <AccordionItem key={i} value={`faq-${i}`}>
+                      <AccordionTrigger className="text-left text-sm font-semibold hover:no-underline">{item.q}</AccordionTrigger>
+                      <AccordionContent className="text-sm text-muted-foreground leading-relaxed">{item.a}</AccordionContent>
+                    </AccordionItem>
+                  ))}
+                </Accordion>
+
+                <div className="text-center mt-10">
+                  <p className="text-sm text-muted-foreground mb-3">Still have questions?</p>
+                  <Button variant="outline" size="sm" onClick={() => window.location.href = "mailto:hello@binchecknyc.com"}>
+                    <Mail className="h-4 w-4 mr-2" /> hello@binchecknyc.com
+                  </Button>
+                </div>
+              </div>
+            </section>
+
             {/* Pricing */}
             <section className="border-t border-border/40 py-16 px-4">
               <div className="container max-w-4xl">
@@ -329,10 +542,10 @@ const Index = () => {
                   </div>
                 </div>
 
-                <div className="flex items-center justify-center gap-6 mt-8 text-xs text-muted-foreground">
-                  <span className="flex items-center gap-1.5"><Lock className="h-3.5 w-3.5" /> Secure payment via Stripe</span>
+                <div className="flex items-center justify-center gap-6 mt-8 text-xs text-muted-foreground flex-wrap">
+                  <span className="flex items-center gap-1.5"><Mail className="h-3.5 w-3.5" /> Invoice on delivery — Net 7</span>
                   <span className="flex items-center gap-1.5"><Shield className="h-3.5 w-3.5" /> SSL encrypted</span>
-                  <span className="flex items-center gap-1.5"><CheckCircle className="h-3.5 w-3.5" /> Satisfaction guaranteed</span>
+                  <span className="flex items-center gap-1.5"><CheckCircle className="h-3.5 w-3.5" /> You only pay if we deliver</span>
                 </div>
               </div>
             </section>
