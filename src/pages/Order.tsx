@@ -263,21 +263,21 @@ const Order = () => {
   if (submitted) {
     return (
       <div className="min-h-screen bg-background flex flex-col">
-        <header className="border-b border-border/40 bg-background/90 backdrop-blur-md sticky top-0 z-50">
+        <header className="bg-[#0c1730] text-white border-b border-white/10">
           <div className="container flex items-center h-16">
             <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate("/")}>
-              <Shield className="h-6 w-6 text-primary" />
-              <span className="font-display text-xl tracking-tight">BinCheck<span className="text-primary">NYC</span></span>
+              <Shield className="h-5 w-5 text-[#e63946]" />
+              <span className="text-lg tracking-tight font-semibold">BinCheck<span className="text-[#e63946]">NYC</span></span>
             </div>
           </div>
         </header>
         <main className="flex-1 flex items-center justify-center px-4">
           <div className="max-w-md w-full text-center space-y-6">
-            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
-              <CheckCircle className="h-8 w-8 text-primary" />
+            <div className="w-16 h-16 rounded-full bg-[#0c1730]/5 border border-[#0c1730]/10 flex items-center justify-center mx-auto">
+              <CheckCircle className="h-8 w-8 text-[#0c1730]" />
             </div>
             <div className="space-y-2">
-              <h1 className="font-display text-2xl font-bold">Order received</h1>
+              <h1 className="font-serif text-3xl font-bold">Order <span className="text-[#e63946] italic">received</span></h1>
               <p className="text-muted-foreground text-sm leading-relaxed">
                 We’re preparing your report for <span className="font-semibold text-foreground">{address}</span>.<br />
                 The completed report and your invoice will go to <span className="font-semibold text-foreground">{email}</span>.
