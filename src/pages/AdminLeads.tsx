@@ -178,6 +178,14 @@ const AdminLeads = () => {
     onError: (e: any) => toast.error(e.message ?? 'Update failed'),
   });
 
+  // Derived counts — declared before early returns to satisfy rules of hooks.
+  const marketingCounts = useMemo(() => {
+    const rows = marketingQuery.data ?? [];
+    const out: Record<string, number> = { all: rows.length };
+    for (const s of ALL_STATUSES) out[s] = rows.filter((r) => r.status === s).length;
+    return out;
+  }, [marketingQuery.data]);
+
   // -------------------------------------------------------------------------
   // Render
   // -------------------------------------------------------------------------
@@ -185,13 +193,6 @@ const AdminLeads = () => {
     return <div className="p-8"><Skeleton className="h-32 w-full" /></div>;
   }
   if (!canAccess) return null;
-
-  const marketingCounts = useMemo(() => {
-    const rows = marketingQuery.data ?? [];
-    const out: Record<string, number> = { all: rows.length };
-    for (const s of ALL_STATUSES) out[s] = rows.filter((r) => r.status === s).length;
-    return out;
-  }, [marketingQuery.data]);
 
   return (
     <div className="min-h-screen bg-background">
