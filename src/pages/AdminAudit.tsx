@@ -19,7 +19,7 @@ import {
 } from '@/components/ui/dialog';
 import { ScrollText, Search, RefreshCw, Eye, ShieldAlert } from 'lucide-react';
 import type { Database } from '@/integrations/supabase/types';
-import AdminNav from '@/components/admin/AdminNav';
+// AdminNav is rendered by the parent AdminLayout route.
 
 type AuditRow = Database['public']['Tables']['audit_log']['Row'];
 
@@ -103,7 +103,6 @@ const AdminAudit = () => {
 
   return (
     <>
-      <AdminNav />
       <div className="container mx-auto py-10 space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
