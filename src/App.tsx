@@ -26,6 +26,7 @@ import DOBViolationSearch from "./pages/marketing/DOBViolationSearch";
 import ECBViolationLookup from "./pages/marketing/ECBViolationLookup";
 import HPDViolations from "./pages/marketing/HPDViolations";
 import NYCPropertyDueDiligence from "./pages/marketing/NYCPropertyDueDiligence";
+import AdminLayout from "./components/admin/AdminLayout";
 
 const queryClient = new QueryClient();
 
@@ -44,11 +45,13 @@ const App = () => (
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/dd-reports" element={<DDReports />} />
-          <Route path="/admin" element={<Admin />} />
-          <Route path="/admin/team" element={<AdminTeam />} />
-          <Route path="/admin/documents" element={<AdminDocuments />} />
-          <Route path="/admin/audit" element={<AdminAudit />} />
-          <Route path="/admin/leads" element={<AdminLeads />} />
+          <Route element={<AdminLayout />}>
+            <Route path="/admin" element={<Admin />} />
+            <Route path="/admin/team" element={<AdminTeam />} />
+            <Route path="/admin/documents" element={<AdminDocuments />} />
+            <Route path="/admin/audit" element={<AdminAudit />} />
+            <Route path="/admin/leads" element={<AdminLeads />} />
+          </Route>
           <Route path="/settings" element={<Settings />} />
           <Route path="/help" element={<Help />} />
           <Route path="/unsubscribe" element={<Unsubscribe />} />
