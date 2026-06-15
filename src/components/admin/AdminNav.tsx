@@ -2,7 +2,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { useUserRole } from '@/hooks/useUserRole';
 import { cn } from '@/lib/utils';
 import {
-  Shield, Users, FileText, ScrollText, LayoutDashboard, Mail, ClipboardCheck,
+  Shield, Users, FileText, ScrollText, LayoutDashboard, Mail, ClipboardCheck, Bug,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
@@ -67,6 +67,12 @@ const ITEMS: NavItem[] = [
     label: 'Audit log',
     icon: ScrollText,
     visible: (r) => !!r.isAdmin,
+  },
+  {
+    to: '/help',
+    label: 'Bugs',
+    icon: Bug,
+    visible: (r) => !!r.isStaff,
   },
 ];
 

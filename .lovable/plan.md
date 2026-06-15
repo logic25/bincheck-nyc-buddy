@@ -1,49 +1,61 @@
-# Build & Preview Health Report
+# Plan: Fix admin nav flicker, surface Bug Center, trim queue copy
 
-No code changes were made. This is a read-only diagnostic.
+## 1. Stop the nav flicker on route changes
 
-## 1. Build / Dev server
+Today every admin page (`Dashboard`, `AdminDocuments`, `AdminTeam`, `AdminAudit`, `AdminLeads`, `DDReports`) renders its own `<AdminNav />` *inside* the page body, and only after each page's auth/role gate resolves. On every click the nav unmounts with the page, then re-mounts after the loading skeleton — that's the flash.
 
-Vite dev server is **clean**. Last several restarts came up in ~370 ms with no compile errors. Only noise in the logs:
+Fix: introduce a persistent layout so the nav stays mounted across staff routes and only the inner content swaps.
 
-- `Browserslist: caniuse-lite is 12 months old` — cosmetic, ignore.
-- HMR updates from your recent edits to `Order.tsx`, `SubjectAndRequesterBlock.tsx`, `LeadCaptureDialog.tsx` all applied without failure.
-- One `vite` page reload triggered by `src/integrations/supabase/types.ts` regen — expected.
+- Create `src/components/admin/AdminLayout.tsx`:
+  - Runs the role check **once** via `useUserRole`.
+  - Renders `<AdminNav />` + `<Outlet />`.
+  - While `isLoading`, render the nav (skeleton-free) + a small content skeleton — no full-page wipe.
+  - If `!isStaff`, `<Navigate to="/dashboard" replace />`.
+- Update `src/App.tsx` to wrap the staff routes in a single parent route using the layout:
+  ```
+  <Route element={<AdminLayout />}>
+    <Route path="/dashboard" element={<Dashboard />} />
+    <Route path="/dd-reports" element={<DDReports />} />
+    <Route path="/admin" element={<Admin />} />
+    <Route path="/admin/team" element={<AdminTeam />} />
+    <Route path="/admin/documents" element={<AdminDocuments />} />
+    <Route path="/admin/audit" element={<AdminAudit />} />
+    <Route path="/admin/leads" element={<AdminLeads />} />
+  </Route>
+  ```
+  (Dashboard stays accessible to non-staff too — see note below.)
+- Remove the in-page `<AdminNav />` render and the duplicate role gate/loading skeleton from each of those pages so the layout owns both.
+- Dashboard caveat: `/dashboard` is used by both clients and staff. Keep the layout's "must be staff" check scoped to `/admin/*` and `/dd-reports` only; for `/dashboard` the layout should render the nav only when `isStaff`, and never redirect non-staff away. Cleanest split: two layouts — `<StaffLayout>` (gated, wraps `/admin/*` + `/dd-reports`) and `<DashboardLayout>` (always allows, conditionally renders the nav for staff).
 
-No TypeScript compile errors surfaced at module load. (Reminder: I cannot run `tsc --noEmit` manually — the harness handles type-checking, and nothing failed it.)
+Result: clicking between Documents → Team → Audit swaps only the content area; the nav bar never unmounts.
 
-## 2. Preview / runtime console
+## 2. Add the Bug Center to the staff nav
 
-Loaded `/` in the preview. Console is clean except for known benign warnings:
+The Bug Center already exists at `/help` (`src/pages/Help.tsx:959` renders `<BugReports />`) but isn't linked from `AdminNav`.
 
-- `X-Frame-Options may only be set via HTTP header` — from a `<meta>` tag in `index.html`. Cosmetic browser warning, not an error.
-- Two React Router v6 → v7 future-flag deprecation warnings (`v7_relativeSplatPath`, `v7_startTransition`). Informational.
+- Add a new item to `ITEMS` in `src/components/admin/AdminNav.tsx`:
+  - `to: '/help'`, label `'Bugs'`, icon `Bug` (lucide), visible to all staff (`r.isStaff`).
+- Active-state check already handles non-`/dashboard` prefixes correctly.
 
-No runtime exceptions, no failed network requests, no red errors.
+(No change to `/help` itself — it stays public for clients submitting bugs.)
 
-## 3. Smoke-test plan (requires build mode + a logged-in preview session)
+## 3. Trim the Document queue blurb
 
-I cannot execute these from plan mode because they require live navigation + form submission and, for flow #1 and #3, an authenticated user in the preview. Approving this plan will let me run them.
+The "Bulk PDF feeds (the way Jaffa/DataTrace operate)…" copy is hard-coded in `src/pages/AdminDocuments.tsx:295-300`. It's internal context, not user-facing value.
 
-### Flow 1 — Generate DD report end-to-end
-- Navigate `/dd-reports`, open **Generate DD Report** dialog.
-- Fill address (e.g. `350 5th Ave, Manhattan`), prepared-for, scope = Entire Property.
-- Submit; watch network for `dd_reports` insert + `generate-dd-report` edge function call.
-- Pull `supabase--edge_function_logs` for `generate-dd-report` to confirm no 500s and snapshot writes succeed.
-- Verify the report row reaches `status='ready'` (not `error`).
+- Replace the paragraph with a single concise line: *"Tickets represent documents referenced in DD reports. Analysts fetch high-value PDFs (deeds, liens, vacate orders) from the agency portal and attach them here."*
+- Move the Jaffa/DataTrace rationale into a small `<Tooltip>` / info `(i)` popover next to the heading for anyone who wants the backstory, so it's discoverable but not shouting from the header.
 
-### Flow 2 — Order / lead-capture
-- `/order`: complete step 1 (address + scope), step 2 (email/name) → confirm `check_rate_limit` RPC fires and `order_leads` insert returns 201.
-- Trigger honeypot path by filling the hidden field via devtools → confirm silent drop.
-- Trigger `LeadCaptureDialog` from a marketing page → confirm `submit_lead` RPC returns `{ok:true}`.
+## Files touched
 
-### Flow 3 — Admin/staff views over `dd_reports` & `compliance_snapshots`
-- As admin: `/admin` (AdminReportManager) — list loads, opens a report, `compliance_snapshots` panel renders.
-- As non-admin authenticated user: hit the same routes and confirm `compliance_snapshots` SELECT returns 0 rows (post fix from prior PR) without throwing.
-- Check `AdminLeads`, `AdminAudit`, `AdminDocuments` — load without RLS errors in network tab.
+- `src/App.tsx` — wrap staff routes in layout(s)
+- `src/components/admin/AdminLayout.tsx` *(new)* — persistent staff shell
+- `src/components/admin/AdminNav.tsx` — add Bugs item
+- `src/pages/Dashboard.tsx`, `src/pages/AdminTeam.tsx`, `src/pages/AdminDocuments.tsx`, `src/pages/AdminAudit.tsx`, `src/pages/AdminLeads.tsx`, `src/pages/DDReports.tsx` — remove in-page `<AdminNav />` + duplicate role gate
+- `src/pages/AdminDocuments.tsx` — trim header copy, add tooltip
 
-### Reporting format I'll use
-For each flow: ✅/❌, the network call(s) inspected, edge-function log excerpt if relevant, and any console errors.
+## Out of scope
 
-## Bottom line so far
-Static build + initial preview load: **no errors**. To validate the three flows live I need build-mode access and (for flows 1 & 3) confirmation that you're logged into the preview as an admin user.
+- No DB / RLS / grant changes.
+- No changes to `/help` itself or to the BugReports component.
+- No visual redesign of the nav beyond the new item.

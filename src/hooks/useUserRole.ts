@@ -13,82 +13,92 @@ interface UserRoleState {
   isLoading: boolean;
 }
 
-export function useUserRole(): UserRoleState {
-  const [state, setState] = useState<UserRoleState>({
-    isAdmin: false,
-    isAnalyst: false,
-    isSales: false,
-    isStaff: false,
-    roles: [],
-    isLoading: true,
+const EMPTY: UserRoleState = {
+  isAdmin: false,
+  isAnalyst: false,
+  isSales: false,
+  isStaff: false,
+  roles: [],
+  isLoading: true,
+};
+
+// Module-level cache so navigations between pages don't replay the loading
+// skeleton on every mount. The first mount triggers the query; subsequent
+// mounts (e.g. when the user clicks a nav item and a new page renders) see
+// the resolved value synchronously and avoid the flicker.
+let cachedState: UserRoleState | null = null;
+const subscribers = new Set<(s: UserRoleState) => void>();
+let inflight: Promise<void> | null = null;
+
+const setCachedState = (next: UserRoleState) => {
+  cachedState = next;
+  subscribers.forEach((fn) => fn(next));
+};
+
+const loadRoles = async (): Promise<void> => {
+  if (inflight) return inflight;
+  inflight = (async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      setCachedState({ ...EMPTY, isLoading: false });
+      return;
+    }
+    const { data, error } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', session.user.id);
+    if (error) {
+      console.error('Error fetching roles:', error);
+      setCachedState({ ...EMPTY, isLoading: false });
+      return;
+    }
+    const roles = (data || []).map((r) => r.role as AppRole);
+    const isAdmin = roles.includes('admin');
+    const isAnalyst = roles.includes('analyst');
+    const isSales = roles.includes('sales');
+    setCachedState({
+      isAdmin,
+      isAnalyst,
+      isSales,
+      isStaff: isAdmin || isAnalyst || isSales,
+      roles,
+      isLoading: false,
+    });
+  })();
+  try {
+    await inflight;
+  } finally {
+    inflight = null;
+  }
+};
+
+// Reset cache on auth changes (sign in / sign out / token refresh) so we
+// don't serve stale roles to a different user on the same browser.
+let authListenerAttached = false;
+const ensureAuthListener = () => {
+  if (authListenerAttached) return;
+  authListenerAttached = true;
+  supabase.auth.onAuthStateChange(() => {
+    cachedState = null;
+    void loadRoles();
   });
+};
+
+export function useUserRole(): UserRoleState {
+  const [state, setState] = useState<UserRoleState>(() => cachedState ?? EMPTY);
 
   useEffect(() => {
-    let isMounted = true;
-
-    const checkRoles = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        if (isMounted) {
-          setState({
-            isAdmin: false,
-            isAnalyst: false,
-            isSales: false,
-            isStaff: false,
-            roles: [],
-            isLoading: false,
-          });
-        }
-        return;
-      }
-
-      // Query user_roles directly. Users can SELECT their own rows (RLS policy
-      // from migration 20260219090802); admins can also see all rows, which is
-      // fine here - we only care about the current user's roles.
-      const { data, error } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', session.user.id);
-
-      if (!isMounted) return;
-
-      if (error) {
-        console.error('Error fetching roles:', error);
-        setState({
-          isAdmin: false,
-          isAnalyst: false,
-          isSales: false,
-          isStaff: false,
-          roles: [],
-          isLoading: false,
-        });
-        return;
-      }
-
-      const roles = (data || []).map((r) => r.role as AppRole);
-      const isAdmin = roles.includes('admin');
-      const isAnalyst = roles.includes('analyst');
-      const isSales = roles.includes('sales');
-
-      setState({
-        isAdmin,
-        isAnalyst,
-        isSales,
-        isStaff: isAdmin || isAnalyst || isSales,
-        roles,
-        isLoading: false,
-      });
-    };
-
-    checkRoles();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
-      checkRoles();
-    });
-
+    ensureAuthListener();
+    subscribers.add(setState);
+    if (cachedState) {
+      // Make sure local state matches the latest cached value (handles
+      // the case where the cache was updated between render and effect).
+      setState(cachedState);
+    } else {
+      void loadRoles();
+    }
     return () => {
-      isMounted = false;
-      subscription.unsubscribe();
+      subscribers.delete(setState);
     };
   }, []);
 

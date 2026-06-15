@@ -24,7 +24,7 @@ import {
   Mail, Search, RefreshCw, Phone, Building2, MapPin, Tag, ExternalLink,
   Filter, CheckCircle2, XCircle, Clock, User, FileText, Briefcase,
 } from 'lucide-react';
-import AdminNav from '@/components/admin/AdminNav';
+// AdminNav is rendered by the parent AdminLayout route.
 import type { Database } from '@/integrations/supabase/types';
 
 type MarketingLead = Database['public']['Tables']['marketing_leads']['Row'];
@@ -349,7 +349,6 @@ const AdminLeads = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <AdminNav />
       <div className="container mx-auto px-4 py-8 max-w-7xl">
         <div className="flex items-start justify-between mb-6">
           <div>

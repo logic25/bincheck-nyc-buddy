@@ -24,7 +24,11 @@ import {
   FileText, ExternalLink, Upload, Paperclip, AlertTriangle,
   Loader2, CheckCircle2, Clock, UserCheck, Search, Download, Ban,
 } from 'lucide-react';
-import AdminNav from '@/components/admin/AdminNav';
+// AdminNav is rendered by the parent AdminLayout route.
+import {
+  Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
+} from '@/components/ui/tooltip';
+import { Info } from 'lucide-react';
 
 type DocStatus = 'pending' | 'needs_manual_pull' | 'in_progress' | 'attached' | 'unavailable' | 'not_applicable';
 
@@ -283,7 +287,6 @@ const AdminDocuments = () => {
 
   return (
     <>
-      <AdminNav />
       <div className="container mx-auto py-10 space-y-6">
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div className="flex items-center gap-3">
@@ -291,12 +294,32 @@ const AdminDocuments = () => {
             <Paperclip className="h-6 w-6 text-primary" />
           </div>
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Document queue</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl font-semibold tracking-tight">Document queue</h1>
+              <TooltipProvider delayDuration={150}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      aria-label="About the document queue"
+                      className="text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      <Info className="h-4 w-4" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs text-xs leading-relaxed">
+                    Bulk PDF feeds (the way Jaffa/DataTrace operate) require
+                    an agency data-services agreement. Until those are in
+                    place, this queue is the bridge — analysts pull PDFs
+                    on demand from the agency portal.
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
             <p className="text-sm text-muted-foreground max-w-2xl">
-              Tickets here represent documents referenced in DD reports. For high-value items (deeds,
-              liens, vacate orders) an analyst can fetch the PDF via the agency portal and attach it.
-              Bulk PDF feeds (the way Jaffa/DataTrace operate) require an agency data-services
-              agreement — these tickets are the bridge until those agreements are in place.
+              Tickets represent documents referenced in DD reports. Analysts
+              fetch high-value PDFs (deeds, liens, vacate orders) from the
+              agency portal and attach them here.
             </p>
           </div>
         </div>
