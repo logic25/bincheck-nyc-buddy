@@ -909,6 +909,28 @@ async function fetchApplications(bin: string): Promise<any[]> {
         permit_status: a.permit_status || null, filing_reason: a.filing_reason || null,
       }));
       applications.push(...nowAppsLive);
+
+      // DOB NOW: Electrical Permits — separate dataset.
+      const elecAppsLive = await fetchNYCData(NYC_ENDPOINTS.DOB_NOW_ELECTRICAL, { "bin": bin, "$limit": "200" }, 'DOB-NOW-ELEC');
+      const elecNormLive = elecAppsLive.map((a: any) => ({
+        id: a.job_filing_number || a.filing_number || a.application_number || null,
+        source: "DOB_NOW_ELEC",
+        application_number: a.job_filing_number || a.filing_number || a.application_number || null,
+        application_type: a.work_type || a.filing_type || "Electrical",
+        work_type: a.work_type || null,
+        job_description: a.job_description || a.work_description || null,
+        status: a.filing_status || a.permit_status || a.current_status || null,
+        filing_date: a.filing_date || null,
+        floor: a.work_on_floor || null,
+        apartment: a.apt_condo_no_s || null,
+        applicant_name: a.applicant_first_name && a.applicant_last_name
+          ? `${a.applicant_first_name} ${a.applicant_last_name}`
+          : a.applicant_business_name || null,
+        issued_date: a.issued_date || null,
+        permit_status: a.permit_status || null,
+      }));
+      applications.push(...elecNormLive);
+
       return applications;
     }
     // liveApps === null means live fetch failed — fall through to Socrata below
