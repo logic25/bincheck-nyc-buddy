@@ -188,6 +188,7 @@ const NYC_ENDPOINTS = {
   ECB_VIOLATIONS: "https://data.cityofnewyork.us/resource/6bgk-3dad.json",
   HPD_VIOLATIONS: "https://data.cityofnewyork.us/resource/wvxf-dwi5.json",
   DOB_NOW: "https://data.cityofnewyork.us/resource/rbx6-tga4.json",
+  DOB_NOW_ELECTRICAL: "https://data.cityofnewyork.us/resource/dm9a-ab7w.json", // DOB NOW: Electrical Permit Applications
   GEOSEARCH: "https://geosearch.planninglabs.nyc/v2/search",
   OATH_HEARINGS: "https://data.cityofnewyork.us/resource/jz4z-kudi.json",
   FDNY_VIOLATIONS: "https://data.cityofnewyork.us/resource/avgm-ztsb.json",
