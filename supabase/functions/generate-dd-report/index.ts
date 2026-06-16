@@ -188,6 +188,7 @@ const NYC_ENDPOINTS = {
   ECB_VIOLATIONS: "https://data.cityofnewyork.us/resource/6bgk-3dad.json",
   HPD_VIOLATIONS: "https://data.cityofnewyork.us/resource/wvxf-dwi5.json",
   DOB_NOW: "https://data.cityofnewyork.us/resource/rbx6-tga4.json",
+  DOB_NOW_ELECTRICAL: "https://data.cityofnewyork.us/resource/dm9a-ab7w.json", // DOB NOW: Electrical Permit Applications
   GEOSEARCH: "https://geosearch.planninglabs.nyc/v2/search",
   OATH_HEARINGS: "https://data.cityofnewyork.us/resource/jz4z-kudi.json",
   FDNY_VIOLATIONS: "https://data.cityofnewyork.us/resource/avgm-ztsb.json",
@@ -908,6 +909,28 @@ async function fetchApplications(bin: string): Promise<any[]> {
         permit_status: a.permit_status || null, filing_reason: a.filing_reason || null,
       }));
       applications.push(...nowAppsLive);
+
+      // DOB NOW: Electrical Permits — separate dataset.
+      const elecAppsLive = await fetchNYCData(NYC_ENDPOINTS.DOB_NOW_ELECTRICAL, { "bin": bin, "$limit": "200" }, 'DOB-NOW-ELEC');
+      const elecNormLive = elecAppsLive.map((a: any) => ({
+        id: a.job_filing_number || a.filing_number || a.application_number || null,
+        source: "DOB_NOW_ELEC",
+        application_number: a.job_filing_number || a.filing_number || a.application_number || null,
+        application_type: a.work_type || a.filing_type || "Electrical",
+        work_type: a.work_type || null,
+        job_description: a.job_description || a.work_description || null,
+        status: a.filing_status || a.permit_status || a.current_status || null,
+        filing_date: a.filing_date || null,
+        floor: a.work_on_floor || null,
+        apartment: a.apt_condo_no_s || null,
+        applicant_name: a.applicant_first_name && a.applicant_last_name
+          ? `${a.applicant_first_name} ${a.applicant_last_name}`
+          : a.applicant_business_name || null,
+        issued_date: a.issued_date || null,
+        permit_status: a.permit_status || null,
+      }));
+      applications.push(...elecNormLive);
+
       return applications;
     }
     // liveApps === null means live fetch failed — fall through to Socrata below
@@ -967,6 +990,28 @@ async function fetchApplications(bin: string): Promise<any[]> {
     permit_status: a.permit_status || null, filing_reason: a.filing_reason || null,
   }));
   applications.push(...nowApps);
+
+  // DOB NOW: Electrical Permits — separate dataset, otherwise these never surface
+  // in the Applications tab even though they're filed under the same BIN.
+  const elecApps = await fetchNYCData(NYC_ENDPOINTS.DOB_NOW_ELECTRICAL, { "bin": bin, "$limit": "200" }, 'DOB-NOW-ELEC');
+  const elecNorm = elecApps.map((a: any) => ({
+    id: a.job_filing_number || a.filing_number || a.application_number || null,
+    source: "DOB_NOW_ELEC",
+    application_number: a.job_filing_number || a.filing_number || a.application_number || null,
+    application_type: a.work_type || a.filing_type || "Electrical",
+    work_type: a.work_type || null,
+    job_description: a.job_description || a.work_description || null,
+    status: a.filing_status || a.permit_status || a.current_status || null,
+    filing_date: a.filing_date || null,
+    floor: a.work_on_floor || null,
+    apartment: a.apt_condo_no_s || null,
+    applicant_name: a.applicant_first_name && a.applicant_last_name
+      ? `${a.applicant_first_name} ${a.applicant_last_name}`
+      : a.applicant_business_name || null,
+    issued_date: a.issued_date || null,
+    permit_status: a.permit_status || null,
+  }));
+  applications.push(...elecNorm);
 
   return applications;
 }
