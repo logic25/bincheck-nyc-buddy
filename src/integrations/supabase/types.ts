@@ -480,6 +480,7 @@ export type Database = {
           dof_charges_data: Json | null
           dof_fetched_at: string | null
           dof_source: string | null
+          error_message: string | null
           external_links: Json | null
           fdny_bfp_data: Json | null
           fdny_direct_data: Json | null
@@ -543,6 +544,7 @@ export type Database = {
           dof_charges_data?: Json | null
           dof_fetched_at?: string | null
           dof_source?: string | null
+          error_message?: string | null
           external_links?: Json | null
           fdny_bfp_data?: Json | null
           fdny_direct_data?: Json | null
@@ -606,6 +608,7 @@ export type Database = {
           dof_charges_data?: Json | null
           dof_fetched_at?: string | null
           dof_source?: string | null
+          error_message?: string | null
           external_links?: Json | null
           fdny_bfp_data?: Json | null
           fdny_direct_data?: Json | null

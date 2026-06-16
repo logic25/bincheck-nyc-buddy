@@ -2361,6 +2361,11 @@ serve(async (req) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
+  // Hoisted so the top-level catch can persist the failure reason to dd_reports.
+  let capturedReportId: string | null = null;
+  let capturedSupabaseUrl: string | null = null;
+  let capturedServiceKey: string | null = null;
+
   try {
     // Clear error tracker for this request
     agencyErrors.clear();
@@ -2373,6 +2378,8 @@ serve(async (req) => {
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
+    capturedSupabaseUrl = supabaseUrl;
+    capturedServiceKey = supabaseServiceKey;
 
     const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, { global: { headers: { Authorization: authHeader } } });
     const token = authHeader.replace("Bearer ", "");
@@ -2384,6 +2391,7 @@ serve(async (req) => {
     const userId = claimsData.user.id;
     const requestBody = await req.json();
     const { reportId, address, customerConcern } = requestBody;
+    capturedReportId = reportId ?? null;
 
     // ── date_down action — rerun DOF PTAPS + DEP CIS only ($49 add-on) ────────────────
     if (requestBody?.action === "date_down") {
@@ -2489,7 +2497,7 @@ serve(async (req) => {
     }
 
     if (!bin && !bbl) {
-      await supabase.from('dd_reports').update({ status: 'error', ai_analysis: 'Could not find property. Please verify the address includes the borough.' }).eq('id', reportId);
+      await supabase.from('dd_reports').update({ status: 'error', error_message: 'Could not find property. Please verify the address includes the borough.', ai_analysis: 'Could not find property. Please verify the address includes the borough.' }).eq('id', reportId);
       return new Response(JSON.stringify({ error: "Property not found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
@@ -2884,8 +2892,21 @@ serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
     console.error("Error generating DD report:", error);
-    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }), {
+    // Persist the failure reason so staff can diagnose without digging through edge logs.
+    if (capturedReportId && capturedSupabaseUrl && capturedServiceKey) {
+      try {
+        const sb = createClient(capturedSupabaseUrl, capturedServiceKey);
+        await sb.from('dd_reports').update({
+          status: 'error',
+          error_message: message.substring(0, 2000),
+        }).eq('id', capturedReportId);
+      } catch (persistErr) {
+        console.warn('Failed to persist error_message to dd_reports:', persistErr);
+      }
+    }
+    return new Response(JSON.stringify({ error: message }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }

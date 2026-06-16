@@ -96,7 +96,7 @@ const CreateDDReportDialog = ({ open, onOpenChange, onSuccess }: CreateDDReportD
         console.error('Edge function error details:', genData, genError);
         await supabase
           .from('dd_reports')
-          .update({ status: 'error' } as any)
+          .update({ status: 'error', error_message: (errorMessage || 'Failed to generate report').substring(0, 2000) } as any)
           .eq('id', (report as any).id);
         throw new Error(errorMessage || 'Failed to generate report');
       }
@@ -142,7 +142,7 @@ const CreateDDReportDialog = ({ open, onOpenChange, onSuccess }: CreateDDReportD
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[500px] max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileText className="w-5 h-5" />
