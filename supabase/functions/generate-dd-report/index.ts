@@ -2892,8 +2892,21 @@ serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
     console.error("Error generating DD report:", error);
-    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }), {
+    // Persist the failure reason so staff can diagnose without digging through edge logs.
+    if (capturedReportId && capturedSupabaseUrl && capturedServiceKey) {
+      try {
+        const sb = createClient(capturedSupabaseUrl, capturedServiceKey);
+        await sb.from('dd_reports').update({
+          status: 'error',
+          error_message: message.substring(0, 2000),
+        }).eq('id', capturedReportId);
+      } catch (persistErr) {
+        console.warn('Failed to persist error_message to dd_reports:', persistErr);
+      }
+    }
+    return new Response(JSON.stringify({ error: message }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
