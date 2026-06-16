@@ -38,11 +38,11 @@ const CloseoutRequestDialog = ({
       if (!contactEmail && user.email) setContactEmail(user.email);
       const { data: profile } = await supabase
         .from('profiles')
-        .select('full_name, phone')
+        .select("display_name, phone")
         .eq('user_id', user.id)
         .maybeSingle();
       if (profile) {
-        if (!contactName && (profile as any).full_name) setContactName((profile as any).full_name);
+        if (!contactName && (profile as any).display_name) setContactName((profile as any).display_name);
         if (!contactPhone && (profile as any).phone) setContactPhone((profile as any).phone);
       }
     })();
