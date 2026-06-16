@@ -2497,7 +2497,7 @@ serve(async (req) => {
     }
 
     if (!bin && !bbl) {
-      await supabase.from('dd_reports').update({ status: 'error', ai_analysis: 'Could not find property. Please verify the address includes the borough.' }).eq('id', reportId);
+      await supabase.from('dd_reports').update({ status: 'error', error_message: 'Could not find property. Please verify the address includes the borough.', ai_analysis: 'Could not find property. Please verify the address includes the borough.' }).eq('id', reportId);
       return new Response(JSON.stringify({ error: "Property not found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
