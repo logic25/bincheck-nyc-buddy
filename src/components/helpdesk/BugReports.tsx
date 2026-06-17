@@ -113,6 +113,35 @@ export function BugReports() {
     },
   });
 
+  // Fetch reporter display names (admin-visible). Falls back to short user_id.
+  const reporterIds = Array.from(new Set(reports.map((r: any) => r.user_id).filter(Boolean)));
+  const { data: reporterProfiles = {} } = useQuery({
+    queryKey: ["bug-reporter-profiles", reporterIds.sort().join(",")],
+    queryFn: async () => {
+      if (reporterIds.length === 0) return {};
+      const { data } = await supabase
+        .from("profiles")
+        .select("user_id, display_name")
+        .in("user_id", reporterIds as string[]);
+      const map: Record<string, string> = {};
+      for (const p of (data as any[]) || []) {
+        if (p.display_name) map[p.user_id] = p.display_name;
+      }
+      // Try to enrich with email for admins via RPC (safe: RPC enforces admin).
+      if (isAdmin) {
+        const { data: users } = await supabase.rpc("get_users_with_email" as any);
+        for (const u of (users as any[]) || []) {
+          if (!map[u.user_id] && u.email) map[u.user_id] = u.email;
+          else if (map[u.user_id] && u.email && isAdmin) map[u.user_id] = `${map[u.user_id]} (${u.email})`;
+        }
+      }
+      return map;
+    },
+    enabled: reporterIds.length > 0,
+  });
+  const reporterLabel = (uid?: string | null) =>
+    (uid && reporterProfiles[uid]) || (uid ? `User ${uid.slice(0, 8)}` : "Unknown");
+
   // Fetch comments for selected bug
   const { data: comments = [] } = useQuery({
     queryKey: ["bug-comments", selectedBug?.id],
