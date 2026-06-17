@@ -596,6 +596,7 @@ export function BugReports() {
               <TableRow>
                 <TableHead className="w-10"></TableHead>
                 <TableHead>Title</TableHead>
+                <TableHead className="w-40">Reporter</TableHead>
                 <TableHead className="w-24">Priority</TableHead>
                 <TableHead className="w-16">Media</TableHead>
                 <TableHead className="w-24">Date</TableHead>
