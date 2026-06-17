@@ -113,6 +113,35 @@ export function BugReports() {
     },
   });
 
+  // Fetch reporter display names (admin-visible). Falls back to short user_id.
+  const reporterIds = Array.from(new Set(reports.map((r: any) => r.user_id).filter(Boolean)));
+  const { data: reporterProfiles = {} } = useQuery({
+    queryKey: ["bug-reporter-profiles", reporterIds.sort().join(",")],
+    queryFn: async () => {
+      if (reporterIds.length === 0) return {};
+      const { data } = await supabase
+        .from("profiles")
+        .select("user_id, display_name")
+        .in("user_id", reporterIds as string[]);
+      const map: Record<string, string> = {};
+      for (const p of (data as any[]) || []) {
+        if (p.display_name) map[p.user_id] = p.display_name;
+      }
+      // Try to enrich with email for admins via RPC (safe: RPC enforces admin).
+      if (isAdmin) {
+        const { data: users } = await supabase.rpc("get_users_with_email" as any);
+        for (const u of (users as any[]) || []) {
+          if (!map[u.user_id] && u.email) map[u.user_id] = u.email;
+          else if (map[u.user_id] && u.email && isAdmin) map[u.user_id] = `${map[u.user_id]} (${u.email})`;
+        }
+      }
+      return map;
+    },
+    enabled: reporterIds.length > 0,
+  });
+  const reporterLabel = (uid?: string | null) =>
+    (uid && reporterProfiles[uid]) || (uid ? `User ${uid.slice(0, 8)}` : "Unknown");
+
   // Fetch comments for selected bug
   const { data: comments = [] } = useQuery({
     queryKey: ["bug-comments", selectedBug?.id],
@@ -567,6 +596,7 @@ export function BugReports() {
               <TableRow>
                 <TableHead className="w-10"></TableHead>
                 <TableHead>Title</TableHead>
+                <TableHead className="w-40">Reporter</TableHead>
                 <TableHead className="w-24">Priority</TableHead>
                 <TableHead className="w-16">Media</TableHead>
                 <TableHead className="w-24">Date</TableHead>
@@ -581,6 +611,9 @@ export function BugReports() {
                     <TableCell>{statusIcon(bug.status)}</TableCell>
                     <TableCell>
                       <span className="font-medium text-sm">{bug.title}</span>
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground truncate max-w-[160px]" title={reporterLabel(bug.user_id)}>
+                      {reporterLabel(bug.user_id)}
                     </TableCell>
                     <TableCell>
                       <Badge variant={priorityVariant(bug.priority)} className="text-xs">{bug.priority}</Badge>
@@ -679,6 +712,10 @@ export function BugReports() {
                   <div>
                     <Label className="text-xs text-muted-foreground">Reported</Label>
                     <p className="mt-1 text-sm">{format(new Date(selectedBug.created_at), "MMM d, yyyy")}</p>
+                  </div>
+                  <div className="col-span-2">
+                    <Label className="text-xs text-muted-foreground">Reporter</Label>
+                    <p className="mt-1 text-sm break-all">{reporterLabel(selectedBug.user_id)}</p>
                   </div>
                 </div>
 
