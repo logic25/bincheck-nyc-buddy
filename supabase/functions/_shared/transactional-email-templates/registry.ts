@@ -14,6 +14,7 @@ import { template as gleLeadNotification } from './gle-lead-notification.tsx'
 import { template as clientRequestConfirmation } from './client-request-confirmation.tsx'
 import { template as marketingLeadConfirmation } from './marketing-lead-confirmation.tsx'
 import { template as orderConfirmation } from './order-confirmation.tsx'
+import { template as bugStatusUpdate } from './bug-status-update.tsx'
 
 export const TEMPLATES: Record<string, TemplateEntry> = {
   'report-ready': reportReady,
@@ -21,4 +22,5 @@ export const TEMPLATES: Record<string, TemplateEntry> = {
   'client-request-confirmation': clientRequestConfirmation,
   'marketing-lead-confirmation': marketingLeadConfirmation,
   'order-confirmation': orderConfirmation,
+  'bug-status-update': bugStatusUpdate,
 }
