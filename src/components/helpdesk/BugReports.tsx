@@ -252,6 +252,18 @@ export function BugReports() {
         attachments: attachmentData,
       });
       if (error) throw error;
+
+      // Notify reporter (skips silently if commenter is the reporter)
+      if (selectedBug.user_id && selectedBug.user_id !== currentUser.id) {
+        supabase.functions.invoke("notify-bug-update", {
+          body: {
+            bugId: selectedBug.id,
+            eventType: "reply",
+            message,
+            actorUserId: currentUser.id,
+          },
+        }).catch((e) => console.warn("notify-bug-update failed:", e));
+      }
     },
     onSuccess: () => {
       setNewComment("");
@@ -318,8 +330,24 @@ export function BugReports() {
     if (isNewlyResolved) updates.resolved_at = new Date().toISOString();
     if (editStatus !== "resolved") updates.resolved_at = null;
 
+    const statusChanged = editStatus !== selectedBug.status;
+    const reporterId = selectedBug.user_id;
+    const actorId = currentUser?.id;
+    const notifyMessage = needsComment ? statusComment.trim() : undefined;
+
     updateBug.mutate({ id: selectedBug.id, updates }, {
       onSuccess: () => {
+        if (statusChanged && reporterId && reporterId !== actorId) {
+          supabase.functions.invoke("notify-bug-update", {
+            body: {
+              bugId: selectedBug.id,
+              eventType: "status_change",
+              newStatus: editStatus,
+              message: notifyMessage,
+              actorUserId: actorId,
+            },
+          }).catch((e) => console.warn("notify-bug-update failed:", e));
+        }
         setSelectedBug(null);
         savingRef.current = false;
       },
