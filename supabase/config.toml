@@ -35,6 +35,9 @@ verify_jwt = true
 [functions.send-transactional-email]
 verify_jwt = true
 
+[functions.notify-bug-update]
+verify_jwt = true
+
 # Admin-only functions (verify_jwt + requireAdmin() in code)
 [functions.analyze-telemetry]
 verify_jwt = true
