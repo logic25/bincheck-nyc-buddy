@@ -713,6 +713,10 @@ export function BugReports() {
                     <Label className="text-xs text-muted-foreground">Reported</Label>
                     <p className="mt-1 text-sm">{format(new Date(selectedBug.created_at), "MMM d, yyyy")}</p>
                   </div>
+                  <div className="col-span-2">
+                    <Label className="text-xs text-muted-foreground">Reporter</Label>
+                    <p className="mt-1 text-sm break-all">{reporterLabel(selectedBug.user_id)}</p>
+                  </div>
                 </div>
 
                 {/* Comments Thread */}
