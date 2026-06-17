@@ -1,0 +1,1 @@
+UPDATE public.bug_reports SET status='resolved', updated_at=now() WHERE id IN ('5e4c0bde-ca43-4760-a793-a2fe12f1b18b','c740578c-6ec9-4cf8-8738-c7ccf9414783');
