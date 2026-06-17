@@ -612,6 +612,9 @@ export function BugReports() {
                     <TableCell>
                       <span className="font-medium text-sm">{bug.title}</span>
                     </TableCell>
+                    <TableCell className="text-xs text-muted-foreground truncate max-w-[160px]" title={reporterLabel(bug.user_id)}>
+                      {reporterLabel(bug.user_id)}
+                    </TableCell>
                     <TableCell>
                       <Badge variant={priorityVariant(bug.priority)} className="text-xs">{bug.priority}</Badge>
                     </TableCell>
