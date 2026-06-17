@@ -1,22 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-
-const ALLOWED_ORIGINS = [
-  'https://binchecknyc.com',
-  'https://id-preview--5687520e-43de-4827-98f8-73a2100ce635.lovable.app',
-  'http://localhost:5173',
-];
-
-function getCorsHeaders(req: Request) {
-  const origin = req.headers.get('origin') || '';
-  const isAllowed = ALLOWED_ORIGINS.includes(origin) ||
-    /^https:\/\/.*\.lovable\.app$/.test(origin) ||
-    /^https:\/\/.*\.lovableproject\.com$/.test(origin);
-  const corsOrigin = isAllowed ? origin : ALLOWED_ORIGINS[0];
-  return {
-    'Access-Control-Allow-Origin': corsOrigin,
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  };
-}
+import { getCorsHeaders } from "../_shared/cors.ts";
 
 // In-memory rate limiter: 20 requests per IP per hour
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
