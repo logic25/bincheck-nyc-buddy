@@ -502,6 +502,9 @@ export type Database = {
           report_date: string
           requested_by_role: string | null
           requested_delivery_date: string | null
+          resolution_confidence: string | null
+          resolution_source: string | null
+          resolution_warnings: Json | null
           rush_requested: boolean | null
           scope_of_work: string | null
           sent_at: string | null
@@ -566,6 +569,9 @@ export type Database = {
           report_date?: string
           requested_by_role?: string | null
           requested_delivery_date?: string | null
+          resolution_confidence?: string | null
+          resolution_source?: string | null
+          resolution_warnings?: Json | null
           rush_requested?: boolean | null
           scope_of_work?: string | null
           sent_at?: string | null
@@ -630,6 +636,9 @@ export type Database = {
           report_date?: string
           requested_by_role?: string | null
           requested_delivery_date?: string | null
+          resolution_confidence?: string | null
+          resolution_source?: string | null
+          resolution_warnings?: Json | null
           rush_requested?: boolean | null
           scope_of_work?: string | null
           sent_at?: string | null
