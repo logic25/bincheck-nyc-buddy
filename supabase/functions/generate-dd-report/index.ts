@@ -296,7 +296,7 @@ async function fetchNYCData(endpoint: string, params: Record<string, string>, ag
   }
 }
 
-async function geoSearchAddress(address: string): Promise<{ bin: string; bbl: string; label: string } | null> {
+async function geoSearchAddress(address: string): Promise<{ bin: string; bbl: string; label: string; candidateCount: number; confidence: number } | null> {
   try {
     const url = new URL(NYC_ENDPOINTS.GEOSEARCH);
     url.searchParams.set('text', address);
@@ -305,10 +305,18 @@ async function geoSearchAddress(address: string): Promise<{ bin: string; bbl: st
     if (!response.ok) return null;
     const data = await response.json();
     if (!data.features || data.features.length === 0) return null;
-    const props = data.features[0].properties || {};
+    const feat = data.features[0];
+    const props = feat.properties || {};
     const bin = props.pad_bin || props.addendum?.pad?.bin || '';
     const bbl = props.pad_bbl || props.addendum?.pad?.bbl || '';
-    return { bin: bin.toString(), bbl: bbl.toString(), label: props.label || address };
+    const confidence = typeof props.confidence === 'number' ? props.confidence : 0;
+    return {
+      bin: bin.toString(),
+      bbl: bbl.toString(),
+      label: props.label || address,
+      candidateCount: data.features.length,
+      confidence,
+    };
   } catch (error) {
     console.error('GeoSearch error:', error);
     return null;
@@ -2521,14 +2529,29 @@ serve(async (req) => {
     }).eq('id', reportId);
 
     let bin = '', bbl = '', resolvedAddress = address;
+    let resolutionSource: 'geosearch' | 'dob_jobs_like_fallback' | 'pluto_bbl_only' | 'manual_bin' | null = null;
+    let resolutionConfidence: 'exact' | 'fuzzy' | 'fallback' | 'partial' | null = null;
+    const resolutionWarnings: string[] = [];
+
     const geoResult = await geoSearchAddress(address);
-    if (geoResult) {
+    if (geoResult && (geoResult.bin || geoResult.bbl)) {
       bin = geoResult.bin; bbl = geoResult.bbl; resolvedAddress = geoResult.label;
+      resolutionSource = 'geosearch';
+      const ambiguous = geoResult.candidateCount > 1 || (geoResult.confidence > 0 && geoResult.confidence < 1);
+      resolutionConfidence = ambiguous ? 'fuzzy' : 'exact';
+      if (geoResult.candidateCount > 1) {
+        resolutionWarnings.push(`GeoSearch returned ${geoResult.candidateCount} candidates; selected top match "${geoResult.label}".`);
+      }
     } else {
       const parsed = parseAddress(address);
       if (parsed) {
         const dobResult = await lookupBINFromDOBJobs(parsed.houseNumber, parsed.streetName, parsed.borough);
-        if (dobResult) { bin = dobResult.bin; bbl = dobResult.bbl; }
+        if (dobResult) {
+          bin = dobResult.bin; bbl = dobResult.bbl;
+          resolutionSource = 'dob_jobs_like_fallback';
+          resolutionConfidence = 'fallback';
+          resolutionWarnings.push(`Address resolved by DOB Jobs LIKE-fallback on "${parsed.houseNumber} ${parsed.streetName}" — street match may be partial.`);
+        }
       }
     }
 
@@ -2541,8 +2564,22 @@ serve(async (req) => {
       }
     }
 
+    // If we ended up with a BBL but still no BIN, downgrade to PLUTO-only.
+    if (bbl && !bin) {
+      resolutionSource = 'pluto_bbl_only';
+      resolutionConfidence = 'partial';
+      resolutionWarnings.push('BIN unavailable — resolved by tax lot (BBL) only. DOB BIN-keyed datasets may be incomplete.');
+    }
+
     if (!bin && !bbl) {
-      await supabase.from('dd_reports').update({ status: 'error', error_message: 'Could not find property. Please verify the address includes the borough.', ai_analysis: 'Could not find property. Please verify the address includes the borough.' }).eq('id', reportId);
+      await supabase.from('dd_reports').update({
+        status: 'error',
+        error_message: 'Could not find property. Please verify the address includes the borough.',
+        ai_analysis: 'Could not find property. Please verify the address includes the borough.',
+        resolution_source: null,
+        resolution_confidence: null,
+        resolution_warnings: ['Address could not be resolved by GeoSearch, DOB Jobs fallback, or PLUTO.'],
+      }).eq('id', reportId);
       return new Response(JSON.stringify({ error: "Property not found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
@@ -2750,6 +2787,9 @@ serve(async (req) => {
       dof_fetched_at: dofFetchedAt,
       dep_fetched_at: depFetchedAt,
       status: 'pending_review',
+      resolution_source: resolutionSource,
+      resolution_confidence: resolutionConfidence,
+      resolution_warnings: resolutionWarnings,
     }).eq('id', reportId);
 
     if (updateError) throw updateError;
