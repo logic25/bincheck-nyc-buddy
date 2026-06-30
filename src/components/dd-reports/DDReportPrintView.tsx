@@ -55,6 +55,9 @@ interface DDReportPrintViewProps {
     subject_unit?: string | null;
     scope_of_work?: string | null;
     reviewer_name?: string | null;
+    resolution_source?: string | null;
+    resolution_confidence?: string | null;
+    resolution_warnings?: string[] | null;
   };
   userProfile?: UserProfile;
 }
@@ -1852,6 +1855,47 @@ const DDReportPrintView = ({ report, userProfile }: DDReportPrintViewProps) => {
           regarding the accuracy or completeness of underlying government data. All findings should be
           independently verified with the relevant city agencies prior to reliance in any transaction.
         </p>
+
+        {/* Data resolution provenance */}
+        {(() => {
+          const src = report.resolution_source;
+          const conf = report.resolution_confidence;
+          const warnings = Array.isArray(report.resolution_warnings) ? report.resolution_warnings : [];
+          if (!src && !conf && warnings.length === 0) return null;
+
+          let line = '';
+          let warn = false;
+          if (src === 'geosearch' && conf === 'exact') {
+            line = 'Address resolved via NYC GeoSearch (exact match).';
+          } else if (src === 'dob_jobs_like_fallback' || conf === 'fuzzy') {
+            line = 'Address resolved via DOB Jobs fallback — please verify the building name and address match the subject property.';
+            warn = true;
+          } else if (src === 'pluto_bbl_only') {
+            line = 'Resolved by tax lot only — BIN was unavailable. DOB BIN-keyed data (BIS jobs, DOB violations) may be incomplete for this report.';
+            warn = true;
+          } else if (src === 'manual_bin') {
+            line = 'Address resolved by manual BIN entry.';
+          } else if (src) {
+            line = `Address resolution: ${src}${conf ? ` (${conf})` : ''}.`;
+          }
+
+          return (
+            <div style={{ marginTop: '10px', fontSize: '10px', color: warn ? '#9a3412' : '#6b7280', lineHeight: '1.6' }}>
+              <p style={{ margin: 0 }}>
+                <strong>Data resolution:</strong>{' '}
+                {warn && <span style={{ color: '#d97706', marginRight: '4px' }}>⚠</span>}
+                {line}
+              </p>
+              {warnings.length > 0 && (
+                <ul style={{ margin: '4px 0 0 16px', padding: 0, color: '#6b7280' }}>
+                  {warnings.map((w, i) => (
+                    <li key={i} style={{ fontSize: '9.5px', lineHeight: '1.5' }}>{w}</li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          );
+        })()}
         <div style={{ textAlign: 'center', marginTop: '16px', paddingTop: '12px', borderTop: '1px solid #e5e7eb' }}>
           <p style={{ fontSize: '11px', fontWeight: 600, color: '#9ca3af' }}>
             © {new Date().getFullYear()} BinCheckNYC{userProfile?.company_name ? ` · ${userProfile.company_name}` : ''}
